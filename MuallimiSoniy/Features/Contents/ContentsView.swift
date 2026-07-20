@@ -12,12 +12,20 @@ struct ContentsView: View {
                 ForEach(store.outline) { chapter in
                     Section(chapter.chapter.title.text(.uzLatn)) {
                         ForEach(chapter.lessons) { item in
-                            LessonRow(item: item)
+                            // Opens the reader at this lesson's first page.
+                            // `globalStart` is 1-based; the reader takes a
+                            // 0-based global index.
+                            NavigationLink(value: ReaderEntry.global(index: item.globalStart - 1)) {
+                                LessonRow(item: item)
+                            }
                         }
                     }
                 }
             }
             .navigationTitle("Darslar")
+            .navigationDestination(for: ReaderEntry.self) { entry in
+                ReaderView(entry: entry)
+            }
         }
     }
 }
