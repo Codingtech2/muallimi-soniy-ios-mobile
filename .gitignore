@@ -33,3 +33,6 @@ Media/audio/
 # Fonts va book.json esa bundle qilinadi (kichik) — ular ignore QILINMAYDI.
 !MuallimiSoniy/Resources/Fonts/*.ttf
 !MuallimiSoniy/Resources/Fonts/*.otf
+
+# QA screenshots (local only)
+.qa-results/

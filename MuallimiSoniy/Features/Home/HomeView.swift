@@ -23,6 +23,19 @@ struct HomeView: View {
                     .padding(.horizontal, 16)
                     .background(.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
 
+                // TEMP (M2 verification) — pushes the primitives/font sample
+                // screen. Remove once the real reader lands in M4.
+                NavigationLink {
+                    PrimitivesPreviewView()
+                } label: {
+                    Label("Namuna (primitivlar)", systemImage: "eye.fill")
+                        .font(.headline)
+                        .foregroundStyle(.green)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 16))
+                }
+
                 Spacer()
             }
             .padding()

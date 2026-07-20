@@ -13,6 +13,12 @@ struct MuallimiSoniyApp: App {
     /// down the view tree via the Observation environment.
     @State private var store = ContentStore()
 
+    init() {
+        // Register the bundled Arabic fonts with CoreText before any view
+        // renders, so `arabicFont(_:)` / `madArabicFont(_:)` resolve.
+        FontRegistrar.register()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootTabView()
