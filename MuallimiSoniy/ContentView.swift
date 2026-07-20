@@ -2,23 +2,7 @@
 //  ContentView.swift
 //  MuallimiSoniy
 //
-//  Created by Coding Tech on 20/07/26.
+//  Replaced by RootTabView (see App/RootTabView.swift).
+//  Intentionally empty: no View and no @main live here so the project keeps
+//  exactly one entry point (MuallimiSoniyApp.swift).
 //
-
-import SwiftUI
-
-struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
-
-#Preview {
-    ContentView()
-}

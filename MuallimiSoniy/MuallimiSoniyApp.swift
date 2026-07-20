@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct MuallimiSoniyApp: App {
+    /// Single source of truth for bundled content, created once and shared
+    /// down the view tree via the Observation environment.
+    @State private var store = ContentStore()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootTabView()
+                .environment(store)
+                .tint(.green)
         }
     }
 }

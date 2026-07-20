@@ -1,0 +1,35 @@
+# === Xcode / Swift ===
+## User settings & state
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+
+## Build products & derived data
+DerivedData/
+build/
+.build/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Swift Package Manager
+.swiftpm/
+Packages/
+Package.resolved
+
+## macOS
+.DS_Store
+*.swp
+*~.nib
+
+# === Muallimi Soniy — media (GitHub Releases orqali tarqatiladi) ===
+# Audio in-app'ga bundle QILINMAYDI — birinchi ochilishda Releases'dan yuklanadi.
+# Local staging papka (agar audio zip tayyorlansa) commit qilinmasin:
+Media/audio/
+*.mp3
+# Fonts va book.json esa bundle qilinadi (kichik) — ular ignore QILINMAYDI.
+!MuallimiSoniy/Resources/Fonts/*.ttf
+!MuallimiSoniy/Resources/Fonts/*.otf

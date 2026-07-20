@@ -1,0 +1,196 @@
+{
+  "defaults": {
+    "repeatCount": 1,
+    "speed": 1,
+    "locale": "uz-latn",
+    "theme": "light",
+    "fontSize": "medium",
+    "loopMode": false,
+    "sequentialMode": false
+  },
+  "constraints": {
+    "repeatCount": {
+      "min": 1,
+      "max": 10
+    },
+    "playbackSpeeds": [
+      0.5,
+      1,
+      1.5
+    ],
+    "locales": [
+      "uz-latn",
+      "uz-cyrl",
+      "ru",
+      "en"
+    ],
+    "themes": [
+      "light",
+      "dark",
+      "system"
+    ],
+    "fontScales": {
+      "small": 0.875,
+      "medium": 1,
+      "large": 1.125
+    },
+    "fontSizePreviewRem": {
+      "small": 0.8125,
+      "medium": 1,
+      "large": 1.25
+    }
+  },
+  "behaviors": {
+    "repeatCountResetsOnLaunch": true,
+    "speedLockedTo1x": true,
+    "themeFallback": "light",
+    "i18nFallbackChain": [
+      "uz-latn",
+      "<key>"
+    ],
+    "storageKeys": {
+      "settings": "muallimi-settings",
+      "progress": "muallimi-progress",
+      "welcomeSeen": "muallimi-welcome-seen",
+      "hintSeen": "muallimi-hint-seen"
+    }
+  },
+  "theme": {
+    "light": {
+      "primary": "#16a34a",
+      "primary-dark": "#15803d",
+      "primary-light": "#22c55e",
+      "primary-glow": "rgba(22, 163, 74, 0.25)",
+      "bg-dark": "#f0f7f2",
+      "bg-card": "rgba(0, 0, 0, 0.05)",
+      "border-card": "rgba(0, 0, 0, 0.12)",
+      "text-main": "#0f1f17",
+      "text-secondary": "#0d6b30",
+      "text-muted": "#4a6355",
+      "el-harf": "#a78bfa",
+      "el-bogin": "#38bdf8",
+      "el-soz": "#34d399",
+      "el-jumla": "#fbbf24"
+    },
+    "dark": {
+      "primary": "#22c55e",
+      "primary-dark": "#16a34a",
+      "primary-light": "#4ade80",
+      "primary-glow": "rgba(34, 197, 94, 0.4)",
+      "bg-dark": "#071a0e",
+      "bg-card": "rgba(255, 255, 255, 0.07)",
+      "border-card": "rgba(255, 255, 255, 0.12)",
+      "text-main": "#f0fdf4",
+      "text-secondary": "#86efac",
+      "text-muted": "#a3c4b0",
+      "el-harf": "#a78bfa",
+      "el-bogin": "#38bdf8",
+      "el-soz": "#34d399",
+      "el-jumla": "#fbbf24"
+    },
+    "metaThemeColor": {
+      "light": "#f0f7f2",
+      "dark": "#071a0e"
+    }
+  },
+  "elements": {
+    "colors": {
+      "harf": "#a78bfa",
+      "bogin": "#38bdf8",
+      "soz": "#34d399",
+      "jumla": "#fbbf24"
+    },
+    "labels": {
+      "harf": {
+        "uz-latn": "HARF",
+        "uz-cyrl": "ҲАРФ",
+        "ru": "БУКВА",
+        "en": "LETTER"
+      },
+      "bogin": {
+        "uz-latn": "BOʻGʻIN",
+        "uz-cyrl": "БЎҒИН",
+        "ru": "СЛОГ",
+        "en": "SYLLABLE"
+      },
+      "soz": {
+        "uz-latn": "SOʻZ",
+        "uz-cyrl": "СЎЗ",
+        "ru": "СЛОВО",
+        "en": "WORD"
+      },
+      "jumla": {
+        "uz-latn": "JUMLA",
+        "uz-cyrl": "ЖУМЛА",
+        "ru": "ПРЕДЛОЖЕНИЕ",
+        "en": "SENTENCE"
+      }
+    }
+  },
+  "fonts": {
+    "files": [
+      {
+        "path": "fonts/NotoNaskhArabic-MuallimiSoniy.ttf",
+        "family": "Noto Naskh Arabic Muallimi",
+        "role": "universal-arabic",
+        "buildRevision": 2,
+        "note": "Custom build: shadda+kasra/kasratan GSUB ligaturalari o'chirilgan (kasra harf OSTIDA chiqadi). BUTUN kitob shu shriftda. Yuklab olgach sha256 tekshiring.",
+        "bytes": 307580,
+        "sha256": "0717cd21b4bd43d0fe080abb7bd8ed627fd136a5bfc8a281518826af8b55e29b"
+      },
+      {
+        "path": "fonts/NotoNaskhArabic-VariableFont_wght.ttf",
+        "family": "Noto Naskh Arabic",
+        "role": "fallback-and-mad-base",
+        "note": "Asl Noto Naskh — custom shrift build manbasi va mad sahifalar bazasi.",
+        "bytes": 307592,
+        "sha256": "67b5a525a661b607971fbd3f96a81b89d3a768e74534fca84f18ac97e6fab72f"
+      },
+      {
+        "path": "fonts/AmiriQuran.ttf",
+        "family": "Amiri Quran",
+        "role": "mad-damma",
+        "note": "Mad sahifalarda (17-21) FAQAT damma U+064F uchun (unicode-range) — kattaroq damma.",
+        "bytes": 133376,
+        "sha256": "a406aa685f307d96327deecaae6d69322d28e30cd7ec8929badbee19a7e6c585"
+      },
+      {
+        "path": "fonts/Amiri-Regular.ttf",
+        "family": "Amiri",
+        "role": "bismillah-ligature",
+        "note": "Bismillah ligaturasi U+FDFD uchun.",
+        "bytes": 385840,
+        "sha256": "7f19c4a5dc77b0ef435b430d750759170def15d6e3801006e0704dadc7f220e3"
+      },
+      {
+        "path": "fonts/UthmanicHafs.otf",
+        "family": "UthmanicHafs",
+        "role": "mad-stack-fallback",
+        "note": "Mad shrift stack zaxirasi (KFGQPC).",
+        "bytes": 246428,
+        "sha256": "59e20b2403687a67854fd199861abed3528068c035d2689898465d5faf39bb31"
+      }
+    ],
+    "stacks": {
+      "universalArabic": [
+        "Noto Naskh Arabic Muallimi",
+        "Noto Naskh Arabic",
+        "Scheherazade New",
+        "Traditional Arabic",
+        "serif"
+      ],
+      "madArabic": [
+        "MadDammaFont",
+        "Noto Naskh Arabic",
+        "Amiri Quran",
+        "UthmanicHafs",
+        "serif"
+      ],
+      "madDammaFace": {
+        "family": "MadDammaFont",
+        "file": "fonts/AmiriQuran.ttf",
+        "unicodeRange": "U+064F"
+      }
+    }
+  }
+}

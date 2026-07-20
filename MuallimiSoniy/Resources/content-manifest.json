@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "contentVersion": "2.0.0",
+  "generatedAt": "2026-06-10T06:35:46.750Z",
+  "contentHash": "c49a0cbcc823f00724949d54e79011eff015a67d291f26cc509a50296aa4b691",
+  "parts": {
+    "sahifalar": {
+      "files": [
+        {
+          "path": "content/sahifalar/book.json",
+          "bytes": 389238,
+          "sha256": "4934201cdfb3bb12c43a3e4736d990cbbf78ccdca42fdb2d8b640d571c971137"
+        }
+      ],
+      "counts": {
+        "chapters": 10,
+        "lessons": 13,
+        "pageKeys": 50,
+        "bookPages": 52,
+        "elements": 1885,
+        "muqaddimaParagraphs": 9
+      }
+    },
+    "audiolar": {
+      "files": [
+        {
+          "path": "content/audiolar/audio-manifest.json",
+          "bytes": 261708,
+          "sha256": "db01fdd90ca4eff37f3b67094adb7f6d3ae89ca234fbe08c44a4dceb870d783b"
+        }
+      ],
+      "totals": {
+        "packs": 13,
+        "uniqueFiles": 1757,
+        "uniqueBytes": 127035249
+      }
+    },
+    "sozlamalar": {
+      "files": [
+        {
+          "path": "content/sozlamalar/i18n.json",
+          "bytes": 12503,
+          "sha256": "7b0e53eb0f8bb4cef4a3e6a088af5209d9ec3509dacb9d7d9a5a0891432e55cd"
+        },
+        {
+          "path": "content/sozlamalar/legal.json",
+          "bytes": 18102,
+          "sha256": "13069c6219e84fc5b387a509ddfc28c088a1a03252a223756dcf07d44d7361c8"
+        },
+        {
+          "path": "content/sozlamalar/settings.json",
+          "bytes": 5114,
+          "sha256": "8bcff8d355e9ea4bb03b4ebc888701a06da86cf8ca951f1b307a38412b699538"
+        }
+      ],
+      "fonts": [
+        {
+          "path": "fonts/NotoNaskhArabic-MuallimiSoniy.ttf",
+          "bytes": 307580,
+          "sha256": "0717cd21b4bd43d0fe080abb7bd8ed627fd136a5bfc8a281518826af8b55e29b"
+        },
+        {
+          "path": "fonts/NotoNaskhArabic-VariableFont_wght.ttf",
+          "bytes": 307592,
+          "sha256": "67b5a525a661b607971fbd3f96a81b89d3a768e74534fca84f18ac97e6fab72f"
+        },
+        {
+          "path": "fonts/AmiriQuran.ttf",
+          "bytes": 133376,
+          "sha256": "a406aa685f307d96327deecaae6d69322d28e30cd7ec8929badbee19a7e6c585"
+        },
+        {
+          "path": "fonts/Amiri-Regular.ttf",
+          "bytes": 385840,
+          "sha256": "7f19c4a5dc77b0ef435b430d750759170def15d6e3801006e0704dadc7f220e3"
+        },
+        {
+          "path": "fonts/UthmanicHafs.otf",
+          "bytes": 246428,
+          "sha256": "59e20b2403687a67854fd199861abed3528068c035d2689898465d5faf39bb31"
+        }
+      ]
+    }
+  }
+}
