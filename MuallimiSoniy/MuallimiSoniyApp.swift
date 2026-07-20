@@ -15,6 +15,9 @@ struct MuallimiSoniyApp: App {
     /// Shared playback controller — one player for the whole app, injected so the
     /// reader (and later chrome) read it from the environment.
     @State private var audio = AudioController()
+    /// Owns the audio-pack download / install / verify pipeline. Onboarding
+    /// triggers it later; injected so any screen can observe `phase`.
+    @State private var downloadManager = AudioDownloadManager()
 
     init() {
         // Register the bundled Arabic fonts with CoreText before any view
@@ -27,7 +30,16 @@ struct MuallimiSoniyApp: App {
             root
                 .environment(store)
                 .environment(audio)
+                .environment(downloadManager)
                 .tint(.green)
+                .task {
+                    // Release builds trigger the download from onboarding, not here.
+                    #if DEBUG
+                    if ProcessInfo.processInfo.wantsAudioDownload {
+                        await downloadManager.ensureReady()
+                    }
+                    #endif
+                }
         }
     }
 
@@ -94,6 +106,12 @@ private extension ProcessInfo {
     var environmentSinglePage: Int? {
         guard let value = environment["MSPageOnly"] ?? argumentValue(for: "-MSPageOnly") else { return nil }
         return Int(value)
+    }
+
+    /// Whether `-MSDownloadAudio` was passed, so headless QA can install the
+    /// audio pack on launch without going through onboarding.
+    var wantsAudioDownload: Bool {
+        arguments.contains("-MSDownloadAudio") || environment["MSDownloadAudio"] != nil
     }
 
     private func argumentValue(for flag: String) -> String? {
