@@ -14,6 +14,8 @@ enum PageDispatcher {
         onTap: @escaping (Element) -> Void
     ) -> some View {
         switch page.pageNumber {
+        case 0: Page0View(page: page, activeId: activeId, onTap: onTap)
+        case 1: Page1View(page: page, activeId: activeId, onTap: onTap)
         case 3: Page3View(page: page, activeId: activeId, onTap: onTap)
         case 4: Page4View(page: page, activeId: activeId, onTap: onTap)
         case 5: Page5View(page: page, activeId: activeId, onTap: onTap)
@@ -28,6 +30,11 @@ enum PageDispatcher {
         case 14: Page14View(page: page, activeId: activeId, onTap: onTap)
         case 15: Page15View(page: page, activeId: activeId, onTap: onTap)
         case 16: Page16View(page: page, activeId: activeId, onTap: onTap)
+        case 17: Page17View(page: page, activeId: activeId, onTap: onTap)
+        case 18: Page18View(page: page, activeId: activeId, onTap: onTap)
+        case 19: Page19View(page: page, activeId: activeId, onTap: onTap)
+        case 20: Page20View(page: page, activeId: activeId, onTap: onTap)
+        case 21: Page21View(page: page, activeId: activeId, onTap: onTap)
         default:
             GenericPageView(page: page, activeId: activeId, onTap: onTap)
         }
