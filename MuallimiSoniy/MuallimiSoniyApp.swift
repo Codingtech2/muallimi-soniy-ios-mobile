@@ -34,9 +34,13 @@ struct MuallimiSoniyApp: App {
     @ViewBuilder
     private var root: some View {
         #if DEBUG
-        // Screenshot/QA shortcut: launch with -MSReaderPage <globalIndex> to open
-        // the reader directly (no taps). Off by default → normal app on launch.
-        if let index = ProcessInfo.processInfo.environmentGlobalReaderPage {
+        // Screenshot/QA shortcuts (off by default → normal app on launch):
+        //  • -MSPageOnly <bookPageNumber> renders exactly one page through the real
+        //    dispatcher, bypassing the pager (reliable for any page).
+        //  • -MSReaderPage <globalIndex> opens the full reader at a global page.
+        if let bookPageNumber = ProcessInfo.processInfo.environmentSinglePage {
+            DebugSinglePageView(bookPageNumber: bookPageNumber)
+        } else if let index = ProcessInfo.processInfo.environmentGlobalReaderPage {
             NavigationStack { ReaderView(entry: .global(index: index)) }
         } else {
             RootTabView()
@@ -48,10 +52,47 @@ struct MuallimiSoniyApp: App {
 }
 
 #if DEBUG
+/// QA-only: renders one book page through the real `PageDispatcher` (in the same
+/// card chrome the reader uses), with no pager and no taps — so screenshot tooling
+/// can reach any page reliably. Picks the first occurrence of a book page number.
+private struct DebugSinglePageView: View {
+    @Environment(ContentStore.self) private var store
+    let bookPageNumber: Int
+
+    var body: some View {
+        Group {
+            if let page = store.allBookPages.first(where: { $0.pageNumber == bookPageNumber }) {
+                ScrollView(.vertical) {
+                    PageHostView(page: page, activeId: nil, onTap: { _ in })
+                        .frame(maxWidth: 560)
+                        .frame(maxWidth: .infinity)
+                        .padding(12)
+                }
+                .scrollIndicators(.hidden)
+            } else {
+                ContentUnavailableView(
+                    "No book page \(bookPageNumber)",
+                    systemImage: "questionmark.circle"
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColor.background.ignoresSafeArea())
+    }
+}
+#endif
+
+#if DEBUG
 private extension ProcessInfo {
     /// Reads the `-MSReaderPage <int>` launch argument (a 0-based global page).
     var environmentGlobalReaderPage: Int? {
         guard let value = environment["MSReaderPage"] ?? argumentValue(for: "-MSReaderPage") else { return nil }
+        return Int(value)
+    }
+
+    /// Reads the `-MSPageOnly <int>` launch argument (a book page number).
+    var environmentSinglePage: Int? {
+        guard let value = environment["MSPageOnly"] ?? argumentValue(for: "-MSPageOnly") else { return nil }
         return Int(value)
     }
 
