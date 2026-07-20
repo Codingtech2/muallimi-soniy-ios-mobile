@@ -25,14 +25,11 @@ Plan/dashboard artifact: https://claude.ai/code/artifact/4fa38d1c-84a5-4041-97e1
 - App icon (opaque), AccentColor green, launch screen fixed (Info.plist UILaunchScreen).
 - Release **content-2.0.0** on GitHub has `audio.zip` (1757 files, 127MB, STORED). Publicly downloadable.
 
-## IN PROGRESS — M5 audio downloader (FINISH THIS FIRST)
-The reader taps already call `playSegment`, but on device `App Support/media/` is empty → all audio fails (Code 2003334207 = file not found). M5 downloads + installs the pack.
-- Done: `Offline/ZipStore.swift` (STORED-zip extractor), `Offline/AudioManifest.swift`.
-- TODO: `Offline/AudioDownloadManager.swift` (@MainActor @Observable: download → extract → **sha256 verify each file** → progress Phase enum), fix `Audio/MediaLocator.swift` (`ensureMediaDirectory()` withIntermediateDirectories; spaces in names via URL(fileURLWithPath:)), and wire `MuallimiSoniyApp.swift` (add manager to env + a `#if DEBUG` `-MSDownloadAudio` launch arg to test).
+## M5 audio downloader — CODE COMPLETE + reviewed (only LIVE TEST pending)
+The reader taps already call `playSegment`, but on device `App Support/media/` is empty → all audio fails (Code 2003334207 = file not found) until the pack is downloaded. M5 does that.
+- **DONE + BUILD SUCCEEDED + adversarial byte-level ZIP-spec review passed (all 7 checks):** `Offline/ZipStore.swift` (streamed STORED extractor, zip-slip guarded), `Offline/AudioManifest.swift`, `Offline/AudioDownloadManager.swift` (@MainActor @Observable: idle→checking→downloading→extracting→verifying→ready/failed, streamed SHA256 of all 1757 files, idempotent via UserDefaults "audioReadyContentVersion"=2.0.0, temp zip deleted, Task.detached heavy work). `MuallimiSoniyApp.swift` wired (`@State AudioDownloadManager` in env + `#if DEBUG` `-MSDownloadAudio` launch arg → `ensureReady()`). `MediaLocator.swift` verified correct (no change).
 - Download URL (public, HTTP 200): `https://github.com/Codingtech2/muallimi-soniy-ios-mobile/releases/download/content-2.0.0/audio.zip`
-- Extract target: entries `audio/...` → `<AppSupport>/media/audio/...` (matches MediaLocator). Zip is **STORED** (method 0), some names have **spaces** (`audio/02. Muqaddima.mp3`).
-- Verify each file's sha256 (CryptoKit) against `Resources/audio-manifest.json` (packs[].files[].{path,bytes,sha256}, 1757 files). Stream hashes; don't load 127MB into RAM.
-- **End-to-end test** on sim: launch with `-MSDownloadAudio`, wait, confirm files extracted + sha pass + a spaced-name file plays (isPlaying + currentTime advances). Do not claim "works" until verified.
+- **PENDING — LIVE END-TO-END TEST** (do on the MacBook / stable power, not UPS): boot sim, launch with `-MSDownloadAudio`, wait ~5–10 min (127MB download + extract + sha256 verify 1757 files), screenshot the progress, then confirm a **spaced-name** file plays (e.g. tap something using `audio/02. Muqaddima.mp3` → isPlaying + currentTime advances). Only then is audio "confirmed working". On real device: update app → first launch downloads → audio works offline.
 
 ## REMAINING (after M5)
 1. Font trim (~930K unused): drop `Amiri-Regular.ttf`, `NotoNaskhArabic-VariableFont_wght.ttf`, `UthmanicHafs.otf` from `Resources/Fonts/` + `DesignSystem/Fonts.swift` bundledFonts list. KEEP `NotoNaskhArabic-MuallimiSoniy.ttf` + `AmiriQuran.ttf`. (Mad verified to render with Amiri Quran.)
