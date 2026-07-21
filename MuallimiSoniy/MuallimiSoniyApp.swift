@@ -25,6 +25,10 @@ struct MuallimiSoniyApp: App {
     /// the web `SettingsProvider`. Drives app-wide appearance + Arabic scale.
     @State private var settings = SettingsStore()
 
+    /// One-shot first-run flag. While false, onboarding is shown; its download /
+    /// skip / start actions flip it true (persisted), so later launches skip it.
+    @AppStorage("ms.hasOnboarded") private var hasOnboarded = false
+
     init() {
         // Register the bundled Arabic fonts with CoreText before any view
         // renders, so `arabicFont(_:)` / `madArabicFont(_:)` resolve.
@@ -69,11 +73,22 @@ struct MuallimiSoniyApp: App {
         } else if let index = ProcessInfo.processInfo.environmentGlobalReaderPage {
             NavigationStack { ReaderView(entry: .global(index: index)) }
         } else {
-            RootTabView()
+            gatedRoot
         }
         #else
-        RootTabView()
+        gatedRoot
         #endif
+    }
+
+    /// First launch shows onboarding (one-tap audio download with live progress);
+    /// afterwards it goes straight to the tabs.
+    @ViewBuilder
+    private var gatedRoot: some View {
+        if hasOnboarded {
+            RootTabView()
+        } else {
+            OnboardingView { hasOnboarded = true }
+        }
     }
 }
 
