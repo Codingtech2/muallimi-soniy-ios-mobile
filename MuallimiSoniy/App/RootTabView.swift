@@ -23,7 +23,7 @@ struct RootTabView: View {
                     Label(store.t("lessons", locale), systemImage: "book.fill")
                 }
 
-            SettingsView()
+            SettingsV2View()
                 .tabItem {
                     Label(store.t("settings", locale), systemImage: "gearshape.fill")
                 }

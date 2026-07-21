@@ -40,6 +40,10 @@ final class SettingsStore {
     private static let storageKey = "ms.settings"
     /// Repeat-count bounds (mirror the web −/+ stepper clamps).
     private static let repeatRange = 1...10
+    /// Playback-speed bounds (AVAudioPlayer handles 0.5×–2× cleanly).
+    private static let speedRange = 0.5...2.0
+    /// Volume bounds.
+    private static let volumeRange = 0.0...1.0
 
     init(userDefaults: UserDefaults = .standard, fallback: AppSettings = .default) {
         self.userDefaults = userDefaults
@@ -80,6 +84,25 @@ final class SettingsStore {
         persist()
     }
 
+    /// Clamps to 0.5…2.0 before storing. Persisted across launches (unlike
+    /// `repeatCount`, speed is *not* reset on relaunch).
+    func setSpeed(_ speed: Double) {
+        settings.speed = min(
+            Self.speedRange.upperBound,
+            max(Self.speedRange.lowerBound, speed)
+        )
+        persist()
+    }
+
+    /// Clamps to 0…1 before storing. Persisted across launches.
+    func setVolume(_ volume: Double) {
+        settings.volume = min(
+            Self.volumeRange.upperBound,
+            max(Self.volumeRange.lowerBound, volume)
+        )
+        persist()
+    }
+
     // MARK: - Persistence
 
     private func persist() {
@@ -106,6 +129,7 @@ final class SettingsStore {
         return AppSettings(
             repeatCount: stored.repeatCount ?? fallback.repeatCount,
             speed: stored.speed ?? fallback.speed,
+            volume: stored.volume ?? fallback.volume,
             locale: stored.locale.flatMap(AppLocale.init(rawValue:)) ?? fallback.locale,
             theme: stored.theme.flatMap(AppTheme.init(rawValue:)) ?? fallback.theme,
             fontSize: stored.fontSize.flatMap(FontSize.init(rawValue:)) ?? fallback.fontSize,
@@ -120,6 +144,7 @@ final class SettingsStore {
 private nonisolated struct StoredSettings: Decodable {
     var repeatCount: Int?
     var speed: Double?
+    var volume: Double?
     var locale: String?
     var theme: String?
     var fontSize: String?

@@ -5,7 +5,10 @@ import Foundation
 /// Defaults mirror `settings.json` → `defaults`.
 nonisolated struct AppSettings: Codable, Sendable, Equatable {
     var repeatCount: Int
+    /// Playback speed multiplier (range 0.5…2.0). Persisted across launches.
     var speed: Double
+    /// Output volume (range 0…1). Persisted across launches.
+    var volume: Double
     var locale: AppLocale
     var theme: AppTheme
     var fontSize: FontSize
@@ -16,6 +19,7 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     static let `default` = AppSettings(
         repeatCount: 1,
         speed: 1,
+        volume: 1,
         locale: .uzLatn,
         theme: .light,
         fontSize: .medium,

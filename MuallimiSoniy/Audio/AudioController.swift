@@ -94,4 +94,8 @@ final class AudioController {
 
     func setRepeatCount(_ count: Int) { engine.setRepeatCount(count) }
     func setLoopMode(_ on: Bool) { engine.setLoopMode(on) }
+    /// Playback speed (0.5×…2×) — clamped in the engine.
+    func setSpeed(_ speed: Double) { engine.setSpeed(Float(speed)) }
+    /// Output volume (0…1) — clamped in the engine.
+    func setVolume(_ volume: Double) { engine.setVolume(Float(volume)) }
 }

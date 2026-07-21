@@ -95,6 +95,12 @@ struct ReaderView: View {
         .onChange(of: currentPageIndex) {
             recordProgress()
         }
+        .onChange(of: preferences.settings.speed) {
+            audio.setSpeed(preferences.settings.speed)
+        }
+        .onChange(of: preferences.settings.volume) {
+            audio.setVolume(preferences.settings.volume)
+        }
         .onDisappear {
             cancelSequential()
             audio.stop()
@@ -265,10 +271,14 @@ struct ReaderView: View {
         audio.setLoopMode(loopMode)
     }
 
-    /// Applies the engine defaults once the reader appears: repeat count + loop
-    /// from the user's settings (repeatCount resets to 1 each launch), 1× speed.
+    /// Applies the engine defaults once the reader appears: repeat count + loop +
+    /// speed + volume from the user's settings (repeatCount resets to 1 each
+    /// launch; speed/volume persist). Speed/volume also re-apply live via
+    /// `onChange` so the settings screen updates playback immediately.
     private func configureAudioDefaults() {
         audio.setRepeatCount(preferences.settings.repeatCount)
+        audio.setSpeed(preferences.settings.speed)
+        audio.setVolume(preferences.settings.volume)
         loopMode = preferences.settings.loopMode
         audio.setLoopMode(loopMode)
     }

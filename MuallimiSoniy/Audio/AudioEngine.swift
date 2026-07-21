@@ -25,6 +25,11 @@ final class AudioEngine {
     /// Default repeat count, matching the web engine (`repeatTarget = 3`).
     private static let defaultRepeatTarget = 3
 
+    /// Playback-rate bounds (AVAudioPlayer handles 0.5×–2× cleanly).
+    private static let rateRange: ClosedRange<Float> = 0.5...2.0
+    /// Volume bounds.
+    private static let volumeRange: ClosedRange<Float> = 0...1
+
     // MARK: - Callbacks (assigned by the owner)
 
     /// Fires every poll tick with the player's current time, in seconds.
@@ -48,6 +53,11 @@ final class AudioEngine {
     private var repeatIndexValue: Int = 0
     private var loopMode: Bool = false
     private var isSegmentMode: Bool = false
+
+    /// Desired playback rate / volume, retained so they re-apply to every newly
+    /// loaded file (a fresh `AVAudioPlayer` resets to 1.0 / 1.0 otherwise).
+    private var playbackRate: Float = 1.0
+    private var playbackVolume: Float = 1.0
 
     /// Whether we *intend* the player to be playing. Lets the poll detect a
     /// natural finish (`intendedPlaying && !player.isPlaying`) — the AVAudioPlayer
@@ -80,9 +90,13 @@ final class AudioEngine {
         stop()
         do {
             let newPlayer = try AVAudioPlayer(contentsOf: url)
+            // `enableRate` must be set before `prepareToPlay()` for speed control.
+            newPlayer.enableRate = true
             guard newPlayer.prepareToPlay() else {
                 throw AudioEngineError.prepareFailed(url)
             }
+            newPlayer.rate = playbackRate
+            newPlayer.volume = playbackVolume
             player = newPlayer
             loadedURL = url
         } catch let error as AudioEngineError {
@@ -111,6 +125,7 @@ final class AudioEngine {
         player.currentTime = start
         intendedPlaying = true
         player.play()
+        player.rate = playbackRate
         onPlayStateChange?(true)
         startTimer()
     }
@@ -122,6 +137,7 @@ final class AudioEngine {
         player.currentTime = 0
         intendedPlaying = true
         player.play()
+        player.rate = playbackRate
         onPlayStateChange?(true)
         startTimer()
     }
@@ -139,6 +155,7 @@ final class AudioEngine {
         guard let player else { return }
         intendedPlaying = true
         player.play()
+        player.rate = playbackRate
         onPlayStateChange?(true)
         startTimer()
     }
@@ -157,6 +174,20 @@ final class AudioEngine {
 
     func setLoopMode(_ on: Bool) {
         loopMode = on
+    }
+
+    /// Sets playback speed (clamped 0.5×…2×), retained across file loads and
+    /// applied to the live player immediately. `enableRate` is turned on at load.
+    func setSpeed(_ speed: Float) {
+        playbackRate = min(Self.rateRange.upperBound, max(Self.rateRange.lowerBound, speed))
+        player?.rate = playbackRate
+    }
+
+    /// Sets output volume (clamped 0…1), retained across file loads and applied
+    /// to the live player immediately.
+    func setVolume(_ v: Float) {
+        playbackVolume = min(Self.volumeRange.upperBound, max(Self.volumeRange.lowerBound, v))
+        player?.volume = playbackVolume
     }
 
     /// Stops playback and clears segment state (does not seek), mirroring web
@@ -238,6 +269,7 @@ final class AudioEngine {
         if !player.isPlaying {
             intendedPlaying = true
             player.play()
+            player.rate = playbackRate
         }
     }
 }

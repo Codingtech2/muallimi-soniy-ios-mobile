@@ -106,7 +106,7 @@ private struct DebugScreenHost: View {
             switch screen {
             case "home": HomeView()
             case "contents": ContentsView()
-            case "settings": SettingsView()
+            case "settings": SettingsV2View()
             default:
                 ContentUnavailableView("Unknown screen: \(screen)", systemImage: "questionmark.circle")
             }
