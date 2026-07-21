@@ -8,6 +8,8 @@ import SwiftUI
 /// `WordRow`s; each `jumla` (sentence / ayah) renders as a full-width `Verse`.
 /// The active element is highlighted; others are never dimmed (project UI rule).
 struct GenericPageView: View {
+    @Environment(ContentStore.self) private var content
+    @Environment(SettingsStore.self) private var settings
     let page: BookPage
     let activeId: String?
     let onTap: (Element) -> Void
@@ -15,7 +17,7 @@ struct GenericPageView: View {
     var body: some View {
         VStack(spacing: 10) {
             if rows.isEmpty {
-                Text("Bu sahifada koʻrsatiladigan element yoʻq.")
+                Text(content.t("page_no_elements", settings.settings.locale))
                     .font(.callout)
                     .foregroundStyle(AppColor.textMuted)
                     .frame(maxWidth: .infinity)
@@ -145,6 +147,6 @@ private struct GenericPagePreview: View {
 }
 
 #Preview("GenericPageView — p4") {
-    GenericPagePreview().environment(ContentStore())
+    GenericPagePreview().environment(ContentStore()).environment(SettingsStore())
 }
 #endif

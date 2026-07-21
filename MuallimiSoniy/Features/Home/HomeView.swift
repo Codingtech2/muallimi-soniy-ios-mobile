@@ -8,6 +8,7 @@ struct HomeView: View {
     @Environment(ProgressStore.self) private var progress
     @Environment(SettingsStore.self) private var settings
     @Environment(AudioDownloadManager.self) private var audio
+    @Environment(\.layoutMetrics) private var layoutMetrics
 
     private var locale: AppLocale { settings.settings.locale }
 
@@ -17,12 +18,14 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     GreetingHeader(locale: locale)
                     ContinueHeroCard(store: store, progress: progress, locale: locale)
-                    StatsRow(store: store, progress: progress, audio: audio)
+                    StatsRow(store: store, progress: progress, audio: audio, locale: locale)
                     ChaptersSection(store: store, progress: progress, locale: locale)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
+                .frame(maxWidth: layoutMetrics.contentMaxWidth)
+                .frame(maxWidth: .infinity)
             }
             .background(AppColor.background.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
@@ -37,13 +40,15 @@ struct HomeView: View {
 private struct GreetingHeader: View {
     let locale: AppLocale
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(greeting)
-                .font(.largeTitle.bold())
+                .font(layoutMetrics.isRegular ? .system(size: 46, weight: .bold) : .largeTitle.bold())
                 .foregroundStyle(AppColor.textMain)
             Text(subtitle)
-                .font(.subheadline)
+                .font(layoutMetrics.isRegular ? .title2 : .subheadline)
                 .foregroundStyle(AppColor.textMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -78,24 +83,27 @@ private struct ContinueHeroCard: View {
     let progress: ProgressStore
     let locale: AppLocale
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     private var resume: Int { progress.resumeGlobalIndex }
     private var total: Int { max(store.totalPages, 1) }
     private var fraction: Double { total > 1 ? Double(resume) / Double(total - 1) : 0 }
+    private var logoHeight: CGFloat { layoutMetrics.isRegular ? 96 : 60 }
 
     var body: some View {
         VStack(spacing: 14) {
             Image("LaunchLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 60)
+                .frame(height: logoHeight)
                 .accessibilityHidden(true)
 
             VStack(spacing: 2) {
                 Text(store.t("app_name", locale))
-                    .font(.title2.bold())
+                    .font(layoutMetrics.isRegular ? .largeTitle.bold() : .title2.bold())
                     .foregroundStyle(AppColor.textMain)
                 Text(store.t("book_author", locale))
-                    .font(.subheadline)
+                    .font(layoutMetrics.isRegular ? .title3 : .subheadline)
                     .foregroundStyle(AppColor.textMuted)
             }
 
@@ -103,7 +111,7 @@ private struct ContinueHeroCard: View {
                 ProgressView(value: fraction)
                     .tint(AppColor.primary)
                 Text("\(store.t("page", locale)) \(resume + 1) / \(total)")
-                    .font(.caption)
+                    .font(layoutMetrics.isRegular ? .subheadline : .caption)
                     .foregroundStyle(AppColor.textMuted)
                     .monospacedDigit()
             }
@@ -114,16 +122,15 @@ private struct ContinueHeroCard: View {
                     Image(systemName: "play.fill")
                     Text(resume > 0 ? store.t("continue", locale) : store.t("start", locale))
                 }
-                .font(.headline)
+                .font(layoutMetrics.isRegular ? .title3.weight(.semibold) : .headline)
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity, minHeight: layoutMetrics.isRegular ? 64 : 52)
                 .background(AppColor.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
-        .padding(20)
+        .padding(layoutMetrics.isRegular ? 28 : 20)
         .frame(maxWidth: .infinity)
-        .background(AppColor.glassGreen, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 26).strokeBorder(AppColor.divider, lineWidth: 1))
+        .glassCard(cornerRadius: 26)
     }
 }
 
@@ -133,6 +140,7 @@ private struct StatsRow: View {
     let store: ContentStore
     let progress: ProgressStore
     let audio: AudioDownloadManager
+    let locale: AppLocale
 
     private var percent: Int {
         let total = max(store.totalPages - 1, 1)
@@ -142,11 +150,11 @@ private struct StatsRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            StatTile(value: "\(percent)%", label: "tugadi", symbol: "chart.bar.fill")
-            StatTile(value: "\(progress.completedLessons.count)/\(totalLessons)", label: "darslar", symbol: "checkmark.seal.fill")
+            StatTile(value: "\(percent)%", label: store.t("stat_done", locale), symbol: "chart.bar.fill")
+            StatTile(value: "\(progress.completedLessons.count)/\(totalLessons)", label: store.t("lessons", locale), symbol: "checkmark.seal.fill")
             StatTile(
                 value: audio.isReady ? "✓" : "⬇",
-                label: audio.isReady ? "audio oflayn" : "audio yuklang",
+                label: audio.isReady ? store.t("stat_audio_ready", locale) : store.t("stat_audio_get", locale),
                 symbol: audio.isReady ? "checkmark.icloud.fill" : "icloud.and.arrow.down.fill"
             )
         }
@@ -158,25 +166,26 @@ private struct StatTile: View {
     let label: String
     let symbol: String
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: layoutMetrics.isRegular ? 8 : 4) {
             Image(systemName: symbol)
-                .font(.caption)
+                .font(layoutMetrics.isRegular ? .title3 : .caption)
                 .foregroundStyle(AppColor.primary)
             Text(value)
-                .font(.title3.bold())
+                .font(layoutMetrics.isRegular ? .system(size: 34, weight: .bold) : .title3.bold())
                 .foregroundStyle(AppColor.textMain)
                 .monospacedDigit()
             Text(label)
-                .font(.caption2)
+                .font(layoutMetrics.isRegular ? .subheadline : .caption2)
                 .foregroundStyle(AppColor.textMuted)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(AppColor.divider, lineWidth: 1))
+        .padding(.vertical, layoutMetrics.isRegular ? 26 : 14)
+        .glassCard(cornerRadius: 16)
     }
 }
 
@@ -186,6 +195,8 @@ private struct ChaptersSection: View {
     let store: ContentStore
     let progress: ProgressStore
     let locale: AppLocale
+
+    @Environment(\.layoutMetrics) private var layoutMetrics
 
     private var chaptersLabel: String {
         switch locale {
@@ -202,22 +213,37 @@ private struct ChaptersSection: View {
                 .font(.headline)
                 .foregroundStyle(AppColor.textMain)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(store.outline) { oc in
-                        NavigationLink(value: ReaderEntry.global(index: oc.globalStart - 1)) {
-                            ChapterCard(
-                                outline: oc,
-                                locale: locale,
-                                done: oc.lessons.allSatisfy { progress.isLessonComplete($0.lesson.id) }
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
+            if layoutMetrics.isRegular {
+                // iPad: the quick-jump becomes a grid so the row uses the
+                // wider column instead of a horizontal scroller with dead
+                // space to its right.
+                LazyVGrid(columns: gridColumns, spacing: 12) {
+                    ForEach(store.outline) { chapter in chapterLink(chapter) }
                 }
-                .padding(.horizontal, 2)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(store.outline) { chapter in chapterLink(chapter) }
+                    }
+                    .padding(.horizontal, 2)
+                }
             }
         }
+    }
+
+    private var gridColumns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 12), count: layoutMetrics.chapterGridColumns)
+    }
+
+    private func chapterLink(_ chapter: OutlineChapter) -> some View {
+        NavigationLink(value: ReaderEntry.global(index: chapter.globalStart - 1)) {
+            ChapterCard(
+                outline: chapter,
+                locale: locale,
+                done: chapter.lessons.allSatisfy { progress.isLessonComplete($0.lesson.id) }
+            )
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -225,6 +251,8 @@ private struct ChapterCard: View {
     let outline: OutlineChapter
     let locale: AppLocale
     let done: Bool
+
+    @Environment(\.layoutMetrics) private var layoutMetrics
 
     /// SF Symbol per chapter order (1–10), mirroring the web lucide mapping.
     private var symbol: String {
@@ -238,32 +266,41 @@ private struct ChapterCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        Group {
+            if layoutMetrics.isRegular {
+                // Fills its grid cell instead of the iPhone's fixed card width.
+                cardContent.frame(maxWidth: .infinity, minHeight: 190, alignment: .topLeading)
+            } else {
+                cardContent.frame(width: 148, height: 132, alignment: .topLeading)
+            }
+        }
+        .glassCard(cornerRadius: 18)
+    }
+
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 10 : 8) {
             HStack {
                 Image(systemName: symbol)
-                    .font(.title3)
+                    .font(layoutMetrics.isRegular ? .title2 : .title3)
                     .foregroundStyle(AppColor.primary)
                 Spacer()
                 if done {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.subheadline)
+                        .font(layoutMetrics.isRegular ? .title3 : .subheadline)
                         .foregroundStyle(AppColor.primary)
                 }
             }
             Spacer(minLength: 4)
             Text(outline.chapter.title.text(locale))
-                .font(.subheadline.weight(.semibold))
+                .font(layoutMetrics.isRegular ? .title3.weight(.semibold) : .subheadline.weight(.semibold))
                 .foregroundStyle(AppColor.textMain)
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
             Text("\(outline.globalStart)–\(outline.globalEnd)")
-                .font(.caption2)
+                .font(layoutMetrics.isRegular ? .subheadline : .caption2)
                 .foregroundStyle(AppColor.textMuted)
                 .monospacedDigit()
         }
-        .padding(14)
-        .frame(width: 148, height: 132, alignment: .topLeading)
-        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(AppColor.divider, lineWidth: 1))
+        .padding(layoutMetrics.isRegular ? 20 : 14)
     }
 }

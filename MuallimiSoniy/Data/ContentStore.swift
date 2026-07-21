@@ -45,7 +45,7 @@ nonisolated struct OutlineChapter: Identifiable, Sendable, Hashable {
 }
 
 /// Loads the bundled content package and exposes the flattened book, the
-/// table-of-contents outline, and i18n lookup.
+/// table-of-contents outline, and localized-string lookup.
 ///
 /// All files are small and bundled, so loading is synchronous in `init`: the
 /// whole decode + flatten measures ~6 ms in Release for 52 pages / ~1970
@@ -58,8 +58,6 @@ nonisolated struct OutlineChapter: Identifiable, Sendable, Hashable {
 final class ContentStore {
     /// Raw decoded book (chapters / lessons / pageMap / pages / extras).
     private(set) var book: Book?
-    /// i18n table: locale key -> (string key -> translation).
-    private(set) var i18n: [String: [String: String]] = [:]
     /// Legal documents: locale key -> (document key -> body text).
     private(set) var legal: [String: [String: String]] = [:]
     /// Factory defaults from `settings.json` → `defaults`.
@@ -89,8 +87,8 @@ final class ContentStore {
     /// Fills every property from the bundled JSON once. Safe to call again.
     func load() {
         book = decodeBundled("book", as: Book.self)
-        i18n = decodeBundled("i18n", as: [String: [String: String]].self) ?? [:]
         legal = decodeBundled("legal", as: [String: [String: String]].self) ?? [:]
+        warmLocalizedBundles()
         // Factory defaults come from the same lenient settings.json decoder the
         // SettingsStore uses for fresh installs, so the two never diverge — and a
         // missing `volume` / unknown enum degrades to the compiled default rather
@@ -182,13 +180,47 @@ final class ContentStore {
         return chapters
     }
 
-    // MARK: - i18n
+    // MARK: - Localization (native String Catalog)
 
-    /// Localized string for `key` in `locale`, falling back to `uz-latn`, then
-    /// the raw key itself (so missing translations surface visibly, never crash).
+    /// Per-language `.lproj` bundle cache, warmed once at load. Reading strings
+    /// from an explicit language bundle — rather than `Bundle.main`, which only
+    /// follows `AppleLanguages` and updates on relaunch — is what lets the in-app
+    /// picker switch language **live**: every `t(_:_:)` call passes the current
+    /// `locale`, so a change just resolves a different bundle and views re-render.
+    @ObservationIgnored private var localizedBundles: [String: Bundle] = [:]
+
+    /// Sentinel handed to `localizedString(forKey:value:table:)` so a missing key
+    /// (which echoes the sentinel back) can be told apart from a real translation.
+    private static let missingSentinel = "\u{1}__ms_missing__\u{1}"
+
+    /// Localized string for `key` in `locale`, read from the compiled
+    /// `Localizable.xcstrings`. Falls back to Uzbek-Latin, then the raw key — so a
+    /// missing translation surfaces visibly, never crashes.
     func t(_ key: String, _ locale: AppLocale) -> String {
-        i18n[locale.rawValue]?[key]
-            ?? i18n[AppLocale.uzLatn.rawValue]?[key]
+        localized(key, code: locale.appleLanguageCode)
+            ?? localized(key, code: AppLocale.uzLatn.appleLanguageCode)
             ?? key
+    }
+
+    /// Looks `key` up in the `code` language bundle, returning `nil` when absent.
+    private func localized(_ key: String, code: String) -> String? {
+        guard let bundle = localizedBundles[code] else { return nil }
+        let value = bundle.localizedString(forKey: key, value: Self.missingSentinel, table: nil)
+        return value == Self.missingSentinel ? nil : value
+    }
+
+    /// Resolves and caches the `.lproj` bundle for every known language once, so
+    /// `t(_:_:)` only ever reads the cache (no mutation during a view update).
+    private func warmLocalizedBundles() {
+        for locale in AppLocale.allCases {
+            let code = locale.appleLanguageCode
+            guard localizedBundles[code] == nil else { continue }
+            if let path = Bundle.main.path(forResource: code, ofType: "lproj"),
+               let bundle = Bundle(path: path) {
+                localizedBundles[code] = bundle
+            } else {
+                localizedBundles[code] = .main
+            }
+        }
     }
 }

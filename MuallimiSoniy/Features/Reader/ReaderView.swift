@@ -21,6 +21,7 @@ struct ReaderView: View {
     @Environment(ProgressStore.self) private var progress
     @Environment(SettingsStore.self) private var preferences
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.layoutMetrics) private var layoutMetrics
 
     /// Where to open. Resolved to `currentPageIndex` on first appear.
     let entry: ReaderEntry
@@ -43,8 +44,9 @@ struct ReaderView: View {
     /// switching language live-updates the header, TOC and page labels.
     private var locale: AppLocale { preferences.settings.locale }
     /// Reading-column cap for the pager + chrome, centred on wide screens
-    /// (mirrors the web `max-w-xl` column).
-    private let readingColumnWidth: CGFloat = 640
+    /// (mirrors the web `max-w-xl` column). Widens on iPad via `layoutMetrics`;
+    /// the iPhone (compact) number stays exactly 640.
+    private var readingColumnWidth: CGFloat { layoutMetrics.readingColumnWidth }
 
     private var pages: [BookPage] { store.allBookPages }
     private var currentPage: BookPage? {
@@ -63,9 +65,9 @@ struct ReaderView: View {
         Group {
             if pages.isEmpty {
                 ContentUnavailableView(
-                    "Kitob topilmadi",
+                    store.t("book_not_found", locale),
                     systemImage: "book.closed",
-                    description: Text("Kontent yuklanmadi.")
+                    description: Text(store.t("content_not_loaded", locale))
                 )
             } else {
                 readerContent
@@ -82,6 +84,7 @@ struct ReaderView: View {
                 totalPages: pages.count,
                 contentsLabel: store.t("contents", locale),
                 pageLabel: store.t("page", locale),
+                closeLabel: store.t("close", locale),
                 locale: locale,
                 onSelectGlobalPage: { goToPage($0 - 1) }
             )
@@ -137,6 +140,8 @@ struct ReaderView: View {
                     ReaderPageIndicator(
                         total: pages.count,
                         current: currentPageIndex,
+                        prevLabel: store.t("prev_page", locale),
+                        nextLabel: store.t("next_page", locale),
                         onSelect: goToPage
                     )
                 }
@@ -145,6 +150,10 @@ struct ReaderView: View {
                     AudioControls(
                         loopOn: loopMode,
                         loopLabel: store.t("loop", locale),
+                        playLabel: store.t("play", locale),
+                        pauseLabel: store.t("pause", locale),
+                        prevLabel: store.t("prev_element", locale),
+                        nextLabel: store.t("next_element", locale),
                         onPlayPause: handlePlayPause,
                         onPrev: handlePrevElement,
                         onNext: handleNextElement,

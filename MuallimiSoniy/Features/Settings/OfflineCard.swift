@@ -7,9 +7,15 @@ import SwiftUI
 /// extracting / verifying), ready, and failed.
 struct OfflineCard: View {
     @Environment(AudioDownloadManager.self) private var manager
+    @Environment(ContentStore.self) private var content
+    @Environment(SettingsStore.self) private var settings
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
+    private var locale: AppLocale { settings.settings.locale }
+    private func tr(_ key: String) -> String { content.t(key, locale) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 18 : 14) {
             switch viewState {
             case .idle:
                 idleContent
@@ -21,7 +27,7 @@ struct OfflineCard: View {
                 failedContent(message)
             }
         }
-        .padding(16)
+        .padding(layoutMetrics.isRegular ? 22 : 16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColor.glass, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
@@ -49,13 +55,13 @@ struct OfflineCard: View {
         case .failed(let message):
             return .failed(message)
         case .checking:
-            return .working(label: "Tayyorlanmoqda…", fraction: nil)
+            return .working(label: tr("offline_idle"), fraction: nil)
         case .downloading(let fraction):
-            return .working(label: "Yuklanmoqda… \(percent(fraction))%", fraction: fraction)
+            return .working(label: "\(tr("downloading")) \(percent(fraction))%", fraction: fraction)
         case .extracting(let fraction):
-            return .working(label: "Ochilmoqda…", fraction: fraction)
+            return .working(label: tr("extracting"), fraction: fraction)
         case .verifying(let fraction):
-            return .working(label: "Tekshirilmoqda…", fraction: fraction)
+            return .working(label: tr("offline_scanning"), fraction: fraction)
         case .idle:
             // A pack installed on a previous launch reports ready even though the
             // pipeline hasn't run this session.
@@ -83,10 +89,10 @@ struct OfflineCard: View {
         Group {
             header(
                 icon: "icloud.and.arrow.down",
-                title: "Offline audio",
-                subtitle: "Audio ~127 MB. Bir marta yuklab olinadi, keyin ilova internetsiz ishlaydi."
+                title: tr("offline_audio"),
+                subtitle: tr("offline_card_desc")
             )
-            primaryButton("Yuklab olish", systemImage: "arrow.down.circle.fill") {
+            primaryButton(tr("download"), systemImage: "arrow.down.circle.fill") {
                 Task { await manager.ensureReady() }
             }
         }
@@ -94,7 +100,7 @@ struct OfflineCard: View {
 
     @ViewBuilder
     private func workingContent(label: String, fraction: Double?) -> some View {
-        header(icon: "icloud.and.arrow.down", title: "Offline audio", subtitle: nil)
+        header(icon: "icloud.and.arrow.down", title: tr("offline_audio"), subtitle: nil)
 
         if let fraction {
             VStack(alignment: .leading, spacing: 8) {
@@ -120,7 +126,7 @@ struct OfflineCard: View {
         Group {
             header(
                 icon: "checkmark.circle.fill",
-                title: "Audio yuklab olingan — ilova oflayn ishlaydi",
+                title: tr("offline_ready"),
                 subtitle: nil
             )
             Button {
@@ -129,7 +135,7 @@ struct OfflineCard: View {
                     await manager.ensureReady()
                 }
             } label: {
-                Label("Qayta yuklash", systemImage: "arrow.clockwise")
+                Label(tr("redownload"), systemImage: "arrow.clockwise")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(AppColor.textMuted)
             }
@@ -142,7 +148,7 @@ struct OfflineCard: View {
             HStack(alignment: .top, spacing: 12) {
                 iconChip("exclamationmark.triangle.fill", tint: .red)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Yuklab olishda xatolik")
+                    Text(tr("download_error"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppColor.textMain)
                     Text(message)
@@ -160,7 +166,7 @@ struct OfflineCard: View {
                     .strokeBorder(Color.red.opacity(0.20), lineWidth: 0.5)
             )
 
-            primaryButton("Qayta urinish", systemImage: "arrow.clockwise") {
+            primaryButton(tr("retry"), systemImage: "arrow.clockwise") {
                 Task { await manager.ensureReady() }
             }
         }
@@ -169,16 +175,16 @@ struct OfflineCard: View {
     // MARK: - Building blocks
 
     private func header(icon: String, title: String, subtitle: String?) -> some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: layoutMetrics.isRegular ? 16 : 12) {
             iconChip(icon)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(layoutMetrics.isRegular ? .title3.weight(.semibold) : .subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textMain)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.caption)
+                        .font(layoutMetrics.isRegular ? .subheadline : .caption)
                         .foregroundStyle(AppColor.textMuted)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -188,10 +194,11 @@ struct OfflineCard: View {
     }
 
     private func iconChip(_ systemName: String, tint: Color = AppColor.primary) -> some View {
-        Image(systemName: systemName)
-            .font(.system(size: 17, weight: .semibold))
+        let side: CGFloat = layoutMetrics.isRegular ? 48 : 36
+        return Image(systemName: systemName)
+            .font(.system(size: layoutMetrics.isRegular ? 22 : 17, weight: .semibold))
             .foregroundStyle(tint)
-            .frame(width: 36, height: 36)
+            .frame(width: side, height: side)
             .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
@@ -205,9 +212,9 @@ struct OfflineCard: View {
                 Image(systemName: systemImage)
                 Text(title)
             }
-            .font(.subheadline.weight(.semibold))
+            .font(layoutMetrics.isRegular ? .title3.weight(.semibold) : .subheadline.weight(.semibold))
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 46)
+            .frame(maxWidth: .infinity, minHeight: layoutMetrics.isRegular ? 58 : 46)
             .background(AppColor.primary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)

@@ -11,6 +11,9 @@ struct ReaderPageIndicator: View {
     let total: Int
     /// 0-based current page.
     let current: Int
+    /// Localised accessibility labels for the step chevrons.
+    let prevLabel: String
+    let nextLabel: String
     /// Reports a 0-based target page.
     let onSelect: (Int) -> Void
 
@@ -23,7 +26,7 @@ struct ReaderPageIndicator: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            chevron("chevron.left", enabled: canPrev, label: "Oldingi sahifa") {
+            chevron("chevron.left", enabled: canPrev, label: prevLabel) {
                 if canPrev { onSelect(current - 1) }
             }
 
@@ -35,12 +38,18 @@ struct ReaderPageIndicator: View {
                 .frame(minWidth: 52)
                 .multilineTextAlignment(.center)
 
-            chevron("chevron.right", enabled: canNext, label: "Keyingi sahifa") {
+            chevron("chevron.right", enabled: canNext, label: nextLabel) {
                 if canNext { onSelect(current + 1) }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        // Floating Liquid-Glass pill (real glass on iOS 26, frosted material +
+        // hairline below). The green progress bar keeps its accent on top.
+        .glassCard(cornerRadius: 24)
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Progress bar
@@ -109,7 +118,7 @@ struct ReaderPageIndicator: View {
 private struct PageIndicatorPreview: View {
     @State private var current = 12
     var body: some View {
-        ReaderPageIndicator(total: 52, current: current) { current = $0 }
+        ReaderPageIndicator(total: 52, current: current, prevLabel: "Oldingi", nextLabel: "Keyingi") { current = $0 }
             .padding(.vertical, 24)
             .background(AppColor.background)
     }

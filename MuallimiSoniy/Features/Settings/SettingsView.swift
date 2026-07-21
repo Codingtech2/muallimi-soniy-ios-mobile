@@ -1,16 +1,23 @@
 import SwiftUI
 
-/// Full Settings screen — 1:1 with the web `/sozlamalar` page.
+/// The app's Settings screen — the Sozlamalar tab.
 ///
-/// Labels come from `ContentStore.t(_:_:)` in the user's current locale;
-/// preferences are mutated through `SettingsStore`. Sections are laid out as
-/// glass cards mirroring the web `GlassCard` + `SectionHeader` pattern (icon
-/// chip + title + one-line description).
+/// Same section model as the old settings, rebuilt on the reusable Liquid-Glass
+/// system: every section is a `.glassCard()` surface (real Liquid Glass on
+/// iOS 26, `.ultraThinMaterial` + hairline on iOS 17–25). The flagship addition
+/// is the **Audio** card — three labelled sliders (Takror / Tezlik / Ovoz) that
+/// persist through `SettingsStore` and apply live to the shared `AudioController`.
+///
+/// Labels come from `ContentStore.t(_:_:)` where keys exist; the short audio
+/// slider labels are clean Uzbek literals. Preferences mutate only via the
+/// store's `set*` methods, keeping the view free of business logic.
 struct SettingsView: View {
     @Environment(ContentStore.self) private var content
     @Environment(SettingsStore.self) private var store
+    @Environment(AudioController.self) private var audio
+    @Environment(\.layoutMetrics) private var layoutMetrics
 
-    /// App version — hardcoded to match the web `APP_VERSION`.
+    /// App version — matches the web `APP_VERSION`.
     private let appVersion = "1.0.0"
 
     private var locale: AppLocale { store.settings.locale }
@@ -18,14 +25,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 30 : 20) {
                     header
 
-                    VStack(spacing: 16) {
-                        OfflineCard()
-                        repeatSection
+                    VStack(spacing: layoutMetrics.isRegular ? 24 : 16) {
+                        OfflineCard()          // already draws its own glass surface
+                        audioSection           // the flagship
+                        appearanceSection
                         languageSection
-                        themeSection
                         fontSizeSection
                         aboutSection
                     }
@@ -35,15 +42,22 @@ struct SettingsView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 .padding(.bottom, 24)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: layoutMetrics.contentMaxWidth, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
             .background(AppColor.background.ignoresSafeArea())
-            .sensoryFeedback(.selection, trigger: store.settings)
-            // Settings has its own large header; hide the nav bar here so only the
-            // pushed detail pages show one.
+            // Haptic on each discrete change. Volume is continuous, so it is left
+            // out to avoid a buzz on every drag tick.
+            .sensoryFeedback(.selection, trigger: store.settings.theme)
+            .sensoryFeedback(.selection, trigger: store.settings.locale)
+            .sensoryFeedback(.selection, trigger: store.settings.fontSize)
+            .sensoryFeedback(.selection, trigger: store.settings.repeatCount)
+            .sensoryFeedback(.selection, trigger: store.settings.speed)
+            // The screen owns a large title, so hide the nav bar here; only the
+            // pushed legal detail shows one.
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: LegalDoc.self) { doc in
-                LegalDetailView(doc: doc, title: tr(doc.labelKey), text: legalBody(for: doc))
+                LegalDetail(doc: doc, title: tr(doc.labelKey), text: legalBody(for: doc))
             }
         }
     }
@@ -57,106 +71,191 @@ struct SettingsView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(tr("settings"))
-                .font(.title.bold())
+                .font(layoutMetrics.isRegular ? .system(size: 46, weight: .bold) : .largeTitle.bold())
                 .foregroundStyle(AppColor.textMain)
             Text(tr("settings_subtitle"))
-                .font(.subheadline)
+                .font(layoutMetrics.isRegular ? .title2 : .subheadline)
                 .foregroundStyle(AppColor.textMuted)
         }
     }
 
     private var footer: some View {
-        VStack(spacing: 2) {
-            Text("\(tr("app_name")) · v\(appVersion)")
-                .font(.caption.weight(.medium))
-                .foregroundStyle(AppColor.textMuted)
-            Text(tr("footer_company"))
-                .font(.caption2)
-                .foregroundStyle(AppColor.textMuted.opacity(0.7))
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 4)
+        Text("\(tr("app_name")) · v\(appVersion) · \(tr("footer_company"))")
+            .font(.caption.weight(.medium))
+            .foregroundStyle(AppColor.textMuted)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 4)
     }
 
-    // MARK: - Repeat count
+    // MARK: - Audio (flagship)
 
-    private var repeatSection: some View {
-        SettingsCard {
-            VStack(alignment: .leading, spacing: 16) {
+    private var audioSection: some View {
+        GlassSection {
+            VStack(alignment: .leading, spacing: 18) {
                 SettingsSectionHeader(
-                    icon: "repeat",
-                    title: tr("repeat_count"),
-                    desc: tr("repeat_desc")
+                    icon: "waveform",
+                    title: tr("audio"),
+                    desc: tr("audio_desc")
                 )
-                HStack(spacing: 12) {
-                    stepperButton(
-                        icon: "minus",
-                        label: tr("decrease"),
-                        enabled: store.settings.repeatCount > SettingsView.repeatMin
-                    ) { store.setRepeatCount(store.settings.repeatCount - 1) }
 
-                    HStack(alignment: .firstTextBaseline, spacing: 1) {
-                        Text("\(store.settings.repeatCount)")
-                            .font(.system(size: 26, weight: .bold, design: .rounded))
-                            .foregroundStyle(AppColor.primary)
-                            .monospacedDigit()
-                        Text("×")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(AppColor.primary.opacity(0.7))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                AudioSliderRow(
+                    title: tr("loop"),
+                    value: repeatBinding,
+                    range: 1...10, step: 1,
+                    display: "\(store.settings.repeatCount)×"
+                )
+                sliderDivider
 
-                    stepperButton(
-                        icon: "plus",
-                        label: tr("increase"),
-                        enabled: store.settings.repeatCount < SettingsView.repeatMax
-                    ) { store.setRepeatCount(store.settings.repeatCount + 1) }
-                }
-                Text(tr("repeat_reset_hint"))
-                    .font(.caption2)
-                    .foregroundStyle(AppColor.textMuted)
-                    .frame(maxWidth: .infinity, alignment: .center)
+                AudioSliderRow(
+                    title: tr("speed"),
+                    value: speedBinding,
+                    range: 0.5...2.0, step: 0.25,
+                    display: speedDisplay,
+                    ticks: ["0.5×", "1×", "1.5×", "2×"]
+                )
+                sliderDivider
+
+                AudioSliderRow(
+                    title: tr("volume"),
+                    icon: "speaker.wave.2.fill",
+                    value: volumeBinding,
+                    range: 0...1, step: nil,
+                    display: volumeDisplay
+                )
             }
         }
     }
 
-    private func stepperButton(
-        icon: String,
-        label: String,
-        enabled: Bool,
-        action: @escaping () -> Void
+    private var sliderDivider: some View {
+        Rectangle()
+            .fill(AppColor.divider.opacity(0.5))
+            .frame(height: 0.5)
+    }
+
+    /// Each slider persists through the store *and* applies live to the player,
+    /// so a change is reflected instantly if audio is already sounding.
+    private var repeatBinding: Binding<Double> {
+        Binding(
+            get: { Double(store.settings.repeatCount) },
+            set: { newValue in
+                let count = Int(newValue.rounded())
+                store.setRepeatCount(count)
+                audio.setRepeatCount(count)
+            }
+        )
+    }
+
+    private var speedBinding: Binding<Double> {
+        Binding(
+            get: { store.settings.speed },
+            set: { store.setSpeed($0); audio.setSpeed($0) }
+        )
+    }
+
+    private var volumeBinding: Binding<Double> {
+        Binding(
+            get: { store.settings.volume },
+            set: { store.setVolume($0); audio.setVolume($0) }
+        )
+    }
+
+    /// `%g` drops trailing zeros: 1.0 → "1×", 1.25 → "1.25×", 1.5 → "1.5×".
+    private var speedDisplay: String { String(format: "%g×", store.settings.speed) }
+    private var volumeDisplay: String { "\(Int((store.settings.volume * 100).rounded()))%" }
+
+    // MARK: - Appearance (theme)
+
+    private var appearanceSection: some View {
+        GlassSection {
+            VStack(alignment: .leading, spacing: 16) {
+                SettingsSectionHeader(
+                    icon: "circle.lefthalf.filled",
+                    title: tr("theme"),
+                    desc: tr("theme_desc")
+                )
+                HStack(spacing: 8) {
+                    ForEach(Self.themes, id: \.value) { option in
+                        segment(selected: store.settings.theme == option.value) {
+                            store.setTheme(option.value)
+                        } content: {
+                            Image(systemName: option.icon).font(.system(size: layoutMetrics.isRegular ? 26 : 20))
+                            Text(tr(option.labelKey))
+                                .font(layoutMetrics.isRegular ? .subheadline.weight(.medium) : .caption.weight(.medium))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Font size
+
+    private var fontSizeSection: some View {
+        GlassSection {
+            VStack(alignment: .leading, spacing: 16) {
+                SettingsSectionHeader(
+                    icon: "textformat.size",
+                    title: tr("font_size"),
+                    desc: tr("font_size_desc")
+                )
+                HStack(spacing: 8) {
+                    ForEach(Self.fontSizes, id: \.value) { option in
+                        segment(selected: store.settings.fontSize == option.value) {
+                            store.setFontSize(option.value)
+                        } content: {
+                            Text("A")
+                                .font(.system(size: option.point * (layoutMetrics.isRegular ? 1.3 : 1), weight: .bold))
+                                .frame(height: layoutMetrics.isRegular ? 34 : 28, alignment: .bottom)
+                            Text(tr(option.labelKey))
+                                .font(layoutMetrics.isRegular ? .footnote : .caption2)
+                                .opacity(0.85)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Shared 3-segment glass control (theme + font size).
+    private func segment<Content: View>(
+        selected: Bool,
+        action: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
     ) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(AppColor.textMain)
-                .frame(width: 44, height: 44)
-                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            VStack(spacing: layoutMetrics.isRegular ? 8 : 6) { content() }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, layoutMetrics.isRegular ? 18 : 12)
+                .foregroundStyle(selected ? AppColor.primary : AppColor.textMuted)
+                .background(
+                    selected ? AppColor.primary.opacity(0.18) : AppColor.surface.opacity(0.6),
+                    in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(
+                            selected ? AppColor.primary.opacity(0.4) : AppColor.divider.opacity(0.4),
+                            lineWidth: 1
+                        )
+                )
         }
         .buttonStyle(.plain)
-        .disabled(!enabled)
-        .opacity(enabled ? 1 : 0.3)
-        .accessibilityLabel(label)
     }
 
     // MARK: - Language
 
     private var languageSection: some View {
-        SettingsCard(padding: 0) {
-            VStack(spacing: 0) {
+        GlassSection {
+            VStack(alignment: .leading, spacing: 12) {
                 SettingsSectionHeader(
                     icon: "globe",
                     title: tr("language"),
                     desc: tr("language_desc")
                 )
-                .padding([.horizontal, .top], 16)
-                .padding(.bottom, 12)
-
-                ForEach(SettingsView.languages, id: \.value) { lang in
-                    rowDivider
-                    languageRow(lang)
+                VStack(spacing: 6) {
+                    ForEach(Self.languages, id: \.value) { lang in
+                        languageRow(lang)
+                    }
                 }
             }
         }
@@ -170,176 +269,93 @@ struct SettingsView: View {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(lang.label)
-                        .font(.subheadline.weight(.medium))
+                        .font(layoutMetrics.isRegular ? .title3.weight(.medium) : .subheadline.weight(.medium))
                         .foregroundStyle(selected ? AppColor.primary : AppColor.textMain)
                     if let sub = lang.sub {
                         Text(sub)
-                            .font(.caption)
+                            .font(layoutMetrics.isRegular ? .subheadline : .caption)
                             .foregroundStyle(AppColor.textMuted)
                     }
                 }
                 Spacer(minLength: 8)
                 selectionCircle(selected: selected)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, layoutMetrics.isRegular ? 20 : 14)
+            .padding(.vertical, layoutMetrics.isRegular ? 16 : 11)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(selected ? AppColor.primary.opacity(0.15) : Color.clear)
+            .background(
+                selected ? AppColor.primary.opacity(0.15) : AppColor.surface.opacity(0.5),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(selected ? AppColor.primary.opacity(0.3) : .clear, lineWidth: 1)
+            )
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
     private func selectionCircle(selected: Bool) -> some View {
-        ZStack {
+        let side: CGFloat = layoutMetrics.isRegular ? 30 : 24
+        return ZStack {
             if selected {
                 Circle().fill(AppColor.primary)
                 Image(systemName: "checkmark")
-                    .font(.system(size: 12, weight: .bold))
+                    .font(.system(size: layoutMetrics.isRegular ? 15 : 12, weight: .bold))
                     .foregroundStyle(.white)
             } else {
                 Circle().strokeBorder(AppColor.divider, lineWidth: 2)
             }
         }
-        .frame(width: 24, height: 24)
-    }
-
-    // MARK: - Theme
-
-    private var themeSection: some View {
-        SettingsCard {
-            VStack(alignment: .leading, spacing: 16) {
-                SettingsSectionHeader(
-                    icon: "circle.lefthalf.filled",
-                    title: tr("theme"),
-                    desc: tr("theme_desc")
-                )
-                HStack(spacing: 8) {
-                    ForEach(SettingsView.themes, id: \.value) { option in
-                        choiceButton(selected: store.settings.theme == option.value) {
-                            store.setTheme(option.value)
-                        } content: {
-                            Image(systemName: option.icon).font(.system(size: 20))
-                            Text(tr(option.labelKey)).font(.caption.weight(.medium))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // MARK: - Font size
-
-    private var fontSizeSection: some View {
-        SettingsCard {
-            VStack(alignment: .leading, spacing: 16) {
-                SettingsSectionHeader(
-                    icon: "textformat.size",
-                    title: tr("font_size"),
-                    desc: tr("font_size_desc")
-                )
-                HStack(spacing: 8) {
-                    ForEach(SettingsView.fontSizes, id: \.value) { option in
-                        choiceButton(selected: store.settings.fontSize == option.value) {
-                            store.setFontSize(option.value)
-                        } content: {
-                            Text("A")
-                                .font(.system(size: option.point, weight: .bold))
-                                .frame(height: 28, alignment: .bottom)
-                            Text(tr(option.labelKey))
-                                .font(.caption2)
-                                .opacity(0.8)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// Shared 3-segment choice button (theme + font size), selected style
-    /// mirrors web `bg-primary/20 text-primary border-primary/40`.
-    private func choiceButton<Content: View>(
-        selected: Bool,
-        action: @escaping () -> Void,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 6) { content() }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .foregroundStyle(selected ? AppColor.primary : AppColor.textMuted)
-                .background(
-                    selected ? AppColor.primary.opacity(0.2) : AppColor.surface,
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(
-                            selected ? AppColor.primary.opacity(0.4) : AppColor.divider.opacity(0.5),
-                            lineWidth: 1
-                        )
-                )
-        }
-        .buttonStyle(.plain)
+        .frame(width: side, height: side)
     }
 
     // MARK: - About
 
     private var aboutSection: some View {
-        SettingsCard(padding: 0) {
-            VStack(spacing: 0) {
+        GlassSection {
+            VStack(alignment: .leading, spacing: 12) {
                 SettingsSectionHeader(
                     icon: "info.circle",
                     title: tr("about_section"),
                     desc: "\(tr("app_name")) · v\(appVersion)"
                 )
-                .padding([.horizontal, .top], 16)
-                .padding(.bottom, 12)
-
-                ForEach(LegalDoc.allCases) { doc in
-                    rowDivider
-                    legalRow(doc)
+                VStack(spacing: 6) {
+                    ForEach(LegalDoc.allCases) { doc in
+                        aboutRow(doc)
+                    }
                 }
             }
         }
     }
 
-    private func legalRow(_ doc: LegalDoc) -> some View {
+    private func aboutRow(_ doc: LegalDoc) -> some View {
         NavigationLink(value: doc) {
             HStack(spacing: 12) {
                 Image(systemName: doc.icon)
-                    .font(.system(size: 16))
+                    .font(.system(size: layoutMetrics.isRegular ? 19 : 15))
                     .foregroundStyle(AppColor.textSecondary)
-                    .frame(width: 36, height: 36)
-                    .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(AppColor.divider.opacity(0.6), lineWidth: 0.5)
-                    )
+                    .frame(width: layoutMetrics.isRegular ? 44 : 34, height: layoutMetrics.isRegular ? 44 : 34)
+                    .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 Text(tr(doc.labelKey))
-                    .font(.subheadline.weight(.medium))
+                    .font(layoutMetrics.isRegular ? .title3.weight(.medium) : .subheadline.weight(.medium))
                     .foregroundStyle(AppColor.textMain)
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: layoutMetrics.isRegular ? 16 : 13, weight: .semibold))
                     .foregroundStyle(AppColor.textMuted)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, layoutMetrics.isRegular ? 18 : 14)
+            .padding(.vertical, layoutMetrics.isRegular ? 14 : 10)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(AppColor.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
-    // MARK: - Shared bits
-
-    /// Hairline row separator (mirrors web `border-t border-white/5`).
-    private var rowDivider: some View {
-        Rectangle()
-            .fill(AppColor.divider.opacity(0.6))
-            .frame(height: 0.5)
-    }
+    // MARK: - Helpers
 
     /// Localized legal body for `doc`, falling back to Uzbek-Latin then empty.
     private func legalBody(for doc: LegalDoc) -> String {
@@ -348,10 +364,7 @@ struct SettingsView: View {
             ?? ""
     }
 
-    // MARK: - Static option tables (mirror the web arrays)
-
-    private static let repeatMin = 1
-    private static let repeatMax = 10
+    // MARK: - Static option tables
 
     private static let languages: [LanguageOption] = [
         LanguageOption(value: .uzLatn, label: "Oʻzbekcha", sub: "Lotin yozuvi"),
@@ -393,15 +406,14 @@ private struct FontSizeOption {
     let labelKey: String
 }
 
-/// The three legal documents shown in the About section (keys match
-/// `legal.json` doc keys and the i18n label keys).
+/// The three legal documents in the About section (keys match `legal.json`
+/// doc keys and the localization label keys).
 private enum LegalDoc: String, Identifiable, CaseIterable {
     case privacyPolicy
     case termsOfUse
     case aboutApp
 
     var id: String { rawValue }
-    /// Document key into `ContentStore.legal[locale]`.
     var docKey: String { rawValue }
 
     var labelKey: String {
@@ -423,21 +435,17 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
 
 // MARK: - Reusable sub-views
 
-/// Card container mirroring the web `GlassCard` (28pt radius, glass fill,
-/// hairline border). Pass `padding: 0` for edge-to-edge list cards.
-private struct SettingsCard<Content: View>: View {
-    var padding: CGFloat = 16
+/// Glass card wrapper: pads its content and applies the shared Liquid-Glass
+/// surface (28pt continuous rounded rect) so every section reads as one family.
+private struct GlassSection<Content: View>: View {
+    @Environment(\.layoutMetrics) private var layoutMetrics
     @ViewBuilder var content: Content
 
     var body: some View {
         content
-            .padding(padding)
+            .padding(layoutMetrics.isRegular ? 24 : 18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColor.glass, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .strokeBorder(AppColor.divider.opacity(0.6), lineWidth: 0.5)
-            )
+            .glassCard(cornerRadius: 28)
     }
 }
 
@@ -447,19 +455,22 @@ private struct SettingsSectionHeader: View {
     let title: String
     let desc: String
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        let chipSide: CGFloat = layoutMetrics.isRegular ? 52 : 36
+        HStack(alignment: .top, spacing: layoutMetrics.isRegular ? 16 : 12) {
             Image(systemName: icon)
-                .font(.system(size: 18))
+                .font(.system(size: layoutMetrics.isRegular ? 26 : 18))
                 .foregroundStyle(AppColor.primary)
-                .frame(width: 36, height: 36)
+                .frame(width: chipSide, height: chipSide)
                 .background(AppColor.primary.opacity(0.2), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 4 : 2) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(layoutMetrics.isRegular ? .title3.weight(.semibold) : .subheadline.weight(.semibold))
                     .foregroundStyle(AppColor.textMain)
                 Text(desc)
-                    .font(.caption)
+                    .font(layoutMetrics.isRegular ? .subheadline : .caption)
                     .foregroundStyle(AppColor.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -469,10 +480,67 @@ private struct SettingsSectionHeader: View {
     }
 }
 
-/// Pushed detail page showing a legal document's localized body text. Opened via
-/// `NavigationLink(value:)` from the About section; hides the tab bar while shown
-/// (iOS 17 `.toolbar(.hidden, for: .tabBar)`), with the standard back button.
-private struct LegalDetailView: View {
+/// One labelled audio slider: title (+ optional leading icon) on the left, the
+/// live value on the right, the slider below, and optional tick captions under
+/// it. `step == nil` gives a continuous slider (used for volume).
+private struct AudioSliderRow: View {
+    let title: String
+    var icon: String?
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    var step: Double?
+    let display: String
+    var ticks: [String]?
+
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 12 : 8) {
+            HStack(spacing: 8) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.system(size: layoutMetrics.isRegular ? 18 : 14, weight: .semibold))
+                        .foregroundStyle(AppColor.primary)
+                }
+                Text(title)
+                    .font(layoutMetrics.isRegular ? .title3.weight(.medium) : .subheadline.weight(.medium))
+                    .foregroundStyle(AppColor.textMain)
+                Spacer(minLength: 8)
+                Text(display)
+                    .font(.system(size: layoutMetrics.isRegular ? 20 : 15, weight: .semibold, design: .rounded))
+                    .foregroundStyle(AppColor.primary)
+                    .monospacedDigit()
+            }
+            slider
+                .accessibilityLabel(title)
+                .accessibilityValue(display)
+            if let ticks { tickRow(ticks) }
+        }
+    }
+
+    @ViewBuilder private var slider: some View {
+        if let step {
+            Slider(value: $value, in: range, step: step).tint(AppColor.primary)
+        } else {
+            Slider(value: $value, in: range).tint(AppColor.primary)
+        }
+    }
+
+    private func tickRow(_ ticks: [String]) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(ticks.enumerated()), id: \.offset) { idx, label in
+                Text(label)
+                    .font(layoutMetrics.isRegular ? .footnote : .caption2)
+                    .foregroundStyle(AppColor.textMuted)
+                if idx < ticks.count - 1 { Spacer(minLength: 0) }
+            }
+        }
+    }
+}
+
+/// Pushed detail page showing a legal document's localized body. Hides the tab
+/// bar while shown (iOS 17 `.toolbar(.hidden, for: .tabBar)`) with a back button.
+private struct LegalDetail: View {
     let doc: LegalDoc
     let title: String
     let text: String
@@ -513,5 +581,6 @@ private struct LegalDetailView: View {
     SettingsView()
         .environment(ContentStore())
         .environment(SettingsStore())
+        .environment(AudioController())
         .environment(AudioDownloadManager())
 }

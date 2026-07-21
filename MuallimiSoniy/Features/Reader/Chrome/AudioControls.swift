@@ -17,6 +17,11 @@ struct AudioControls: View {
     let loopOn: Bool
     /// Accessibility label for the loop button (localised "Takror").
     let loopLabel: String
+    /// Localised accessibility labels for the transport buttons.
+    let playLabel: String
+    let pauseLabel: String
+    let prevLabel: String
+    let nextLabel: String
     let onPlayPause: () -> Void
     let onPrev: () -> Void
     let onNext: () -> Void
@@ -24,9 +29,9 @@ struct AudioControls: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            skipButton("backward.end.fill", label: "Oldingi element", action: onPrev)
+            skipButton("backward.end.fill", label: prevLabel, action: onPrev)
             playButton
-            skipButton("forward.end.fill", label: "Keyingi element", action: onNext)
+            skipButton("forward.end.fill", label: nextLabel, action: onNext)
 
             Text(Self.formatTime(audio.currentTime))
                 .font(.system(size: 11).monospacedDigit())
@@ -44,11 +49,9 @@ struct AudioControls: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(AppColor.glass, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(AppColor.divider, lineWidth: 1)
-        )
+        // Floating Liquid-Glass audio bar (real glass on iOS 26, frosted material
+        // + hairline below). The solid-green play button stays the primary action.
+        .glassCard(cornerRadius: 24)
         .padding(.horizontal, 16)
         .padding(.bottom, 10)
     }
@@ -67,7 +70,7 @@ struct AudioControls: View {
                 .background(AppColor.primary, in: Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(audio.isPlaying ? "Pauza" : "Ijro")
+        .accessibilityLabel(audio.isPlaying ? pauseLabel : playLabel)
     }
 
     private var loopButton: some View {
@@ -144,6 +147,10 @@ struct AudioControls: View {
         AudioControls(
             loopOn: true,
             loopLabel: "Takror",
+            playLabel: "Ijro",
+            pauseLabel: "Pauza",
+            prevLabel: "Oldingi",
+            nextLabel: "Keyingi",
             onPlayPause: {},
             onPrev: {},
             onNext: {},

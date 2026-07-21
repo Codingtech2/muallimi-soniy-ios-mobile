@@ -36,3 +36,9 @@ Media/audio/
 
 # QA screenshots (local only)
 .qa-results/
+# /aso marketing screenshots (local only)
+screenshots/
+
+# === Docs — only README.md is tracked (project rule) ===
+*.md
+!README.md

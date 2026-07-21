@@ -20,6 +20,8 @@ struct TocSheet: View {
     let contentsLabel: String
     /// Localised "page" word ("Sahifa").
     let pageLabel: String
+    /// Localised "close" accessibility label.
+    let closeLabel: String
     let locale: AppLocale
     /// Reports a 1-based global page to jump to.
     let onSelectGlobalPage: (Int) -> Void
@@ -73,10 +75,10 @@ struct TocSheet: View {
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(AppColor.textMain)
                         .frame(width: 36, height: 36)
-                        .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .glassCard(cornerRadius: 12)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Yopish")
+                .accessibilityLabel(closeLabel)
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
@@ -91,7 +93,9 @@ struct TocSheet: View {
             }
             .frame(height: 3)
         }
-        .background(AppColor.background)
+        // Frosted glass sheet header; the outline list below keeps its opaque,
+        // legible background.
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Chapter
@@ -292,6 +296,7 @@ private struct TocSheetPreview: View {
             totalPages: store.totalPages,
             contentsLabel: store.t("contents", .uzLatn),
             pageLabel: store.t("page", .uzLatn),
+            closeLabel: store.t("close", .uzLatn),
             locale: .uzLatn,
             onSelectGlobalPage: { _ in }
         )

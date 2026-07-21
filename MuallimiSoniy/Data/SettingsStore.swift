@@ -61,8 +61,13 @@ final class SettingsStore {
 
     // MARK: - Setters (each persists immediately)
 
+    /// Persists the locale and mirrors it onto the app's system language
+    /// (`AppleLanguages`), so `Locale.current` + any system UI follow. The app's
+    /// own strings switch instantly because `ContentStore.t(_:_:)` reads the
+    /// chosen language's compiled `.lproj` bundle directly — no relaunch needed.
     func setLocale(_ locale: AppLocale) {
         settings.locale = locale
+        userDefaults.set([locale.appleLanguageCode], forKey: "AppleLanguages")
         persist()
     }
 

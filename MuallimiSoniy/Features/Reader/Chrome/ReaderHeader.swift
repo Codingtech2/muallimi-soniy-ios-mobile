@@ -15,8 +15,13 @@ struct ReaderHeader: View {
     let onBack: () -> Void
     let onOpenToc: () -> Void
 
-    /// Web `max-w-3xl` (48rem) inner cap.
-    private let innerMaxWidth: CGFloat = 768
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
+    /// Web `max-w-3xl` (48rem) inner cap. Widens on iPad via `layoutMetrics`
+    /// so the header stays proportionally wider than the reading column
+    /// beneath it (matches today's 768-vs-640 relationship); the iPhone
+    /// number stays exactly 768.
+    private var innerMaxWidth: CGFloat { layoutMetrics.readerHeaderMaxWidth }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -43,6 +48,9 @@ struct ReaderHeader: View {
         .padding(.bottom, 10)
         .frame(maxWidth: innerMaxWidth)
         .frame(maxWidth: .infinity)
+        // Translucent glass toolbar surface (spans full width like an Apple
+        // navigation bar). The titles stay high-contrast on top of the frost.
+        .background(.ultraThinMaterial)
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(AppColor.divider)
@@ -50,18 +58,15 @@ struct ReaderHeader: View {
         }
     }
 
-    /// A 40×40 rounded icon button matching the web header buttons
-    /// (`bg-white/5`, `rounded-xl`).
+    /// A 40×40 glass icon chip (real Liquid Glass on iOS 26, frosted material +
+    /// hairline below) — a raised secondary control on the glass toolbar.
     private func iconButton(system: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: system)
                 .font(.system(size: 17, weight: .medium))
                 .foregroundStyle(AppColor.textMain)
                 .frame(width: 40, height: 40)
-                .background(
-                    AppColor.surface,
-                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                )
+                .glassCard(cornerRadius: 12)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)

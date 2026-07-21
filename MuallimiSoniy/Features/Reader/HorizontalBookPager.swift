@@ -20,9 +20,14 @@ struct HorizontalBookPager: View {
     /// `currentIndex`); the reader uses it to stop audio + clear the highlight.
     let onPageSettled: (Int) -> Void
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     /// Reading-column cap so the card doesn't stretch edge-to-edge on iPad
-    /// (mirrors the web `max-w-xl` centred column).
-    private let readingColumnWidth: CGFloat = 560
+    /// (mirrors the web `max-w-xl` centred column). This is the binding
+    /// constraint on the visible card (nests inside `ReaderView`'s own,
+    /// wider outer cap). Widens via `layoutMetrics`; the iPhone number stays
+    /// exactly 560.
+    private var readingColumnWidth: CGFloat { layoutMetrics.pagerCardMaxWidth }
 
     /// One-shot guard so the initial deep-link landing runs a single time.
     @State private var didLandInitial = false

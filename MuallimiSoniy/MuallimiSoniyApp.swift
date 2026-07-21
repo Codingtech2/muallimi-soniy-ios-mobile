@@ -29,6 +29,11 @@ struct MuallimiSoniyApp: App {
     /// skip / start actions flip it true (persisted), so later launches skip it.
     @AppStorage("ms.hasOnboarded") private var hasOnboarded = false
 
+    /// Per-launch adab gate — shown on every cold launch (NOT persisted, unlike
+    /// `hasOnboarded`), so the Qurʼan-letters etiquette reminder (use in a state
+    /// of tahorat) always appears before the app content.
+    @State private var passedWelcome = false
+
     init() {
         // Register the bundled Arabic fonts with CoreText before any view
         // renders, so `arabicFont(_:)` / `madArabicFont(_:)` resolve.
@@ -43,12 +48,15 @@ struct MuallimiSoniyApp: App {
                 .environment(downloadManager)
                 .environment(progress)
                 .environment(settings)
-                .environment(\.arabicFontScale, settings.arabicScale)
+                .adaptiveLayout(baseArabicScale: settings.arabicScale)
                 .tint(.green)
                 .preferredColorScheme(settings.preferredColorScheme)
                 .task {
                     // Release builds trigger the download from onboarding, not here.
                     #if DEBUG
+                    if let locale = ProcessInfo.processInfo.environmentLocale {
+                        settings.setLocale(locale)
+                    }
                     if ProcessInfo.processInfo.wantsAudioDownload {
                         await downloadManager.ensureReady()
                     }
@@ -80,11 +88,15 @@ struct MuallimiSoniyApp: App {
         #endif
     }
 
-    /// First launch shows onboarding (one-tap audio download with live progress);
-    /// afterwards it goes straight to the tabs.
+    /// Every cold launch shows the welcome/adab gate first (tahorat reminder);
+    /// once dismissed it falls through to first-run onboarding (one-tap audio
+    /// download) or the tabs. `passedWelcome` is `@State`, so the gate returns on
+    /// every launch while onboarding stays one-shot via `@AppStorage`.
     @ViewBuilder
     private var gatedRoot: some View {
-        if hasOnboarded {
+        if !passedWelcome {
+            WelcomeGateView { passedWelcome = true }
+        } else if hasOnboarded {
             RootTabView()
         } else {
             OnboardingView { hasOnboarded = true }
@@ -106,7 +118,7 @@ private struct DebugScreenHost: View {
             switch screen {
             case "home": HomeView()
             case "contents": ContentsView()
-            case "settings": SettingsV2View()
+            case "settings": SettingsView()
             default:
                 ContentUnavailableView("Unknown screen: \(screen)", systemImage: "questionmark.circle")
             }
@@ -175,6 +187,13 @@ private extension ProcessInfo {
     /// Reads the `-MSScreen <name>` launch argument (home / contents / settings).
     var environmentScreen: String? {
         environment["MSScreen"] ?? argumentValue(for: "-MSScreen")
+    }
+
+    /// Reads the `-MSLocale <uz-latn|uz-cyrl|ru|en>` launch argument so QA /
+    /// screenshot tooling can force the app's interface language.
+    var environmentLocale: AppLocale? {
+        guard let raw = environment["MSLocale"] ?? argumentValue(for: "-MSLocale") else { return nil }
+        return AppLocale(rawValue: raw)
     }
 
     /// Whether `-MSDownloadAudio` was passed, so headless QA can install the
