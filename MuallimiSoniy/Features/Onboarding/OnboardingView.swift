@@ -13,11 +13,11 @@ struct OnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Spacer(minLength: 12)
+            Spacer(minLength: 28)
             identity
-            Spacer(minLength: 20)
+            Spacer().frame(height: 40)
             features
-            Spacer(minLength: 24)
+            Spacer(minLength: 28)
             downloadSection
         }
         .padding(24)
@@ -28,11 +28,11 @@ struct OnboardingView: View {
     // MARK: - Identity
 
     private var identity: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             Image("LaunchLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 84)
+                .frame(height: 168)
                 .accessibilityHidden(true)
             Text("Muallimi Soniy")
                 .font(.largeTitle.bold())
