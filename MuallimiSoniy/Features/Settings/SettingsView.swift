@@ -10,39 +10,41 @@ struct SettingsView: View {
     @Environment(ContentStore.self) private var content
     @Environment(SettingsStore.self) private var store
 
-    /// The legal document shown in the modal sheet (`nil` == closed).
-    @State private var openDoc: LegalDoc?
-
     /// App version — hardcoded to match the web `APP_VERSION`.
     private let appVersion = "1.0.0"
 
     private var locale: AppLocale { store.settings.locale }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                header
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    header
 
-                VStack(spacing: 16) {
-                    OfflineCard()
-                    repeatSection
-                    languageSection
-                    themeSection
-                    fontSizeSection
-                    aboutSection
+                    VStack(spacing: 16) {
+                        OfflineCard()
+                        repeatSection
+                        languageSection
+                        themeSection
+                        fontSizeSection
+                        aboutSection
+                    }
+
+                    footer
                 }
-
-                footer
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 24)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 24)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .background(AppColor.background.ignoresSafeArea())
-        .sensoryFeedback(.selection, trigger: store.settings)
-        .sheet(item: $openDoc) { doc in
-            LegalSheet(doc: doc, title: tr(doc.labelKey), text: legalBody(for: doc))
+            .background(AppColor.background.ignoresSafeArea())
+            .sensoryFeedback(.selection, trigger: store.settings)
+            // Settings has its own large header; hide the nav bar here so only the
+            // pushed detail pages show one.
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: LegalDoc.self) { doc in
+                LegalDetailView(doc: doc, title: tr(doc.labelKey), text: legalBody(for: doc))
+            }
         }
     }
 
@@ -303,9 +305,7 @@ struct SettingsView: View {
     }
 
     private func legalRow(_ doc: LegalDoc) -> some View {
-        Button {
-            openDoc = doc
-        } label: {
+        NavigationLink(value: doc) {
             HStack(spacing: 12) {
                 Image(systemName: doc.icon)
                     .font(.system(size: 16))
@@ -469,58 +469,43 @@ private struct SettingsSectionHeader: View {
     }
 }
 
-/// Bottom-sheet modal showing a legal document's localized body text.
-/// Swipe-down or the close button dismisses it.
-private struct LegalSheet: View {
+/// Pushed detail page showing a legal document's localized body text. Opened via
+/// `NavigationLink(value:)` from the About section; hides the tab bar while shown
+/// (iOS 17 `.toolbar(.hidden, for: .tabBar)`), with the standard back button.
+private struct LegalDetailView: View {
     let doc: LegalDoc
     let title: String
     let text: String
 
-    @Environment(\.dismiss) private var dismiss
-
     var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                Image(systemName: doc.icon)
-                    .font(.system(size: 18))
-                    .foregroundStyle(AppColor.primary)
-                    .frame(width: 36, height: 36)
-                    .background(AppColor.primary.opacity(0.2), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(AppColor.textMain)
-                Spacer(minLength: 8)
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(AppColor.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(AppColor.surface, in: Circle())
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    Image(systemName: doc.icon)
+                        .font(.system(size: 18))
+                        .foregroundStyle(AppColor.primary)
+                        .frame(width: 40, height: 40)
+                        .background(AppColor.primary.opacity(0.18), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text(title)
+                        .font(.title2.bold())
+                        .foregroundStyle(AppColor.textMain)
+                    Spacer(minLength: 0)
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Yopish")
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
 
-            Rectangle()
-                .fill(AppColor.divider)
-                .frame(height: 0.5)
-
-            ScrollView {
                 Text(text.isEmpty ? "—" : text)
                     .font(.callout)
                     .foregroundStyle(AppColor.textSecondary)
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
-                    .padding(20)
             }
+            .padding(20)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .background(AppColor.background)
-        .presentationDragIndicator(.visible)
+        .background(AppColor.background.ignoresSafeArea())
+        .navigationTitle(title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
     }
 }
 
