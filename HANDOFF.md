@@ -31,12 +31,19 @@ The reader taps already call `playSegment`, but on device `App Support/media/` i
 - Download URL (public, HTTP 200): `https://github.com/Codingtech2/muallimi-soniy-ios-mobile/releases/download/content-2.0.0/audio.zip`
 - **LIVE E2E TEST PASSED (2026-07-21, iPhone 17 Pro Max sim):** download from public Release → extract → verify, app log: "Audio pack 2.0.0 installed and verified (1757 files)". 1757/1757 mp3 (125 MB) in App Support/media; independent sha256 spot-checks OK incl. spaced name "audio/02. Muqaddima.mp3"; extracted mp3 plays (afplay); ready flag "audioReadyContentVersion"="2.0.0" persisted → relaunches short-circuit. Device fix ships when M10 OfflineCard (in progress) gives the release-mode download button; final UX = M12 onboarding.
 
-## REMAINING (after M5)
-1. Font trim (~930K unused): drop `Amiri-Regular.ttf`, `NotoNaskhArabic-VariableFont_wght.ttf`, `UthmanicHafs.otf` from `Resources/Fonts/` + `DesignSystem/Fonts.swift` bundledFonts list. KEEP `NotoNaskhArabic-MuallimiSoniy.ttf` + `AmiriQuran.ttf`. (Mad verified to render with Amiri Quran.)
-2. M10 Settings: 4-lang switch, theme (light default), font size, repeat stepper, legal modal, progress persistence (UserDefaults "davom eting").
-3. Web-vs-iOS VISUAL QA: Playwright on live `muallimisoniy.uz`, screenshot each page, compare 1:1, refine mismatches.
-4. `/code-review` (code-reviewer) + performance audit (swift-ios-performance-auditor): focus SwiftUI view-body bloat / re-renders. Keep bodies small.
-5. **ONBOARDING page (FINAL, user's explicit last task)**: first-run screen — ideal explanation + ONE "Download" button that runs M5's `ensureReady()` + real-time ProgressView → then app fully offline. Persist "hasOnboarded".
+## REMAINING
+- ✅ DONE: Font trim (−930K; kept NotoNaskhArabic-MuallimiSoniy + AmiriQuran). M5 live-tested.
+- 🔄 M10 IN PROGRESS: SettingsView (til/tema/shrift/takror/legal) + OfflineCard (download button + ProgressView) + ProgressStore (resume + completed ✓) + pager deep-link BUG FIX + Swift-6 warning fix. Integrator wires theme/i18n/fontsize, builds, screenshots.
+
+1. **HOME DASHBOARD — user-approved 2026-07-21 (do RIGHT AFTER M10; builds on M10's ProgressStore + AudioDownloadManager.isReady).** Rewrite `Features/Home/HomeView.swift` into a dashboard (mirror web `src/components/home/*` + `src/app/(tabs)/home/page.tsx`):
+   - **GreetingHeader**: time-based "Xayrli tong/kun/kech" + "Arab tili o'rganish platformasi" (web GreetingHeader.tsx).
+   - **ContinueHeroCard**: `LaunchLogo` asset + "Muallimi Soniy" + "Ahmad Hodiy Maqsudiy" + progress bar (ProgressStore.resumeGlobalIndex / 52) + "Sahifa X / 52" + Boshlash/Davom eting → ReaderView(.global(resumeIndex)) (web BookHeroCard.tsx).
+   - **StatTilesRow** (3 tiles): pages read (resumeIndex/52), completed lessons (completedLessons.count / 13), audio (isReady ? "Audio ✓ offline" : tap → Settings/download).
+   - **ChaptersScroll**: horizontal 10 chapter cards (SF Symbol per bob, title via LocalizedString, page range from ContentStore.outline, ✓ if all its lessons complete) → tap opens ReaderView at that chapter's first global page.
+   - Small sub-views (user rule). Uses ContentStore (chapters/outline/title), ProgressStore, AudioDownloadManager, SettingsStore locale.
+2. Web-vs-iOS VISUAL QA: Playwright on live `muallimisoniy.uz`, screenshot each page, compare 1:1, refine mismatches.
+3. `/code-review` (code-reviewer) + performance audit (swift-ios-performance-auditor): SwiftUI view-body bloat / re-renders. Keep bodies small.
+4. **ONBOARDING page (FINAL, user's explicit last task)**: first-run — explanation + ONE "Download" button running `AudioDownloadManager.ensureReady()` + real-time ProgressView → app fully offline. Persist "hasOnboarded". (Reuses M10's OfflineCard logic.)
 
 ## KNOWN BUGS
 - **Pager deep-link**: `HorizontalBookPager` (ScrollView + LazyHStack + `.scrollPosition`) does NOT jump to a far page when the index is set in `onAppear` — stays on page 0. Breaks Darslar→lesson open + Home "Davom eting" resume. Fix: set the scroll target as `@State` from the entry BEFORE first layout (init), or ScrollViewReader `.scrollTo` in `.task`. Test far pages. (3 agent attempts failed + reverted.)
