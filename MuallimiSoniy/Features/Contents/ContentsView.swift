@@ -31,7 +31,7 @@ struct ContentsView: View {
                     }
                 }
             }
-            .navigationTitle(store.t("lessons", locale))
+            .navigationTitle(store.t("contents", locale))
             .navigationDestination(for: ReaderEntry.self) { entry in
                 ReaderView(entry: entry)
             }
