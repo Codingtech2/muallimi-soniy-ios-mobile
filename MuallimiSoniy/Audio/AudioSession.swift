@@ -43,6 +43,14 @@ final class AudioSession {
         }
     }
 
+    /// The system deactivated our session out from under us (e.g. a phone call
+    /// interruption). Reset the cached `isActive` flag — without touching the
+    /// session — so the next `activate()` genuinely reactivates it rather than
+    /// short-circuiting on a stale flag.
+    func invalidateActivation() {
+        isActive = false
+    }
+
     /// Deactivates the session (e.g. when leaving the reader), letting other
     /// apps resume their audio.
     func deactivate() {

@@ -90,6 +90,7 @@ struct ReaderView: View {
         .onAppear {
             resolveStartIfNeeded()
             configureAudioDefaults()
+            wireRemoteCommands()
             recordProgress()
         }
         .onChange(of: currentPageIndex) {
@@ -103,7 +104,10 @@ struct ReaderView: View {
         }
         .onDisappear {
             cancelSequential()
+            audio.onRemoteNext = nil
+            audio.onRemotePrev = nil
             audio.stop()
+            AudioSession.shared.deactivate()
         }
     }
 
@@ -210,6 +214,13 @@ struct ReaderView: View {
         activeElementId = element.id
         guard element.start != element.end else { return }
         guard let url = audioURL(for: element) else { return }
+        if let page = currentPage {
+            audio.setNowPlaying(
+                title: element.arabic,
+                artist: element.uzbek,
+                album: page.lesson.title.text(locale)
+            )
+        }
         Task { await audio.playSegment(url: url, start: element.start, end: element.end) }
     }
 
@@ -258,6 +269,11 @@ struct ReaderView: View {
            element.start < element.end {
             let url = MediaLocator.url(for: element) ?? MediaLocator.url(for: page.lesson)
             if let url {
+                audio.setNowPlaying(
+                    title: element.arabic,
+                    artist: element.uzbek,
+                    album: page.lesson.title.text(locale)
+                )
                 Task { await audio.playSegment(url: url, start: element.start, end: element.end) }
             }
             return
@@ -305,6 +321,9 @@ struct ReaderView: View {
         let cursor = sequential
         let controller = audio
         let activeBinding = $activeElementId
+        // Album is the lesson title of the page being played (constant across the
+        // sequence); captured by value so the stored closure needs no view struct.
+        let album = page.lesson.title.text(locale)
 
         func play(_ index: Int) {
             guard cursor.active else { return }
@@ -319,6 +338,7 @@ struct ReaderView: View {
             activeBinding.wrappedValue = element.id
             let url = MediaLocator.url(for: element) ?? fallback
             if let url {
+                controller.setNowPlaying(title: element.arabic, artist: element.uzbek, album: album)
                 Task { await controller.playSegment(url: url, start: element.start, end: element.end) }
             }
         }
@@ -335,6 +355,50 @@ struct ReaderView: View {
     private func cancelSequential() {
         sequential.active = false
         audio.onSegmentComplete = nil
+    }
+
+    // MARK: - Remote commands (lock screen / Control Centre)
+
+    /// Wires the Now Playing next/previous track buttons to per-element navigation.
+    /// Captures only stable references (environment stores + state bindings), never
+    /// the view struct, so the long-lived handlers read live page/element state and
+    /// the audio controller never retains itself through them (`[weak audioRef]`).
+    private func wireRemoteCommands() {
+        let store = self.store
+        let preferences = self.preferences
+        let sequential = self.sequential
+        let pageBinding = $currentPageIndex
+        let activeBinding = $activeElementId
+        let audioRef = self.audio
+
+        let navigate: (Int) -> Void = { [weak audioRef] offset in
+            guard let audioRef else { return }
+            let pages = store.allBookPages
+            let index = pageBinding.wrappedValue
+            guard pages.indices.contains(index) else { return }
+            let page = pages[index]
+            guard let active = activeBinding.wrappedValue,
+                  let position = page.elements.firstIndex(where: { $0.id == active }) else { return }
+            let target = position + offset
+            guard page.elements.indices.contains(target) else { return }
+            let element = page.elements[target]
+            // Cancel any in-flight sequence, then select + play the neighbour.
+            sequential.active = false
+            audioRef.onSegmentComplete = nil
+            activeBinding.wrappedValue = element.id
+            guard element.start != element.end,
+                  let url = MediaLocator.url(for: element) ?? MediaLocator.url(for: page.lesson)
+            else { return }
+            audioRef.setNowPlaying(
+                title: element.arabic,
+                artist: element.uzbek,
+                album: page.lesson.title.text(preferences.settings.locale)
+            )
+            Task { await audioRef.playSegment(url: url, start: element.start, end: element.end) }
+        }
+
+        audio.onRemoteNext = { navigate(1) }
+        audio.onRemotePrev = { navigate(-1) }
     }
 
     // MARK: - Per-element prev / next (wired for M4 Stage 2 chrome)

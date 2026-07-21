@@ -55,12 +55,27 @@ nonisolated enum MediaLocator {
     // MARK: - Directory setup (downloader)
 
     /// Creates the media directory if needed and returns it. The downloader
-    /// calls this before extracting the pack.
+    /// calls this before extracting the pack. The directory is also marked as
+    /// excluded from backup (see `excludeFromBackupIfNeeded`).
     @discardableResult
     static func ensureMediaDirectory() throws -> URL {
-        let directory = mediaDirectory
+        var directory = mediaDirectory
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        excludeFromBackupIfNeeded(&directory)
         return directory
+    }
+
+    /// Marks the media directory (and everything the pack extracts into it) as
+    /// excluded from iCloud / iTunes backup. App Store guideline 2.5.1 forbids
+    /// backing up re-downloadable content, and it spares the user ~127 MB of
+    /// backup. Applied once — skipped when already set — and best-effort: a
+    /// failure to write the flag never breaks the install.
+    private static func excludeFromBackupIfNeeded(_ url: inout URL) {
+        let already = (try? url.resourceValues(forKeys: [.isExcludedFromBackupKey]))?.isExcludedFromBackup
+        guard already != true else { return }
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
     }
 
     // MARK: - Private

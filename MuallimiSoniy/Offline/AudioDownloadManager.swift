@@ -32,6 +32,12 @@ final class AudioDownloadManager {
 
     private(set) var phase: Phase = .idle
 
+    /// The single in-flight install, if any. Concurrent `ensureReady()` callers
+    /// coalesce onto it rather than spawning a second extract over the same 1757
+    /// paths (which would corrupt the pack or crash). Internal only — not part of
+    /// observable UI state.
+    @ObservationIgnored private var installTask: Task<Void, Never>?
+
     // MARK: - Constants
 
     /// Content version this build ships; persisted once the pack is verified so
@@ -42,6 +48,23 @@ final class AudioDownloadManager {
     private static let packURL = URL(string:
         "https://github.com/Codingtech2/muallimi-soniy-ios-mobile/releases/download/content-2.0.0/audio.zip"
     )!
+
+    /// The URL the installer actually downloads from. In Release it is always the
+    /// shipped `packURL`. In DEBUG a `MSDownloadURL` environment override lets
+    /// headless QA aim the pipeline at a failing endpoint (404 / bad host) to
+    /// prove it lands in `.failed` gracefully. The override is runtime data, so it
+    /// is parsed with a non-throwing `URL(string:)` and a malformed / empty value
+    /// falls back to `packURL` — never force-unwrapped, never a crash.
+    private static var resolvedPackURL: URL {
+        #if DEBUG
+        if let override = ProcessInfo.processInfo.environment["MSDownloadURL"],
+           !override.isEmpty,
+           let url = URL(string: override) {
+            return url
+        }
+        #endif
+        return packURL
+    }
     /// A file guaranteed present in a good install — a cheap on-disk sanity check.
     private static let sanityRelativePath = "audio/01. muqova.mp3"
 
@@ -77,21 +100,75 @@ final class AudioDownloadManager {
     // MARK: - Public API
 
     /// Installs the pack if it isn't already present + verified. Idempotent and
-    /// safe to call on every launch — returns fast when `isReady`.
+    /// safe to call on every launch — returns fast when `isReady`. Concurrent
+    /// calls (a double-tapped Download / Retry / Re-download button) coalesce
+    /// onto one install instead of racing two extracts over the same files.
     func ensureReady() async {
         if isReady {
             phase = .ready
             return
         }
+        // Coalesce: a genuinely-running install (not superseded by `reset()`) is
+        // joined, never duplicated — two `Task.detached` extracts writing the
+        // same 1757 paths would corrupt the pack or crash.
+        if let existing = installTask, !existing.isCancelled {
+            await existing.value
+            return
+        }
+        // Start a fresh install. If a previous one was superseded (cancelled by
+        // `reset()`), chain after it so its detached extract fully unwinds before
+        // we wipe + repopulate the media directory — the two must never overlap.
+        let prior = installTask
+        let task = Task { [weak self] in
+            await prior?.value
+            guard let self else { return }
+            if self.isReady {
+                self.phase = .ready
+                return
+            }
+            await self.performInstall()
+        }
+        installTask = task
+        defer { if installTask == task { installTask = nil } }
+        await task.value
+    }
+
+    /// Clears the ready flag and deletes the installed media so the next
+    /// `ensureReady()` re-downloads from scratch. Safe against an in-flight
+    /// install: rather than deleting the directory under a running extract
+    /// (which would corrupt files or crash), it cancels the install and lets the
+    /// superseding `ensureReady()` wipe serially, once that extract has unwound.
+    func reset() {
+        UserDefaults.standard.removeObject(forKey: Self.readyDefaultsKey)
+        if let installTask {
+            installTask.cancel()
+        } else {
+            try? FileManager.default.removeItem(at: MediaLocator.mediaDirectory)
+        }
+        phase = .idle
+    }
+
+    // MARK: - Install pipeline
+
+    /// Runs the download → wipe → extract → verify pipeline exactly once. Only
+    /// `phase` mutations touch the main actor; every heavy step is awaited
+    /// off-main (URLSession download, detached media wipe, detached extract /
+    /// verify), so the main actor never blocks. Every failure lands in
+    /// `.failed` / `.idle` — this never throws or crashes.
+    private func performInstall() async {
         let tempZip = Self.temporaryZipURL()
         do {
             phase = .checking
             let entries = try AudioManifestLoader.load()
 
             phase = .downloading(0)
-            try await download(from: Self.packURL, to: tempZip)
+            try await download(from: Self.resolvedPackURL, to: tempZip)
 
             phase = .extracting(0)
+            // Drop any prior content-version files so nothing stale lingers, then
+            // (re)create the dir (excluded from backup). The recursive wipe of up
+            // to 1757 files runs off-main; the cheap create hops back.
+            await Self.wipeMediaDirectory()
             let mediaDir = try MediaLocator.ensureMediaDirectory()
             try await extract(zip: tempZip, into: mediaDir)
             try? FileManager.default.removeItem(at: tempZip)
@@ -105,20 +182,17 @@ final class AudioDownloadManager {
         } catch is CancellationError {
             try? FileManager.default.removeItem(at: tempZip)
             phase = .idle
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            // The async URLSession surfaces task cancellation as URLError.cancelled
+            // rather than CancellationError — treat it the same: no half state.
+            try? FileManager.default.removeItem(at: tempZip)
+            phase = .idle
         } catch {
             try? FileManager.default.removeItem(at: tempZip)
             let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            logger.error("ensureReady failed: \(message, privacy: .public)")
+            logger.error("install failed: \(message, privacy: .public)")
             phase = .failed(message)
         }
-    }
-
-    /// Clears the ready flag and deletes the installed media so the next
-    /// `ensureReady()` re-downloads from scratch.
-    func reset() {
-        UserDefaults.standard.removeObject(forKey: Self.readyDefaultsKey)
-        try? FileManager.default.removeItem(at: MediaLocator.mediaDirectory)
-        phase = .idle
     }
 
     // MARK: - Download
@@ -229,6 +303,15 @@ final class AudioDownloadManager {
     }
 
     // MARK: - Helpers
+
+    /// Deletes the media directory off the main actor — a recursive unlink of up
+    /// to 1757 files is too heavy for the main thread. Best-effort: a missing
+    /// directory is not an error.
+    private nonisolated static func wipeMediaDirectory() async {
+        await Task.detached(priority: .userInitiated) {
+            try? FileManager.default.removeItem(at: MediaLocator.mediaDirectory)
+        }.value
+    }
 
     private static func temporaryZipURL() -> URL {
         FileManager.default.temporaryDirectory

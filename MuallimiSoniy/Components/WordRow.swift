@@ -43,31 +43,51 @@ struct FlowLayout: Layout {
     /// `true` → first subview is placed at the right edge of its line (RTL).
     var isRTL: Bool = true
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+    /// Per-pass memo of each subview's intrinsic size. Measuring custom-font
+    /// Arabic glyphs (`sizeThatFits`) is the expensive bit and was previously
+    /// re-run ~5× per token per layout pass across `rows`/`lineWidth`/`rowHeight`/
+    /// `placeSubviews`; caching it once removes that page-turn cost on dense pages.
+    struct SizeCache {
+        var sizes: [CGSize]
+    }
+
+    func makeCache(subviews: Subviews) -> SizeCache {
+        SizeCache(sizes: subviews.map { $0.sizeThatFits(.unspecified) })
+    }
+
+    func updateCache(_ cache: inout SizeCache, subviews: Subviews) {
+        // The active-token highlight is a render transform, not a size change, so
+        // sizes only change when the element set does — re-measure on count change.
+        if cache.sizes.count != subviews.count {
+            cache.sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        }
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout SizeCache) -> CGSize {
         let maxWidth = finiteWidth(proposal.width)
-        let rows = rows(maxWidth: maxWidth, subviews: subviews)
+        let rows = rows(maxWidth: maxWidth, cache: cache)
         var height: CGFloat = 0
         for (index, row) in rows.enumerated() {
-            height += rowHeight(row, subviews)
+            height += rowHeight(row, cache)
             if index < rows.count - 1 { height += lineSpacing }
         }
         // Fill the offered width when finite; otherwise hug the widest line.
-        let width = proposal.width ?? rows.map { lineWidth($0, subviews) }.max() ?? 0
+        let width = proposal.width ?? rows.map { lineWidth($0, cache) }.max() ?? 0
         return CGSize(width: width, height: height)
     }
 
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
-        let rows = rows(maxWidth: bounds.width, subviews: subviews)
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout SizeCache) {
+        let rows = rows(maxWidth: bounds.width, cache: cache)
         var y = bounds.minY
         for row in rows {
-            let height = rowHeight(row, subviews)
-            let total = lineWidth(row, subviews)
+            let height = rowHeight(row, cache)
+            let total = lineWidth(row, cache)
             let startX = bounds.minX + (bounds.width - total) / 2  // justify-center
 
             if isRTL {
                 var x = startX + total
                 for index in row {
-                    let itemSize = subviews[index].sizeThatFits(.unspecified)
+                    let itemSize = cache.sizes[index]
                     x -= itemSize.width
                     subviews[index].place(
                         at: CGPoint(x: x, y: y + (height - itemSize.height) / 2),
@@ -78,7 +98,7 @@ struct FlowLayout: Layout {
             } else {
                 var x = startX
                 for index in row {
-                    let itemSize = subviews[index].sizeThatFits(.unspecified)
+                    let itemSize = cache.sizes[index]
                     subviews[index].place(
                         at: CGPoint(x: x, y: y + (height - itemSize.height) / 2),
                         proposal: ProposedViewSize(itemSize)
@@ -90,15 +110,15 @@ struct FlowLayout: Layout {
         }
     }
 
-    // MARK: - Line breaking
+    // MARK: - Line breaking (all reads go through the cached sizes)
 
     /// Groups subview indices into lines that each fit within `maxWidth`.
-    private func rows(maxWidth: CGFloat, subviews: Subviews) -> [[Int]] {
+    private func rows(maxWidth: CGFloat, cache: SizeCache) -> [[Int]] {
         var rows: [[Int]] = []
         var current: [Int] = []
         var x: CGFloat = 0
-        for index in subviews.indices {
-            let width = subviews[index].sizeThatFits(.unspecified).width
+        for index in cache.sizes.indices {
+            let width = cache.sizes[index].width
             let advance = current.isEmpty ? width : width + spacing
             if !current.isEmpty, x + advance > maxWidth {
                 rows.append(current)
@@ -113,14 +133,14 @@ struct FlowLayout: Layout {
         return rows
     }
 
-    private func lineWidth(_ row: [Int], _ subviews: Subviews) -> CGFloat {
+    private func lineWidth(_ row: [Int], _ cache: SizeCache) -> CGFloat {
         guard !row.isEmpty else { return 0 }
-        let widths = row.reduce(0) { $0 + subviews[$1].sizeThatFits(.unspecified).width }
+        let widths = row.reduce(0) { $0 + cache.sizes[$1].width }
         return widths + spacing * CGFloat(row.count - 1)
     }
 
-    private func rowHeight(_ row: [Int], _ subviews: Subviews) -> CGFloat {
-        row.map { subviews[$0].sizeThatFits(.unspecified).height }.max() ?? 0
+    private func rowHeight(_ row: [Int], _ cache: SizeCache) -> CGFloat {
+        row.map { cache.sizes[$0].height }.max() ?? 0
     }
 
     private func finiteWidth(_ width: CGFloat?) -> CGFloat {

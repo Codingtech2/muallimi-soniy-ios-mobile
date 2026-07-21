@@ -45,9 +45,15 @@ final class SettingsStore {
     /// Volume bounds.
     private static let volumeRange = 0.0...1.0
 
-    init(userDefaults: UserDefaults = .standard, fallback: AppSettings = .default) {
+    /// Loads persisted settings, falling back — on a fresh install or an
+    /// unreadable store — to `fallback` when the caller supplies one, otherwise
+    /// to the factory defaults decoded from the bundled `settings.json`
+    /// (`bundledDefaultSettings()`). `repeatCount` is then forced to 1× (the
+    /// session-only rule) regardless of where the base came from.
+    init(userDefaults: UserDefaults = .standard, fallback: AppSettings? = nil) {
         self.userDefaults = userDefaults
-        var loaded = Self.loadPersisted(from: userDefaults, fallback: fallback)
+        let base = fallback ?? Self.bundledDefaultSettings()
+        var loaded = Self.loadPersisted(from: userDefaults, fallback: base)
         // Session-only: repeatCount never carries across launches — always 1×.
         loaded.repeatCount = Self.repeatRange.lowerBound
         settings = loaded
@@ -126,17 +132,54 @@ final class SettingsStore {
         else {
             return fallback
         }
-        return AppSettings(
-            repeatCount: stored.repeatCount ?? fallback.repeatCount,
-            speed: stored.speed ?? fallback.speed,
-            volume: stored.volume ?? fallback.volume,
-            locale: stored.locale.flatMap(AppLocale.init(rawValue:)) ?? fallback.locale,
-            theme: stored.theme.flatMap(AppTheme.init(rawValue:)) ?? fallback.theme,
-            fontSize: stored.fontSize.flatMap(FontSize.init(rawValue:)) ?? fallback.fontSize,
-            loopMode: stored.loopMode ?? fallback.loopMode,
-            sequentialMode: stored.sequentialMode ?? fallback.sequentialMode
+        return merged(stored, over: fallback)
+    }
+
+    /// Factory defaults for a **fresh install**, decoded leniently from the
+    /// bundled `settings.json` → `defaults` block and layered over
+    /// `AppSettings.default`.
+    ///
+    /// Any missing field (e.g. `volume`, which the content package omits) or an
+    /// unrecognised enum raw value (a `theme` this build doesn't know) keeps the
+    /// compiled default — so an unknown theme resolves to **light**, and a
+    /// malformed or absent file degrades to `AppSettings.default` instead of
+    /// throwing. `nonisolated` + pure so the settings store and `ContentStore`
+    /// share this one decode path and never diverge.
+    nonisolated static func bundledDefaultSettings() -> AppSettings {
+        let base = AppSettings.default
+        guard let url = Bundle.main.url(forResource: "settings", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let raw = try? JSONDecoder().decode(RawDefaults.self, from: data),
+              let stored = raw.defaults
+        else {
+            return base
+        }
+        return merged(stored, over: base)
+    }
+
+    /// Layers the tolerant `stored` fields over `base`, keeping `base` wherever a
+    /// field is absent or holds an unrecognised enum raw value.
+    private nonisolated static func merged(
+        _ stored: StoredSettings,
+        over base: AppSettings
+    ) -> AppSettings {
+        AppSettings(
+            repeatCount: stored.repeatCount ?? base.repeatCount,
+            speed: stored.speed ?? base.speed,
+            volume: stored.volume ?? base.volume,
+            locale: stored.locale.flatMap(AppLocale.init(rawValue:)) ?? base.locale,
+            theme: stored.theme.flatMap(AppTheme.init(rawValue:)) ?? base.theme,
+            fontSize: stored.fontSize.flatMap(FontSize.init(rawValue:)) ?? base.fontSize,
+            loopMode: stored.loopMode ?? base.loopMode,
+            sequentialMode: stored.sequentialMode ?? base.sequentialMode
         )
     }
+}
+
+/// Lenient wrapper around `settings.json`; only the `defaults` block is read,
+/// and every field is optional so a missing key never fails the whole decode.
+private nonisolated struct RawDefaults: Decodable {
+    var defaults: StoredSettings?
 }
 
 /// All-optional mirror of `AppSettings` for tolerant decoding of persisted JSON:

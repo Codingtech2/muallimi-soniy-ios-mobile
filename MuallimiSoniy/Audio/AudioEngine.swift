@@ -88,8 +88,21 @@ final class AudioEngine {
     func load(url: URL) async throws {
         if loadedURL == url, player != nil { return }
         stop()
+        // Read the file OFF the main actor so disk I/O never blocks the UI; the
+        // decoder is then built on the main actor from the in-memory bytes. A
+        // missing / unreadable file throws here and is surfaced as `loadFailed`,
+        // which the controller swallows — a bad chunk never crashes the app.
+        let data: Data
         do {
-            let newPlayer = try AVAudioPlayer(contentsOf: url)
+            data = try await Task.detached(priority: .userInitiated) {
+                try Data(contentsOf: url)
+            }.value
+        } catch {
+            logger.error("Read failed for \(url.lastPathComponent, privacy: .public): \(String(describing: error))")
+            throw AudioEngineError.loadFailed(url, underlying: error)
+        }
+        do {
+            let newPlayer = try AVAudioPlayer(data: data)
             // `enableRate` must be set before `prepareToPlay()` for speed control.
             newPlayer.enableRate = true
             guard newPlayer.prepareToPlay() else {
@@ -102,7 +115,7 @@ final class AudioEngine {
         } catch let error as AudioEngineError {
             throw error
         } catch {
-            logger.error("Load failed for \(url.lastPathComponent, privacy: .public): \(String(describing: error))")
+            logger.error("Decode failed for \(url.lastPathComponent, privacy: .public): \(String(describing: error))")
             throw AudioEngineError.loadFailed(url, underlying: error)
         }
     }

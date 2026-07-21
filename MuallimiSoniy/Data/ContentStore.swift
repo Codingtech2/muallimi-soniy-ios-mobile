@@ -47,7 +47,11 @@ nonisolated struct OutlineChapter: Identifiable, Sendable, Hashable {
 /// Loads the bundled content package and exposes the flattened book, the
 /// table-of-contents outline, and i18n lookup.
 ///
-/// All files are small and bundled, so loading is synchronous in `init`.
+/// All files are small and bundled, so loading is synchronous in `init`: the
+/// whole decode + flatten measures ~6 ms in Release for 52 pages / ~1970
+/// elements (book.json is 389 KB) — a one-shot launch cost well under a frame,
+/// not a scroll hitch — so it deliberately stays on the main actor to keep the
+/// content ready before first paint (no transient empty state in any consumer).
 /// Decoding failures are logged and degrade to empty defaults — never a crash.
 @MainActor
 @Observable
@@ -87,9 +91,12 @@ final class ContentStore {
         book = decodeBundled("book", as: Book.self)
         i18n = decodeBundled("i18n", as: [String: [String: String]].self) ?? [:]
         legal = decodeBundled("legal", as: [String: [String: String]].self) ?? [:]
-        if let raw = decodeBundled("settings", as: RawSettings.self), let defaults = raw.defaults {
-            defaultSettings = defaults
-        }
+        // Factory defaults come from the same lenient settings.json decoder the
+        // SettingsStore uses for fresh installs, so the two never diverge — and a
+        // missing `volume` / unknown enum degrades to the compiled default rather
+        // than silently discarding the JSON block (the old strict decode threw on
+        // the absent `volume` key, leaving this stuck on `.default`).
+        defaultSettings = SettingsStore.bundledDefaultSettings()
         rebuild()
     }
 
@@ -184,9 +191,4 @@ final class ContentStore {
             ?? i18n[AppLocale.uzLatn.rawValue]?[key]
             ?? key
     }
-}
-
-/// Lenient wrapper around `settings.json`; only the `defaults` block is consumed.
-private nonisolated struct RawSettings: Decodable, Sendable {
-    let defaults: AppSettings?
 }

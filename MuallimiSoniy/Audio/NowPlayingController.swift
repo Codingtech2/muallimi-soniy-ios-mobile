@@ -106,6 +106,16 @@ final class NowPlayingController {
         )
     }
 
+    /// Updates just the playback rate on the existing Now Playing info so the
+    /// lock-screen play/pause state follows real playback, without rebuilding the
+    /// metadata. No-op when no metadata is currently set (so it never spawns an
+    /// empty, title-less Now Playing entry).
+    func setPlaybackRate(_ rate: Double) {
+        guard var info = MPNowPlayingInfoCenter.default().nowPlayingInfo else { return }
+        info[MPNowPlayingInfoPropertyPlaybackRate] = rate
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+
     /// Clears the Now Playing info (on stop or when leaving the reader).
     func clear() {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
