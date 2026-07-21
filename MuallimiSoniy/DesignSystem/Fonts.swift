@@ -9,10 +9,10 @@ import OSLog
 /// | File                                 | family (ID 1)                 | PostScript (ID 6)                 |
 /// |--------------------------------------|-------------------------------|-----------------------------------|
 /// | NotoNaskhArabic-MuallimiSoniy.ttf    | Noto Naskh Arabic Muallimi    | NotoNaskhArabicMuallimi-Variable  |
-/// | NotoNaskhArabic-VariableFont_wght.ttf| Noto Naskh Arabic             | NotoNaskhArabic-Regular           |
 /// | AmiriQuran.ttf                       | Amiri Quran                   | AmiriQuran-Regular                |
-/// | Amiri-Regular.ttf                    | Amiri                         | Amiri-Regular                     |
-/// | UthmanicHafs.otf                     | KFGQPC Uthmanic Script HAFS   | KFGQPCUthmanicScriptHAFS          |
+///
+/// (Amiri-Regular / stock Noto Naskh / UthmanicHafs were bundled early on but
+/// never referenced by any view — removed to keep the app bundle small.)
 nonisolated enum AppFontFamily {
     /// THE universal Arabic body font — custom Noto Naskh with the
     /// shadda+kasra / shadda+kasratan ligatures stripped (mirrors web
@@ -20,21 +20,9 @@ nonisolated enum AppFontFamily {
     static let muallimi = "Noto Naskh Arabic Muallimi"
     static let muallimiPostScript = "NotoNaskhArabicMuallimi-Variable"
 
-    /// Original Noto Naskh — mad-page base letterforms + generic fallback.
-    static let notoNaskh = "Noto Naskh Arabic"
-    static let notoNaskhPostScript = "NotoNaskhArabic-Regular"
-
     /// Amiri Quran — large, prominent damma (U+064F) for mad pages.
     static let amiriQuran = "Amiri Quran"
     static let amiriQuranPostScript = "AmiriQuran-Regular"
-
-    /// Amiri — decorative bismillah / calligraphic ligatures.
-    static let amiri = "Amiri"
-    static let amiriPostScript = "Amiri-Regular"
-
-    /// KFGQPC Uthmanic Script HAFS — official Madina Mushaf face.
-    static let uthmanicHafs = "KFGQPC Uthmanic Script HAFS"
-    static let uthmanicHafsPostScript = "KFGQPCUthmanicScriptHAFS"
 }
 
 /// Registers the bundled Arabic fonts with CoreText at launch and resolves the
@@ -52,10 +40,7 @@ nonisolated enum FontRegistrar {
 
     private static let bundledFonts: [(name: String, ext: String)] = [
         ("NotoNaskhArabic-MuallimiSoniy", "ttf"),
-        ("NotoNaskhArabic-VariableFont_wght", "ttf"),
-        ("AmiriQuran", "ttf"),
-        ("Amiri-Regular", "ttf"),
-        ("UthmanicHafs", "otf")
+        ("AmiriQuran", "ttf")
     ]
 
     /// Registers every bundled font. Call once at app launch, before any view
