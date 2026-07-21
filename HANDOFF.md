@@ -25,11 +25,11 @@ Plan/dashboard artifact: https://claude.ai/code/artifact/4fa38d1c-84a5-4041-97e1
 - App icon (opaque), AccentColor green, launch screen fixed (Info.plist UILaunchScreen).
 - Release **content-2.0.0** on GitHub has `audio.zip` (1757 files, 127MB, STORED). Publicly downloadable.
 
-## M5 audio downloader — CODE COMPLETE + reviewed (only LIVE TEST pending)
+## M5 audio downloader — DONE + LIVE E2E TEST PASSED ✅
 The reader taps already call `playSegment`, but on device `App Support/media/` is empty → all audio fails (Code 2003334207 = file not found) until the pack is downloaded. M5 does that.
 - **DONE + BUILD SUCCEEDED + adversarial byte-level ZIP-spec review passed (all 7 checks):** `Offline/ZipStore.swift` (streamed STORED extractor, zip-slip guarded), `Offline/AudioManifest.swift`, `Offline/AudioDownloadManager.swift` (@MainActor @Observable: idle→checking→downloading→extracting→verifying→ready/failed, streamed SHA256 of all 1757 files, idempotent via UserDefaults "audioReadyContentVersion"=2.0.0, temp zip deleted, Task.detached heavy work). `MuallimiSoniyApp.swift` wired (`@State AudioDownloadManager` in env + `#if DEBUG` `-MSDownloadAudio` launch arg → `ensureReady()`). `MediaLocator.swift` verified correct (no change).
 - Download URL (public, HTTP 200): `https://github.com/Codingtech2/muallimi-soniy-ios-mobile/releases/download/content-2.0.0/audio.zip`
-- **PENDING — LIVE END-TO-END TEST** (do on the MacBook / stable power, not UPS): boot sim, launch with `-MSDownloadAudio`, wait ~5–10 min (127MB download + extract + sha256 verify 1757 files), screenshot the progress, then confirm a **spaced-name** file plays (e.g. tap something using `audio/02. Muqaddima.mp3` → isPlaying + currentTime advances). Only then is audio "confirmed working". On real device: update app → first launch downloads → audio works offline.
+- **LIVE E2E TEST PASSED (2026-07-21, iPhone 17 Pro Max sim):** download from public Release → extract → verify, app log: "Audio pack 2.0.0 installed and verified (1757 files)". 1757/1757 mp3 (125 MB) in App Support/media; independent sha256 spot-checks OK incl. spaced name "audio/02. Muqaddima.mp3"; extracted mp3 plays (afplay); ready flag "audioReadyContentVersion"="2.0.0" persisted → relaunches short-circuit. Device fix ships when M10 OfflineCard (in progress) gives the release-mode download button; final UX = M12 onboarding.
 
 ## REMAINING (after M5)
 1. Font trim (~930K unused): drop `Amiri-Regular.ttf`, `NotoNaskhArabic-VariableFont_wght.ttf`, `UthmanicHafs.otf` from `Resources/Fonts/` + `DesignSystem/Fonts.swift` bundledFonts list. KEEP `NotoNaskhArabic-MuallimiSoniy.ttf` + `AmiriQuran.ttf`. (Mad verified to render with Amiri Quran.)
