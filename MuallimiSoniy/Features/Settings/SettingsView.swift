@@ -330,29 +330,39 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder
     private func aboutRow(_ doc: LegalDoc) -> some View {
-        NavigationLink(value: doc) {
-            HStack(spacing: 12) {
-                Image(systemName: doc.icon)
-                    .font(.system(size: layoutMetrics.isRegular ? 19 : 15))
-                    .foregroundStyle(AppColor.textSecondary)
-                    .frame(width: layoutMetrics.isRegular ? 44 : 34, height: layoutMetrics.isRegular ? 44 : 34)
-                    .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                Text(tr(doc.labelKey))
-                    .font(layoutMetrics.isRegular ? .title3.weight(.medium) : .subheadline.weight(.medium))
-                    .foregroundStyle(AppColor.textMain)
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: layoutMetrics.isRegular ? 16 : 13, weight: .semibold))
-                    .foregroundStyle(AppColor.textMuted)
-            }
-            .padding(.horizontal, layoutMetrics.isRegular ? 18 : 14)
-            .padding(.vertical, layoutMetrics.isRegular ? 14 : 10)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(AppColor.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .contentShape(Rectangle())
+        if let url = doc.externalURL {
+            Link(destination: url) { rowLabel(doc, external: true) }
+                .buttonStyle(.plain)
+        } else {
+            NavigationLink(value: doc) { rowLabel(doc, external: false) }
+                .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+    }
+
+    /// Shared row content. `external` swaps the chevron for an outward arrow so a
+    /// row that opens the browser reads differently from an in-app push.
+    private func rowLabel(_ doc: LegalDoc, external: Bool) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: doc.icon)
+                .font(.system(size: layoutMetrics.isRegular ? 19 : 15))
+                .foregroundStyle(AppColor.textSecondary)
+                .frame(width: layoutMetrics.isRegular ? 44 : 34, height: layoutMetrics.isRegular ? 44 : 34)
+                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            Text(tr(doc.labelKey))
+                .font(layoutMetrics.isRegular ? .title3.weight(.medium) : .subheadline.weight(.medium))
+                .foregroundStyle(AppColor.textMain)
+            Spacer(minLength: 8)
+            Image(systemName: external ? "arrow.up.right" : "chevron.right")
+                .font(.system(size: layoutMetrics.isRegular ? 16 : 13, weight: .semibold))
+                .foregroundStyle(AppColor.textMuted)
+        }
+        .padding(.horizontal, layoutMetrics.isRegular ? 18 : 14)
+        .padding(.vertical, layoutMetrics.isRegular ? 14 : 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColor.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .contentShape(Rectangle())
     }
 
     // MARK: - Helpers
@@ -415,6 +425,17 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
 
     var id: String { rawValue }
     var docKey: String { rawValue }
+
+    /// Hosted web page for this row; `nil` means show the in-app text instead.
+    /// Privacy / Terms open the public vipads.uz documents (the authoritative
+    /// versions App Review checks against); About stays as in-app text.
+    var externalURL: URL? {
+        switch self {
+        case .privacyPolicy: return URL(string: "https://vipads.uz/en/muallimisoniy/privacy-policy")
+        case .termsOfUse:    return URL(string: "https://vipads.uz/en/muallimisoniy/terms-of-service")
+        case .aboutApp:      return nil
+        }
+    }
 
     var labelKey: String {
         switch self {
