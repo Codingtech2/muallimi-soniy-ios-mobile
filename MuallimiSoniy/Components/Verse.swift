@@ -33,6 +33,9 @@ struct Verse: View {
     let isActive: Bool
     let onTap: (Element) -> Void
 
+    /// Global Arabic scale from the user's font-size preference (injected at root).
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     /// Canonical initialiser — the caller supplies `isActive`.
     init(
         element: Element,
@@ -89,7 +92,7 @@ struct Verse: View {
             .buttonStyle(.plain)
 
             if ayah != nil {
-                AyahSeparator(pointSize: size.pointSize)
+                AyahSeparator(pointSize: size.pointSize * arabicFontScale)
             }
         }
         .environment(\.layoutDirection, .rightToLeft)
@@ -100,11 +103,11 @@ struct Verse: View {
     private var verseText: Text {
         let base = isActive ? Color.white : AppColor.textMain
         var text = Text(element.arabic)
-            .font(arabicFont(size.pointSize))
+            .font(arabicFont(size.pointSize * arabicFontScale))
             .foregroundStyle(base)
         if let ayah {
             text = text + Text("  ﴿\(arabicIndicDigits(ayah))﴾")
-                .font(arabicFont(size.pointSize * 0.78, weight: .regular))
+                .font(arabicFont(size.pointSize * 0.78 * arabicFontScale, weight: .regular))
                 .foregroundStyle(base.opacity(0.7))
         }
         return text

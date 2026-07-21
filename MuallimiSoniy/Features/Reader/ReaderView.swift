@@ -18,6 +18,8 @@ enum ReaderEntry: Equatable, Hashable, Sendable {
 struct ReaderView: View {
     @Environment(ContentStore.self) private var store
     @Environment(AudioController.self) private var audio
+    @Environment(ProgressStore.self) private var progress
+    @Environment(SettingsStore.self) private var preferences
     @Environment(\.dismiss) private var dismiss
 
     /// Where to open. Resolved to `currentPageIndex` on first appear.
@@ -37,8 +39,9 @@ struct ReaderView: View {
     /// Loop toggle state, kept in sync with the audio engine.
     @State private var loopMode = false
 
-    /// UI / content locale for titles + labels (a settings store lands later).
-    private let locale: AppLocale = .uzLatn
+    /// UI / content locale for titles + labels — follows the user's setting, so
+    /// switching language live-updates the header, TOC and page labels.
+    private var locale: AppLocale { preferences.settings.locale }
     /// Reading-column cap for the pager + chrome, centred on wide screens
     /// (mirrors the web `max-w-xl` column).
     private let readingColumnWidth: CGFloat = 640
@@ -87,6 +90,10 @@ struct ReaderView: View {
         .onAppear {
             resolveStartIfNeeded()
             configureAudioDefaults()
+            recordProgress()
+        }
+        .onChange(of: currentPageIndex) {
+            recordProgress()
         }
         .onDisappear {
             cancelSequential()
@@ -169,6 +176,24 @@ struct ReaderView: View {
         }
     }
 
+    // MARK: - Progress
+
+    /// Persists the current page as "last viewed" and, when it is the final page
+    /// of its lesson (the next page belongs to a different lesson or there is
+    /// none), marks that lesson complete. Mirrors the web save effect.
+    private func recordProgress() {
+        guard let page = currentPage else { return }
+        progress.setLastViewed(
+            chapterId: page.chapter.id,
+            lessonId: page.lessonId,
+            globalIndex: page.globalIndex
+        )
+        let next = pages.indices.contains(currentPageIndex + 1) ? pages[currentPageIndex + 1] : nil
+        if next?.lessonId != page.lessonId {
+            progress.markLessonComplete(page.lessonId)
+        }
+    }
+
     // MARK: - Element tap
 
     /// Highlights the tapped element and plays its segment. The highlight always
@@ -240,10 +265,11 @@ struct ReaderView: View {
         audio.setLoopMode(loopMode)
     }
 
-    /// Applies the engine defaults once the reader appears: repeat count from the
-    /// content package's defaults, current loop state, always 1× speed.
+    /// Applies the engine defaults once the reader appears: repeat count + loop
+    /// from the user's settings (repeatCount resets to 1 each launch), 1× speed.
     private func configureAudioDefaults() {
-        audio.setRepeatCount(store.defaultSettings.repeatCount)
+        audio.setRepeatCount(preferences.settings.repeatCount)
+        loopMode = preferences.settings.loopMode
         audio.setLoopMode(loopMode)
     }
 
@@ -332,6 +358,8 @@ final class SequentialCursor {
     ReaderView(entry: .global(index: 3))
         .environment(ContentStore())
         .environment(AudioController())
+        .environment(ProgressStore())
+        .environment(SettingsStore())
         .tint(.green)
 }
 #endif

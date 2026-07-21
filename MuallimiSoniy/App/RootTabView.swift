@@ -6,22 +6,26 @@ import SwiftUI
 /// is injected before the child screens consume it.
 struct RootTabView: View {
     @Environment(ContentStore.self) private var store
+    @Environment(SettingsStore.self) private var settings
+
+    /// Chrome locale — tab labels re-localise live when the user switches language.
+    private var locale: AppLocale { settings.settings.locale }
 
     var body: some View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("Asosiy", systemImage: "house.fill")
+                    Label(store.t("home", locale), systemImage: "house.fill")
                 }
 
             ContentsView()
                 .tabItem {
-                    Label("Darslar", systemImage: "book.fill")
+                    Label(store.t("lessons", locale), systemImage: "book.fill")
                 }
 
-            SettingsPlaceholderView()
+            SettingsView()
                 .tabItem {
-                    Label("Sozlamalar", systemImage: "gearshape.fill")
+                    Label(store.t("settings", locale), systemImage: "gearshape.fill")
                 }
         }
         .tint(.green)

@@ -18,6 +18,12 @@ struct MuallimiSoniyApp: App {
     /// Owns the audio-pack download / install / verify pipeline. Onboarding
     /// triggers it later; injected so any screen can observe `phase`.
     @State private var downloadManager = AudioDownloadManager()
+    /// Persisted reading progress (resume page + completed lessons), mirroring
+    /// the web `ProgressProvider`. Injected so home / reader / contents share it.
+    @State private var progress = ProgressStore()
+    /// User preferences (theme / locale / font size / repeat count), mirroring
+    /// the web `SettingsProvider`. Drives app-wide appearance + Arabic scale.
+    @State private var settings = SettingsStore()
 
     init() {
         // Register the bundled Arabic fonts with CoreText before any view
@@ -31,7 +37,11 @@ struct MuallimiSoniyApp: App {
                 .environment(store)
                 .environment(audio)
                 .environment(downloadManager)
+                .environment(progress)
+                .environment(settings)
+                .environment(\.arabicFontScale, settings.arabicScale)
                 .tint(.green)
+                .preferredColorScheme(settings.preferredColorScheme)
                 .task {
                     // Release builds trigger the download from onboarding, not here.
                     #if DEBUG
@@ -47,10 +57,14 @@ struct MuallimiSoniyApp: App {
     private var root: some View {
         #if DEBUG
         // Screenshot/QA shortcuts (off by default → normal app on launch):
+        //  • -MSScreen <home|contents|settings> renders one tab screen directly,
+        //    so auth-free QA can reach Contents / Settings without a tap tool.
         //  • -MSPageOnly <bookPageNumber> renders exactly one page through the real
         //    dispatcher, bypassing the pager (reliable for any page).
         //  • -MSReaderPage <globalIndex> opens the full reader at a global page.
-        if let bookPageNumber = ProcessInfo.processInfo.environmentSinglePage {
+        if let screen = ProcessInfo.processInfo.environmentScreen {
+            DebugScreenHost(screen: screen)
+        } else if let bookPageNumber = ProcessInfo.processInfo.environmentSinglePage {
             DebugSinglePageView(bookPageNumber: bookPageNumber)
         } else if let index = ProcessInfo.processInfo.environmentGlobalReaderPage {
             NavigationStack { ReaderView(entry: .global(index: index)) }
@@ -62,6 +76,41 @@ struct MuallimiSoniyApp: App {
         #endif
     }
 }
+
+#if DEBUG
+/// QA-only: renders one primary tab screen directly (no tab bar, no taps) so
+/// screenshot tooling can reach Contents / Settings. Reads the shared stores
+/// from the environment exactly as the real tabs do.
+private struct DebugScreenHost: View {
+    @Environment(ContentStore.self) private var store
+    @Environment(ProgressStore.self) private var progress
+    let screen: String
+
+    var body: some View {
+        Group {
+            switch screen {
+            case "home": HomeView()
+            case "contents": ContentsView()
+            case "settings": SettingsView()
+            default:
+                ContentUnavailableView("Unknown screen: \(screen)", systemImage: "questionmark.circle")
+            }
+        }
+        .onAppear { seedDemoProgressIfNeeded() }
+    }
+
+    /// Seeds a mid-book demo state (resume at page 41; every lesson finished
+    /// before it marked complete) for the home / contents screenshot hosts.
+    private func seedDemoProgressIfNeeded() {
+        guard screen == "home" || screen == "contents" else { return }
+        let completed = store.outline
+            .flatMap(\.lessons)
+            .filter { $0.globalEnd <= 40 }   // fully before the 41st global page
+            .map(\.id)
+        progress.debugSeed(resumeGlobalIndex: 40, completedLessons: completed)
+    }
+}
+#endif
 
 #if DEBUG
 /// QA-only: renders one book page through the real `PageDispatcher` (in the same
@@ -106,6 +155,11 @@ private extension ProcessInfo {
     var environmentSinglePage: Int? {
         guard let value = environment["MSPageOnly"] ?? argumentValue(for: "-MSPageOnly") else { return nil }
         return Int(value)
+    }
+
+    /// Reads the `-MSScreen <name>` launch argument (home / contents / settings).
+    var environmentScreen: String? {
+        environment["MSScreen"] ?? argumentValue(for: "-MSScreen")
     }
 
     /// Whether `-MSDownloadAudio` was passed, so headless QA can install the

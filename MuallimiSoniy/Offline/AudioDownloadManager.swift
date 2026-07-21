@@ -125,8 +125,12 @@ final class AudioDownloadManager {
 
     private func download(from url: URL, to destination: URL) async throws {
         try? FileManager.default.removeItem(at: destination)
-        let delegate = DownloadProgressDelegate { [weak self] fraction in
-            Task { @MainActor in
+        let delegate = DownloadProgressDelegate { fraction in
+            // Capture `self` weakly directly on the Task (not the enclosing
+            // @Sendable closure) so there's no captured `var self` crossing the
+            // concurrency boundary. Behavior is unchanged: a weak hop to the
+            // main actor that no-ops if we left the download phase.
+            Task { @MainActor [weak self] in
                 guard let self, case .downloading = self.phase else { return }
                 self.phase = .downloading(fraction)
             }

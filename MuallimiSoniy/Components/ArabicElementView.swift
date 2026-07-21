@@ -82,6 +82,9 @@ struct ArabicElementView: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    /// Global Arabic scale from the user's font-size preference (injected at root).
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     /// `rounded-lg` corner radius.
     private let cornerRadius: CGFloat = 8
     /// Web `transform: scale(1.18)`; the task calls for ~1.15.
@@ -90,7 +93,7 @@ struct ArabicElementView: View {
     var body: some View {
         Button(action: onTap) {
             Text(element.arabic)
-                .font(mad ? madArabicFont(size.pointSize) : arabicFont(size.pointSize))
+                .font(mad ? madArabicFont(size.pointSize * arabicFontScale) : arabicFont(size.pointSize * arabicFontScale))
                 .foregroundStyle(isActive ? Color.white : AppColor.textMain)
                 // Web `textShadow: 0 1px 2px rgba(0,0,0,0.3)` on the active glyph.
                 .shadow(color: isActive ? Color.black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
