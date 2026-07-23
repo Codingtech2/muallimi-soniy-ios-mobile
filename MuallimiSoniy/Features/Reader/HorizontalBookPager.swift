@@ -13,6 +13,14 @@ import SwiftUI
 /// transition / main-thread load), leaving the pager stranded on page 1.
 struct HorizontalBookPager: View {
     let pages: [BookPage]
+    /// The **one** source of truth for cell geometry, measured by a single
+    /// `GeometryReader` in `ReaderView` that already sits below the navigation
+    /// bar and above the control bar. Previously the cell took its height from
+    /// `.containerRelativeFrame` (which includes the safe area) and its top
+    /// inset from `.safeAreaPadding(.top)` (which does not) — two independent
+    /// answers to one question, so every device resolved a different gap and
+    /// the first row of ḥarakāt got clipped on some of them.
+    let viewport: CGSize
     @Binding var currentIndex: Int
     let activeElementId: String?
     let onElementTap: (Element) -> Void
@@ -28,6 +36,15 @@ struct HorizontalBookPager: View {
     /// wider outer cap). Widens via `layoutMetrics`; the iPhone number stays
     /// exactly 560.
     private var readingColumnWidth: CGFloat { layoutMetrics.pagerCardMaxWidth }
+
+    /// Inset from the cell edge to the card. Cells abut and are exactly one
+    /// viewport wide, so the space a reader sees between two cards mid-swipe is
+    /// twice this number — half the gutter on each side of the seam. The
+    /// `cardSideGap` floor keeps a sane minimum if the gutter is ever tuned
+    /// down.
+    private var cardInset: CGFloat {
+        max(layoutMetrics.cardSideGap, layoutMetrics.interPageGutter / 2)
+    }
 
     /// One-shot guard so the initial deep-link landing runs a single time.
     @State private var didLandInitial = false
@@ -66,18 +83,27 @@ struct HorizontalBookPager: View {
     // MARK: - Page cell
 
     /// One full-viewport page: a vertical `ScrollView` of the hosted card, sized
-    /// to the pager viewport so its content (not the pager) owns vertical scroll.
-    @ViewBuilder
+    /// straight from `viewport`. Paging still snaps because the cell width is
+    /// exactly the scroll view's visible width. The gap above and below the card
+    /// is the scroll view's own content margin, so it is one number per size
+    /// class rather than a per-device safe-area accident.
     private func pageCell(_ page: BookPage) -> some View {
         ScrollView(.vertical) {
-            PageHostView(page: page, activeId: activeElementId, onTap: onElementTap)
-                .frame(maxWidth: readingColumnWidth)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 12)
+            PageHostView(
+                page: page,
+                activeId: activeElementId,
+                onTap: onElementTap,
+                viewportHeight: viewport.height
+            )
+            .frame(maxWidth: readingColumnWidth)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, cardInset)
         }
         .scrollIndicators(.hidden)
-        .containerRelativeFrame([.horizontal, .vertical])
+        .contentMargins(.top, layoutMetrics.cardTopGap, for: .scrollContent)
+        .contentMargins(.bottom, layoutMetrics.cardBottomGap, for: .scrollContent)
+        .modifier(HardTopScrollEdge())
+        .frame(width: viewport.width, height: viewport.height)
     }
 
     // MARK: - Deterministic initial landing
@@ -146,5 +172,20 @@ struct HorizontalBookPager: View {
     /// Map of page id → index for O(1) resolution of the settled page.
     private var indexByID: [String: Int] {
         Dictionary(pages.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+    }
+}
+
+/// Turns off the iOS 26 Liquid Glass progressive blur at the scroll view's top
+/// edge. Diacritics are pronunciation, so a softly blurred first row is a
+/// correctness bug, not a stylistic one — `.hard` keeps the cut crisp. No-op
+/// below iOS 26, where the effect doesn't exist.
+private struct HardTopScrollEdge: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            content
+        }
     }
 }

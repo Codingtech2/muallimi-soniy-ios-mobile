@@ -84,17 +84,41 @@ struct ArabicElementView: View {
 
     /// Global Arabic scale from the user's font-size preference (injected at root).
     @Environment(\.arabicFontScale) private var arabicFontScale
+    /// Reader page/text palette — defaults to `.paper` (today's exact look)
+    /// outside the reader; `ReaderView` injects the live value.
+    @Environment(\.readingTheme) private var readingTheme
+    /// Line spacing / bold / highlight / VoiceOver strings from the "Aa" sheet.
+    @Environment(\.readingAdjustments) private var adjustments
+    /// System-wide Settings → Accessibility → Bold Text — treated the same as
+    /// the app's own `boldText` reading option.
+    @Environment(\.legibilityWeight) private var legibilityWeight
+    /// Settings → Accessibility → Reduce Motion — skips the spring/scale.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// `rounded-lg` corner radius.
     private let cornerRadius: CGFloat = 8
     /// Web `transform: scale(1.18)`; the task calls for ~1.15.
     private let activeScale: CGFloat = 1.15
+    /// HIG minimum touch target — the floor for the hit box, not the pill.
+    private static let minTapTarget: CGFloat = 44
+
+    private var effectiveBold: Bool { adjustments.boldText || legibilityWeight == .bold }
+    private var borderWidth: CGFloat { adjustments.strongHighlight ? 3 : 2 }
+    /// "To'qroq pill" — a touch darker/richer than the plain accent fill when
+    /// the strong-highlight option is on, so the active token reads with more
+    /// contrast for low-vision users.
+    private var pillBrightness: Double { adjustments.strongHighlight ? -0.12 : 0 }
+    private var glowRadius: CGFloat { adjustments.strongHighlight ? 18 : 13 }
 
     var body: some View {
         Button(action: onTap) {
             Text(element.arabic)
-                .font(mad ? madArabicFont(size.pointSize * arabicFontScale) : arabicFont(size.pointSize * arabicFontScale))
-                .foregroundStyle(isActive ? Color.white : AppColor.textMain)
+                .font(
+                    mad
+                        ? madArabicFont(size.pointSize * arabicFontScale)
+                        : arabicFont(size.pointSize * arabicFontScale, weight: arabicWeight(bold: effectiveBold))
+                )
+                .foregroundStyle(isActive ? Color.white : readingTheme.textMain)
                 // Web `textShadow: 0 1px 2px rgba(0,0,0,0.3)` on the active glyph.
                 .shadow(color: isActive ? Color.black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
                 .padding(.horizontal, size.horizontalPadding)
@@ -102,18 +126,35 @@ struct ArabicElementView: View {
                 .background(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .fill(isActive ? AppColor.primary : Color.clear)
+                        .brightness(isActive ? pillBrightness : 0)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(isActive ? AppColor.primary : Color.clear, lineWidth: 2)
+                        .strokeBorder(isActive ? AppColor.primary : Color.clear, lineWidth: borderWidth)
                 )
                 // Web `boxShadow: 0 8px 28px var(--color-primary-glow)`.
-                .shadow(color: isActive ? AppColor.primaryGlow : .clear, radius: 13, x: 0, y: 8)
-                .scaleEffect(isActive ? activeScale : 1)
+                .shadow(color: isActive ? AppColor.primaryGlow : .clear, radius: glowRadius, x: 0, y: 8)
+                .scaleEffect(isActive && !reduceMotion ? activeScale : 1)
+                // The visible pill is derived from font + padding alone, which
+                // leaves a `.sm` letter at roughly 22pt — half the HIG minimum.
+                // Applied *after* the fill/border/shadow so the pill itself is
+                // unchanged; only the tappable box around it grows.
+                //
+                // Height only, deliberately. A `minWidth` here is unsafe: the mad
+                // grids (`MadSyllableRow`) are non-wrapping `HStack`s of nine
+                // cells, so widening every cell to 44 pushed book pages 17 and 18
+                // clean off both edges of the card. Growing the row height costs
+                // nothing — rows stack vertically and the page just scrolls.
+                .frame(minHeight: Self.minTapTarget)
+                .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
         .buttonStyle(.plain)
         .environment(\.layoutDirection, .rightToLeft)
-        .animation(.spring(response: 0.3, dampingFraction: 0.62), value: isActive)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.62), value: isActive)
+        .accessibilityLabel(element.accessibilityLabelText)
+        .accessibilityHint(adjustments.playHint)
+        .accessibilityAddTraits(isActive ? [.startsMediaSession, .isSelected] : .startsMediaSession)
+        .accessibilityValue(isActive ? adjustments.activeValueLabel : "")
     }
 }
 

@@ -137,3 +137,11 @@ nonisolated func madArabicFont(_ size: CGFloat) -> Font {
     )
     return Font.custom(name, fixedSize: size)
 }
+
+/// Resolves the weight to hand `arabicFont(_:weight:)` for the reader's
+/// "bold text" low-vision preference: `.bold` is today's unaffected
+/// baseline, `.heavy` is the extra-weight step when the setting (or the
+/// system-wide Bold Text accessibility setting) is on.
+nonisolated func arabicWeight(bold: Bool) -> Font.Weight {
+    bold ? .heavy : .bold
+}

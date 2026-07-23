@@ -20,13 +20,27 @@ struct WelcomeGateView: View {
     private var locale: AppLocale { settings.settings.locale }
     private func tr(_ key: String) -> String { content.t(key, locale) }
 
+    // MARK: - iPad-adaptive tokens (B2)
+    //
+    // Every value here is `today's literal * layoutMetrics.uiScale`, so
+    // `.compact` (uiScale 1.0) renders pixel-identical to before this pass.
+    // The logo is the one exception: it's the brand mark the user sees on
+    // every cold launch, so it gets a bigger boost than generic chrome
+    // (~1.44x) rather than the ~1.3x `uiScale` — matching the same
+    // hero-logo treatment `HomeView.ContinueHeroCard` already uses.
+    private var logoHeight: CGFloat { layoutMetrics.isRegular ? 150 : 104 }
+    private var outerPadding: CGFloat { 24 * layoutMetrics.uiScale }
+    private var cardSpacing: CGFloat { 20 * layoutMetrics.uiScale }
+    private var cardPadding: CGFloat { 28 * layoutMetrics.uiScale }
+    private var buttonMinHeight: CGFloat { 54 * layoutMetrics.uiScale }
+
     var body: some View {
         GeometryReader { geo in
             ScrollView {
                 card
                     .frame(maxWidth: layoutMetrics.welcomeCardMaxWidth)
                     .frame(maxWidth: .infinity)
-                    .padding(24)
+                    .padding(outerPadding)
                     // Center the card vertically (a full-height min frame), while
                     // still scrolling if Dynamic Type makes it taller than the screen.
                     .frame(minHeight: geo.size.height)
@@ -37,20 +51,20 @@ struct WelcomeGateView: View {
     }
 
     private var card: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: cardSpacing) {
             Image("LaunchLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 104)
+                .frame(height: logoHeight)
                 .accessibilityHidden(true)
 
             Text(tr("welcome_title"))
-                .font(.largeTitle.bold())
+                .font(layoutMetrics.font(.largeTitle.bold(), .system(size: 46, weight: .bold)))
                 .foregroundStyle(AppColor.textMain)
                 .multilineTextAlignment(.center)
 
             Text(tr("welcome_desc"))
-                .font(.subheadline)
+                .font(layoutMetrics.font(.subheadline, .title3))
                 .foregroundStyle(AppColor.textMuted)
                 .multilineTextAlignment(.center)
                 .lineSpacing(3)
@@ -59,7 +73,7 @@ struct WelcomeGateView: View {
             adabCallout
 
             Text(tr("welcome_offline"))
-                .font(.caption)
+                .font(layoutMetrics.font(.caption, .subheadline))
                 .foregroundStyle(AppColor.textMuted)
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -67,7 +81,7 @@ struct WelcomeGateView: View {
             continueButton
                 .padding(.top, 4)
         }
-        .padding(28)
+        .padding(cardPadding)
         .frame(maxWidth: .infinity)
         .background(AppColor.glass, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
         .overlay(
@@ -78,17 +92,17 @@ struct WelcomeGateView: View {
 
     /// The green adab reminder — open hands emoji + the tahorat request.
     private var adabCallout: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 10 * layoutMetrics.uiScale) {
             Text(verbatim: "🤲")
-                .font(.title3)
+                .font(layoutMetrics.font(.title3, .title2))
                 .accessibilityHidden(true)
             Text(tr("welcome_adab"))
-                .font(.subheadline.weight(.medium))
+                .font(layoutMetrics.font(.subheadline.weight(.medium), .title3.weight(.medium)))
                 .foregroundStyle(AppColor.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
-        .padding(14)
+        .padding(14 * layoutMetrics.uiScale)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppColor.primary.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
@@ -100,9 +114,9 @@ struct WelcomeGateView: View {
     private var continueButton: some View {
         Button(action: onContinue) {
             Text(tr("continue"))
-                .font(.headline)
+                .font(layoutMetrics.font(.headline, .title3.weight(.semibold)))
                 .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 54)
+                .frame(maxWidth: .infinity, minHeight: buttonMinHeight)
                 .background(AppColor.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)

@@ -26,6 +26,11 @@ struct TappableTextLabel: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    /// Line spacing / bold / highlight / VoiceOver strings from the "Aa" sheet.
+    @Environment(\.readingAdjustments) private var adjustments
+    /// Settings → Accessibility → Reduce Motion — skips the highlight spring.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         if let element {
             let isActive = activeId == element.id
@@ -34,7 +39,7 @@ struct TappableTextLabel: View {
                     .font(font)
                     .foregroundStyle(isActive ? Color.white : inactiveColor)
                     .multilineTextAlignment(.center)   // text-center
-                    .lineSpacing(1)                    // leading-tight
+                    .lineSpacing(1 * adjustments.lineSpacingScale)  // leading-tight
                     .frame(maxWidth: fullWidth ? .infinity : nil)
                     .padding(.horizontal, horizontalPadding)
                     .background(
@@ -45,7 +50,11 @@ struct TappableTextLabel: View {
                             radius: glowRadius, x: 0, y: isActive ? glowY : 0)
             }
             .buttonStyle(.plain)
-            .animation(.spring(response: 0.3, dampingFraction: 0.62), value: isActive)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.62), value: isActive)
+            .accessibilityLabel(element.accessibilityLabelText)
+            .accessibilityHint(adjustments.playHint)
+            .accessibilityAddTraits(isActive ? [.startsMediaSession, .isSelected] : .startsMediaSession)
+            .accessibilityValue(isActive ? adjustments.activeValueLabel : "")
         }
     }
 }

@@ -15,15 +15,15 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 22 * layoutMetrics.uiScale) {
                     GreetingHeader(locale: locale)
                     ContinueHeroCard(store: store, progress: progress, locale: locale)
                     StatsRow(store: store, progress: progress, audio: audio, locale: locale)
                     ChaptersSection(store: store, progress: progress, locale: locale)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20 * layoutMetrics.uiScale)
+                .padding(.top, 8 * layoutMetrics.uiScale)
+                .padding(.bottom, 24 * layoutMetrics.uiScale)
                 .frame(maxWidth: layoutMetrics.contentMaxWidth)
                 .frame(maxWidth: .infinity)
             }
@@ -43,12 +43,12 @@ private struct GreetingHeader: View {
     @Environment(\.layoutMetrics) private var layoutMetrics
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4 * layoutMetrics.uiScale) {
             Text(greeting)
-                .font(layoutMetrics.isRegular ? .system(size: 46, weight: .bold) : .largeTitle.bold())
+                .font(layoutMetrics.font(.largeTitle.bold(), .system(size: 46, weight: .bold)))
                 .foregroundStyle(AppColor.textMain)
             Text(subtitle)
-                .font(layoutMetrics.isRegular ? .title2 : .subheadline)
+                .font(layoutMetrics.font(.subheadline, .title2))
                 .foregroundStyle(AppColor.textMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -91,38 +91,38 @@ private struct ContinueHeroCard: View {
     private var logoHeight: CGFloat { layoutMetrics.isRegular ? 96 : 60 }
 
     var body: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 14 * layoutMetrics.uiScale) {
             Image("LaunchLogo")
                 .resizable()
                 .scaledToFit()
                 .frame(height: logoHeight)
                 .accessibilityHidden(true)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 2 * layoutMetrics.uiScale) {
                 Text(store.t("app_name", locale))
-                    .font(layoutMetrics.isRegular ? .largeTitle.bold() : .title2.bold())
+                    .font(layoutMetrics.font(.title2.bold(), .largeTitle.bold()))
                     .foregroundStyle(AppColor.textMain)
                 Text(store.t("book_author", locale))
-                    .font(layoutMetrics.isRegular ? .title3 : .subheadline)
+                    .font(layoutMetrics.font(.subheadline, .title3))
                     .foregroundStyle(AppColor.textMuted)
             }
 
-            VStack(spacing: 6) {
+            VStack(spacing: 6 * layoutMetrics.uiScale) {
                 ProgressView(value: fraction)
                     .tint(AppColor.primary)
                 Text("\(store.t("page", locale)) \(resume + 1) / \(total)")
-                    .font(layoutMetrics.isRegular ? .subheadline : .caption)
+                    .font(layoutMetrics.font(.caption, .subheadline))
                     .foregroundStyle(AppColor.textMuted)
                     .monospacedDigit()
             }
-            .padding(.top, 2)
+            .padding(.top, 2 * layoutMetrics.uiScale)
 
             NavigationLink(value: ReaderEntry.global(index: resume)) {
-                HStack(spacing: 10) {
+                HStack(spacing: 10 * layoutMetrics.uiScale) {
                     Image(systemName: "play.fill")
                     Text(resume > 0 ? store.t("continue", locale) : store.t("start", locale))
                 }
-                .font(layoutMetrics.isRegular ? .title3.weight(.semibold) : .headline)
+                .font(layoutMetrics.font(.headline, .title3.weight(.semibold)))
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity, minHeight: layoutMetrics.isRegular ? 64 : 52)
                 .background(AppColor.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -148,8 +148,10 @@ private struct StatsRow: View {
     }
     private var totalLessons: Int { store.outline.reduce(0) { $0 + $1.lessons.count } }
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 10 * layoutMetrics.uiScale) {
             StatTile(value: "\(percent)%", label: store.t("stat_done", locale), symbol: "chart.bar.fill")
             StatTile(value: "\(progress.completedLessons.count)/\(totalLessons)", label: store.t("lessons", locale), symbol: "checkmark.seal.fill")
             StatTile(
@@ -208,16 +210,16 @@ private struct ChaptersSection: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 10 * layoutMetrics.uiScale) {
             Text(chaptersLabel)
-                .font(.headline)
+                .font(layoutMetrics.font(.headline, .title3.weight(.semibold)))
                 .foregroundStyle(AppColor.textMain)
 
             if layoutMetrics.isRegular {
                 // iPad: the quick-jump becomes a grid so the row uses the
                 // wider column instead of a horizontal scroller with dead
                 // space to its right.
-                LazyVGrid(columns: gridColumns, spacing: 12) {
+                LazyVGrid(columns: gridColumns, spacing: 12 * layoutMetrics.uiScale) {
                     ForEach(store.outline) { chapter in chapterLink(chapter) }
                 }
             } else {

@@ -20,19 +20,48 @@ struct LayoutMetrics: Equatable, Sendable {
     /// padding-only width exactly (no visual change on iPhone).
     let contentMaxWidth: CGFloat
 
-    /// Cap for the reader's outer chrome column — the pager, page indicator
-    /// and audio bar all sit inside this (`ReaderView.readingColumnWidth`).
-    let readingColumnWidth: CGFloat
-
-    /// Cap for the reader header's inner title block
-    /// (`ReaderHeader.innerMaxWidth`) — kept a bit wider than
-    /// `readingColumnWidth`, mirroring today's relationship (768 vs 640).
-    let readerHeaderMaxWidth: CGFloat
-
     /// Cap for the actual page card inside the pager
     /// (`HorizontalBookPager.readingColumnWidth`) — the binding constraint on
-    /// the visible reading card, since it nests inside `readingColumnWidth`.
+    /// the visible reading card. `.regular` is deliberately narrower than the
+    /// iPad's available width: at 900 a verse line measured ~90 characters,
+    /// roughly double the 45–75 comfortable reading measure. The glyph size is
+    /// untouched (`arabicScaleMultiplier` stays 1.45) — only where lines wrap.
     let pagerCardMaxWidth: CGFloat
+
+    /// Gap between the navigation bar's bottom edge and the page card's top
+    /// edge. The pager's single source of vertical truth: applied as the inner
+    /// scroll view's top content margin, so it resolves to the same number on
+    /// every device instead of once per safe-area quirk.
+    let cardTopGap: CGFloat
+
+    /// Gap between the page card's bottom edge and the control bar.
+    let cardBottomGap: CGFloat
+
+    /// Minimum horizontal inset from the pager cell's edge to the page card.
+    /// A floor only — `interPageGutter` usually wins (see below).
+    let cardSideGap: CGFloat
+
+    /// Total visible space between two adjacent page cards while a swipe is in
+    /// flight. Pager cells abut (`LazyHStack(spacing: 0)`) and are exactly one
+    /// viewport wide — paging snap depends on that — so the gutter can only
+    /// come from the card's own inset *inside* the cell, which makes it exactly
+    /// twice that inset. Declaring the gutter as the primary token keeps the
+    /// number that actually matters (what the reader sees mid-turn) the one
+    /// that is written down.
+    let interPageGutter: CGFloat
+
+    /// Fixed height of the one bottom control bar, **excluding** the bottom
+    /// safe area (the bar's fill extends behind the home indicator; only its
+    /// content is inset).
+    let controlBarHeight: CGFloat
+
+    /// Play/pause circle diameter in the control bar. The visible circle *is*
+    /// the hit target — no invisible larger frame around a smaller pill.
+    let controlBarPrimaryDiameter: CGFloat
+
+    /// Secondary (page step / element skip / loop) button diameter in the
+    /// control bar. Same rule: visible size equals hit target.
+    let controlBarSecondaryDiameter: CGFloat
 
     /// Multiplies the user's Arabic-scale setting (`SettingsStore.arabicScale`)
     /// so tappable letters / words / verses read comfortably on a 13" screen.
@@ -47,27 +76,57 @@ struct LayoutMetrics: Equatable, Sendable {
     /// button, not scrolling list content (`WelcomeGateView`).
     let welcomeCardMaxWidth: CGFloat
 
+    /// General-purpose multiplier for hard-coded chrome numbers (icon sizes,
+    /// button heights, fixed padding/spacing) that aren't already covered by
+    /// one of the caps above. `.compact` is `1.0` — every existing iPhone
+    /// number, multiplied by `1.0`, is itself, so the phone path renders
+    /// pixel-identical to today. `.regular` is `1.3` — chosen so chrome grows
+    /// visibly on a 13" screen without outgrowing the widened `arabicScaleMultiplier`
+    /// (1.45) that already governs the reading content itself.
+    let uiScale: CGFloat
+
     static let compact = LayoutMetrics(
         isRegular: false,
         contentMaxWidth: .infinity,
-        readingColumnWidth: 640,
-        readerHeaderMaxWidth: 768,
         pagerCardMaxWidth: 560,
+        cardTopGap: 16,
+        cardBottomGap: 16,
+        cardSideGap: 12,
+        interPageGutter: 36,
+        controlBarHeight: 72,
+        controlBarPrimaryDiameter: 56,
+        controlBarSecondaryDiameter: 44,
         arabicScaleMultiplier: 1.0,
         chapterGridColumns: 1,
-        welcomeCardMaxWidth: 460
+        welcomeCardMaxWidth: 460,
+        uiScale: 1.0
     )
 
     static let regular = LayoutMetrics(
         isRegular: true,
         contentMaxWidth: 960,
-        readingColumnWidth: 980,
-        readerHeaderMaxWidth: 1000,
-        pagerCardMaxWidth: 900,
+        pagerCardMaxWidth: 760,
+        cardTopGap: 24,
+        cardBottomGap: 24,
+        cardSideGap: 24,
+        interPageGutter: 64,
+        controlBarHeight: 92,
+        controlBarPrimaryDiameter: 72,
+        controlBarSecondaryDiameter: 58,
         arabicScaleMultiplier: 1.45,
         chapterGridColumns: 3,
-        welcomeCardMaxWidth: 680
+        welcomeCardMaxWidth: 860,
+        uiScale: 1.3
     )
+
+    /// Picks `regular` on the widened iPad path, `compact` otherwise — the
+    /// one-line way to route a semantic `Font` (e.g. `.subheadline`) through
+    /// the same compact/regular split as every raw-number token above,
+    /// instead of hand-rolling `layoutMetrics.isRegular ? a : b` at each call
+    /// site.
+    func font(_ compact: Font, _ regular: Font) -> Font {
+        isRegular ? regular : compact
+    }
 }
 
 private struct LayoutMetricsKey: EnvironmentKey {

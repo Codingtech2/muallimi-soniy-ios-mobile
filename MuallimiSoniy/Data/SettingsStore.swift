@@ -9,7 +9,7 @@ import OSLog
 ///   degrades to light (never dark, never a crash).
 /// - `repeatCount` is **session-only**: changes apply during a run, but every
 ///   launch resets it to 1 (matches "Ilova qayta ochilganda 1× ga qaytadi").
-/// - `locale` defaults to Uzbek-Latin, `fontSize` to medium.
+/// - `locale` defaults to Uzbek-Latin, `textScale` to 1.0×.
 @MainActor
 @Observable
 final class SettingsStore {
@@ -26,9 +26,10 @@ final class SettingsStore {
         }
     }
 
-    /// Global Arabic type multiplier for the current font-size preference
-    /// (small 0.875 / medium 1.0 / large 1.125). Fed to `\.arabicFontScale`.
-    var arabicScale: CGFloat { settings.fontSize.arabicScale }
+    /// Global Arabic type multiplier for the current text-size preference.
+    /// Fed to `\.arabicFontScale`. Mirrors `settings.textScale` (0.8…2.5), the
+    /// continuous slider that replaced the old 3-step `FontSize` enum.
+    var arabicScale: CGFloat { CGFloat(settings.textScale) }
 
     private let userDefaults: UserDefaults
     private let logger = Logger(
@@ -44,6 +45,10 @@ final class SettingsStore {
     private static let speedRange = 0.5...2.0
     /// Volume bounds.
     private static let volumeRange = 0.0...1.0
+    /// Text-scale bounds for the reading-options slider.
+    private static let textScaleRange = 0.8...2.5
+    /// Line-spacing bounds for the reading-options slider.
+    private static let lineSpacingRange = 1.0...2.0
 
     /// Loads persisted settings, falling back — on a fresh install or an
     /// unreadable store — to `fallback` when the caller supplies one, otherwise
@@ -76,8 +81,43 @@ final class SettingsStore {
         persist()
     }
 
-    func setFontSize(_ fontSize: FontSize) {
-        settings.fontSize = fontSize
+    // MARK: - Reading options (reader "Aa" sheet)
+
+    /// Clamps to 0.8…2.5 before storing. Persisted across launches.
+    func setTextScale(_ scale: Double) {
+        settings.textScale = min(
+            Self.textScaleRange.upperBound,
+            max(Self.textScaleRange.lowerBound, scale)
+        )
+        persist()
+    }
+
+    func setReadingBackground(_ background: ReadingBackground) {
+        settings.readingBackground = background
+        persist()
+    }
+
+    /// Clamps to 1.0…2.0 before storing. Persisted across launches.
+    func setLineSpacingScale(_ scale: Double) {
+        settings.lineSpacingScale = min(
+            Self.lineSpacingRange.upperBound,
+            max(Self.lineSpacingRange.lowerBound, scale)
+        )
+        persist()
+    }
+
+    func setBoldText(_ isOn: Bool) {
+        settings.boldText = isOn
+        persist()
+    }
+
+    func setStrongHighlight(_ isOn: Bool) {
+        settings.strongHighlight = isOn
+        persist()
+    }
+
+    func setKeepScreenAwake(_ isOn: Bool) {
+        settings.keepScreenAwake = isOn
         persist()
     }
 
@@ -164,6 +204,11 @@ final class SettingsStore {
 
     /// Layers the tolerant `stored` fields over `base`, keeping `base` wherever a
     /// field is absent or holds an unrecognised enum raw value.
+    ///
+    /// `textScale` additionally migrates the legacy `fontSize` field: if a
+    /// persisted JSON predates the slider (no `textScale` key yet) but still
+    /// carries an old `small`/`medium`/`large` string, that value is converted
+    /// forward via `legacyTextScale(from:)` before falling back to `base`.
     private nonisolated static func merged(
         _ stored: StoredSettings,
         over base: AppSettings
@@ -174,10 +219,25 @@ final class SettingsStore {
             volume: stored.volume ?? base.volume,
             locale: stored.locale.flatMap(AppLocale.init(rawValue:)) ?? base.locale,
             theme: stored.theme.flatMap(AppTheme.init(rawValue:)) ?? base.theme,
-            fontSize: stored.fontSize.flatMap(FontSize.init(rawValue:)) ?? base.fontSize,
             loopMode: stored.loopMode ?? base.loopMode,
-            sequentialMode: stored.sequentialMode ?? base.sequentialMode
+            sequentialMode: stored.sequentialMode ?? base.sequentialMode,
+            textScale: stored.textScale ?? legacyTextScale(from: stored.fontSize) ?? base.textScale,
+            readingBackground: stored.readingBackground.flatMap(ReadingBackground.init(rawValue:))
+                ?? base.readingBackground,
+            lineSpacingScale: stored.lineSpacingScale ?? base.lineSpacingScale,
+            boldText: stored.boldText ?? base.boldText,
+            strongHighlight: stored.strongHighlight ?? base.strongHighlight,
+            keepScreenAwake: stored.keepScreenAwake ?? base.keepScreenAwake
         )
+    }
+
+    /// Migrates a legacy persisted `fontSize` (small/medium/large) into the new
+    /// continuous `textScale`. Returns `nil` when there's nothing to migrate —
+    /// a fresh install, or a raw string that no longer matches a known legacy
+    /// case — so the caller's own `?? base.textScale` fallback takes over.
+    private nonisolated static func legacyTextScale(from rawFontSize: String?) -> Double? {
+        guard let raw = rawFontSize, let legacy = FontSize(rawValue: raw) else { return nil }
+        return Double(legacy.arabicScale)
     }
 }
 
@@ -195,7 +255,18 @@ private nonisolated struct StoredSettings: Decodable {
     var volume: Double?
     var locale: String?
     var theme: String?
-    var fontSize: String?
     var loopMode: Bool?
     var sequentialMode: Bool?
+
+    var textScale: Double?
+    var readingBackground: String?
+    var lineSpacingScale: Double?
+    var boldText: Bool?
+    var strongHighlight: Bool?
+    var keepScreenAwake: Bool?
+
+    /// Legacy pre-slider field (small/medium/large). Only read by
+    /// `merged(_:over:)` to derive `textScale` when an old persisted JSON has
+    /// no `textScale` key yet.
+    var fontSize: String?
 }

@@ -10,6 +10,7 @@ struct OnboardingView: View {
     @Environment(AudioDownloadManager.self) private var manager
     @Environment(ContentStore.self) private var content
     @Environment(SettingsStore.self) private var settings
+    @Environment(\.layoutMetrics) private var layoutMetrics
     /// Called when the user is ready to enter the app (downloaded, skipped, or
     /// chose to continue in the background).
     let onDone: () -> Void
@@ -17,17 +18,21 @@ struct OnboardingView: View {
     private var locale: AppLocale { settings.settings.locale }
     private func tr(_ key: String) -> String { content.t(key, locale) }
 
+    /// The identity logo is the same brand mark as `WelcomeGateView`'s, so it
+    /// gets the same bigger-than-`uiScale` hero boost (compact stays 168).
+    private var logoHeight: CGFloat { layoutMetrics.isRegular ? 244 : 168 }
+
     var body: some View {
         VStack(spacing: 0) {
             settingsBar
-            Spacer(minLength: 20)
+            Spacer(minLength: 20 * layoutMetrics.uiScale)
             identity
-            Spacer().frame(height: 32)
+            Spacer().frame(height: 32 * layoutMetrics.uiScale)
             features
-            Spacer(minLength: 24)
+            Spacer(minLength: 24 * layoutMetrics.uiScale)
             downloadSection
         }
-        .padding(24)
+        .padding(24 * layoutMetrics.uiScale)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(AppColor.background.ignoresSafeArea())
     }
@@ -37,26 +42,26 @@ struct OnboardingView: View {
     /// Up-front language pills + a light/dark toggle. Both apply live: the whole
     /// screen re-localises and re-themes instantly as the user taps.
     private var settingsBar: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 6 * layoutMetrics.uiScale) {
             ForEach(Self.languageOptions, id: \.locale) { option in
                 let selected = settings.settings.locale == option.locale
                 Button { settings.setLocale(option.locale) } label: {
                     Text(option.short)
-                        .font(.caption.weight(.semibold))
+                        .font(layoutMetrics.font(.caption.weight(.semibold), .subheadline.weight(.semibold)))
                         .foregroundStyle(selected ? .white : AppColor.textMuted)
-                        .padding(.horizontal, 11)
-                        .padding(.vertical, 7)
+                        .padding(.horizontal, 11 * layoutMetrics.uiScale)
+                        .padding(.vertical, 7 * layoutMetrics.uiScale)
                         .background(selected ? AppColor.primary : AppColor.surface, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(option.name)
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: 8 * layoutMetrics.uiScale)
             Button { settings.setTheme(isDark ? .light : .dark) } label: {
                 Image(systemName: isDark ? "moon.stars.fill" : "sun.max.fill")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 16 * layoutMetrics.uiScale, weight: .semibold))
                     .foregroundStyle(AppColor.primary)
-                    .frame(width: 38, height: 38)
+                    .frame(width: 38 * layoutMetrics.uiScale, height: 38 * layoutMetrics.uiScale)
                     .glassCard(cornerRadius: 12)
             }
             .buttonStyle(.plain)
@@ -69,17 +74,17 @@ struct OnboardingView: View {
     // MARK: - Identity
 
     private var identity: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 16 * layoutMetrics.uiScale) {
             Image("LaunchLogo")
                 .resizable()
                 .scaledToFit()
-                .frame(height: 168)
+                .frame(height: logoHeight)
                 .accessibilityHidden(true)
             Text(tr("app_name"))
-                .font(.largeTitle.bold())
+                .font(layoutMetrics.font(.largeTitle.bold(), .system(size: 46, weight: .bold)))
                 .foregroundStyle(AppColor.textMain)
             Text(tr("book_tagline"))
-                .font(.subheadline)
+                .font(layoutMetrics.font(.subheadline, .title3))
                 .foregroundStyle(AppColor.textMuted)
                 .multilineTextAlignment(.center)
         }
@@ -88,7 +93,7 @@ struct OnboardingView: View {
     // MARK: - Features
 
     private var features: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16 * layoutMetrics.uiScale) {
             FeatureRow(symbol: "waveform", title: tr("ob_feat1_title"), subtitle: tr("ob_feat1_desc"))
             FeatureRow(symbol: "book.pages.fill", title: tr("ob_feat2_title"), subtitle: tr("ob_feat2_desc"))
             FeatureRow(symbol: "wifi.slash", title: tr("ob_feat3_title"), subtitle: tr("ob_feat3_desc"))
@@ -102,10 +107,10 @@ struct OnboardingView: View {
     private var downloadSection: some View {
         switch state {
         case .idle:
-            VStack(spacing: 12) {
+            VStack(spacing: 12 * layoutMetrics.uiScale) {
                 statusPanel {
                     Text(tr("ob_prompt"))
-                        .font(.footnote)
+                        .font(layoutMetrics.font(.footnote, .subheadline))
                         .foregroundStyle(AppColor.textMuted)
                         .multilineTextAlignment(.center)
                 }
@@ -116,16 +121,16 @@ struct OnboardingView: View {
             }
 
         case .working(let label, let fraction):
-            VStack(spacing: 12) {
+            VStack(spacing: 12 * layoutMetrics.uiScale) {
                 statusPanel {
                     ProgressView(value: fraction)
                         .tint(AppColor.primary)
                     Text(label)
-                        .font(.footnote)
+                        .font(layoutMetrics.font(.footnote, .subheadline))
                         .foregroundStyle(AppColor.textMuted)
                         .monospacedDigit()
                     Text(tr("ob_bg"))
-                        .font(.caption2)
+                        .font(layoutMetrics.font(.caption2, .subheadline))
                         .foregroundStyle(AppColor.textMuted)
                 }
                 // The download continues in the background if they enter now.
@@ -133,20 +138,20 @@ struct OnboardingView: View {
             }
 
         case .ready:
-            VStack(spacing: 12) {
+            VStack(spacing: 12 * layoutMetrics.uiScale) {
                 statusPanel {
                     Label(tr("ob_ready"), systemImage: "checkmark.circle.fill")
-                        .font(.subheadline.weight(.semibold))
+                        .font(layoutMetrics.font(.subheadline.weight(.semibold), .title3.weight(.semibold)))
                         .foregroundStyle(AppColor.primary)
                 }
                 primaryButton(tr("start"), systemImage: "play.fill", action: onDone)
             }
 
         case .failed(let message):
-            VStack(spacing: 12) {
+            VStack(spacing: 12 * layoutMetrics.uiScale) {
                 statusPanel {
                     Text(message)
-                        .font(.caption)
+                        .font(layoutMetrics.font(.caption, .subheadline))
                         .foregroundStyle(.red)
                         .multilineTextAlignment(.center)
                 }
@@ -162,12 +167,12 @@ struct OnboardingView: View {
     /// download state (info text, progress, ready/failed message). Keeps the
     /// solid-green CTA and text skip button as separate, dominant elements.
     private func statusPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 10 * layoutMetrics.uiScale) {
             content()
         }
         .frame(maxWidth: .infinity)
-        .padding(.horizontal, 18)
-        .padding(.vertical, 16)
+        .padding(.horizontal, 18 * layoutMetrics.uiScale)
+        .padding(.vertical, 16 * layoutMetrics.uiScale)
         .glassCard(cornerRadius: 20)
     }
 
@@ -196,13 +201,13 @@ struct OnboardingView: View {
 
     private func primaryButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 8 * layoutMetrics.uiScale) {
                 Image(systemName: systemImage)
                 Text(title)
             }
-            .font(.headline)
+            .font(layoutMetrics.font(.headline, .title3.weight(.semibold)))
             .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 54)
+            .frame(maxWidth: .infinity, minHeight: 54 * layoutMetrics.uiScale)
             .background(AppColor.primary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -210,9 +215,9 @@ struct OnboardingView: View {
 
     private func skipButton(_ title: String) -> some View {
         Button(title, action: onDone)
-            .font(.subheadline.weight(.medium))
+            .font(layoutMetrics.font(.subheadline.weight(.medium), .title3.weight(.medium)))
             .foregroundStyle(AppColor.textMuted)
-            .padding(.top, 2)
+            .padding(.top, 2 * layoutMetrics.uiScale)
     }
 
     // MARK: - Language options
@@ -236,19 +241,21 @@ private struct FeatureRow: View {
     let title: String
     let subtitle: String
 
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: 14 * layoutMetrics.uiScale) {
             Image(systemName: symbol)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.system(size: 18 * layoutMetrics.uiScale, weight: .semibold))
                 .foregroundStyle(AppColor.primary)
-                .frame(width: 40, height: 40)
+                .frame(width: 40 * layoutMetrics.uiScale, height: 40 * layoutMetrics.uiScale)
                 .glassCard(cornerRadius: 12)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 2 * layoutMetrics.uiScale) {
                 Text(title)
-                    .font(.subheadline.weight(.semibold))
+                    .font(layoutMetrics.font(.subheadline.weight(.semibold), .title3.weight(.semibold)))
                     .foregroundStyle(AppColor.textMain)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(layoutMetrics.font(.caption, .subheadline))
                     .foregroundStyle(AppColor.textMuted)
                     .fixedSize(horizontal: false, vertical: true)
             }

@@ -39,9 +39,9 @@ struct SettingsView: View {
 
                     footer
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20 * layoutMetrics.uiScale)
+                .padding(.top, 8 * layoutMetrics.uiScale)
+                .padding(.bottom, 24 * layoutMetrics.uiScale)
                 .frame(maxWidth: layoutMetrics.contentMaxWidth, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
@@ -50,7 +50,7 @@ struct SettingsView: View {
             // out to avoid a buzz on every drag tick.
             .sensoryFeedback(.selection, trigger: store.settings.theme)
             .sensoryFeedback(.selection, trigger: store.settings.locale)
-            .sensoryFeedback(.selection, trigger: store.settings.fontSize)
+            .sensoryFeedback(.selection, trigger: store.settings.textScale)
             .sensoryFeedback(.selection, trigger: store.settings.repeatCount)
             .sensoryFeedback(.selection, trigger: store.settings.speed)
             // The screen owns a large title, so hide the nav bar here; only the
@@ -81,17 +81,17 @@ struct SettingsView: View {
 
     private var footer: some View {
         Text("\(tr("app_name")) · v\(appVersion) · \(tr("footer_company"))")
-            .font(.caption.weight(.medium))
+            .font(layoutMetrics.font(.caption.weight(.medium), .subheadline.weight(.medium)))
             .foregroundStyle(AppColor.textMuted)
             .frame(maxWidth: .infinity)
-            .padding(.top, 4)
+            .padding(.top, 4 * layoutMetrics.uiScale)
     }
 
     // MARK: - Audio (flagship)
 
     private var audioSection: some View {
         GlassSection {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 18 * layoutMetrics.uiScale) {
                 SettingsSectionHeader(
                     icon: "waveform",
                     title: tr("audio"),
@@ -167,13 +167,13 @@ struct SettingsView: View {
 
     private var appearanceSection: some View {
         GlassSection {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16 * layoutMetrics.uiScale) {
                 SettingsSectionHeader(
                     icon: "circle.lefthalf.filled",
                     title: tr("theme"),
                     desc: tr("theme_desc")
                 )
-                HStack(spacing: 8) {
+                HStack(spacing: 8 * layoutMetrics.uiScale) {
                     ForEach(Self.themes, id: \.value) { option in
                         segment(selected: store.settings.theme == option.value) {
                             store.setTheme(option.value)
@@ -192,31 +192,27 @@ struct SettingsView: View {
 
     private var fontSizeSection: some View {
         GlassSection {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16 * layoutMetrics.uiScale) {
                 SettingsSectionHeader(
                     icon: "textformat.size",
                     title: tr("font_size"),
                     desc: tr("font_size_desc")
                 )
-                HStack(spacing: 8) {
-                    ForEach(Self.fontSizes, id: \.value) { option in
-                        segment(selected: store.settings.fontSize == option.value) {
-                            store.setFontSize(option.value)
-                        } content: {
-                            Text("A")
-                                .font(.system(size: option.point * (layoutMetrics.isRegular ? 1.3 : 1), weight: .bold))
-                                .frame(height: layoutMetrics.isRegular ? 34 : 28, alignment: .bottom)
-                            Text(tr(option.labelKey))
-                                .font(layoutMetrics.isRegular ? .footnote : .caption2)
-                                .opacity(0.85)
-                        }
-                    }
-                }
+                TextScaleSlider(title: tr("text_size"), value: textScaleBinding)
             }
         }
     }
 
-    /// Shared 3-segment glass control (theme + font size).
+    /// Shared with the reader's `ReadingOptionsSheet` (plan A6 — one text-scale
+    /// slider control, not two).
+    private var textScaleBinding: Binding<Double> {
+        Binding(
+            get: { store.settings.textScale },
+            set: { store.setTextScale($0) }
+        )
+    }
+
+    /// Shared 3-segment glass control (theme picker).
     private func segment<Content: View>(
         selected: Bool,
         action: @escaping () -> Void,
@@ -246,13 +242,13 @@ struct SettingsView: View {
 
     private var languageSection: some View {
         GlassSection {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
                 SettingsSectionHeader(
                     icon: "globe",
                     title: tr("language"),
                     desc: tr("language_desc")
                 )
-                VStack(spacing: 6) {
+                VStack(spacing: 6 * layoutMetrics.uiScale) {
                     ForEach(Self.languages, id: \.value) { lang in
                         languageRow(lang)
                     }
@@ -315,13 +311,13 @@ struct SettingsView: View {
 
     private var aboutSection: some View {
         GlassSection {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
                 SettingsSectionHeader(
                     icon: "info.circle",
                     title: tr("about_section"),
                     desc: "\(tr("app_name")) · v\(appVersion)"
                 )
-                VStack(spacing: 6) {
+                VStack(spacing: 6 * layoutMetrics.uiScale) {
                     ForEach(LegalDoc.allCases) { doc in
                         aboutRow(doc)
                     }
@@ -388,12 +384,6 @@ struct SettingsView: View {
         ThemeOption(value: .dark, icon: "moon.fill", labelKey: "dark"),
         ThemeOption(value: .system, icon: "circle.lefthalf.filled", labelKey: "system")
     ]
-
-    private static let fontSizes: [FontSizeOption] = [
-        FontSizeOption(value: .small, point: 13, labelKey: "small"),
-        FontSizeOption(value: .medium, point: 16, labelKey: "medium"),
-        FontSizeOption(value: .large, point: 20, labelKey: "large")
-    ]
 }
 
 // MARK: - Option value types
@@ -407,12 +397,6 @@ private struct LanguageOption {
 private struct ThemeOption {
     let value: AppTheme
     let icon: String
-    let labelKey: String
-}
-
-private struct FontSizeOption {
-    let value: FontSize
-    let point: CGFloat
     let labelKey: String
 }
 
@@ -517,7 +501,7 @@ private struct AudioSliderRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 12 : 8) {
-            HStack(spacing: 8) {
+            HStack(spacing: 8 * layoutMetrics.uiScale) {
                 if let icon {
                     Image(systemName: icon)
                         .font(.system(size: layoutMetrics.isRegular ? 18 : 14, weight: .semibold))

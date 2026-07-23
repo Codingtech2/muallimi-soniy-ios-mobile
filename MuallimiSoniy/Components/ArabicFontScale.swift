@@ -1,9 +1,12 @@
 import SwiftUI
 
-/// Maps the user's reading font-size preference to a global Arabic type
-/// multiplier, mirroring the web root font-scale (`--font-scale`:
-/// small 0.875 / medium 1.0 / large 1.125). Applied once per Arabic primitive
-/// so every reader glyph scales from a single source.
+/// Maps the legacy small/medium/large font-size preference to the numeric
+/// scale multiplier it used to drive (`--font-scale`: small 0.875 / medium
+/// 1.0 / large 1.125). `AppSettings.textScale` is now the live source of
+/// truth (see `SettingsStore.arabicScale`) — this extension survives only so
+/// `SettingsStore`'s decode migration can convert an old persisted `fontSize`
+/// value into a `textScale` on first launch after the upgrade. Nothing else
+/// should read this.
 extension FontSize {
     var arabicScale: CGFloat {
         switch self {

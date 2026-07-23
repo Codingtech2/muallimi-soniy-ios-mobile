@@ -19,10 +19,10 @@ struct ContentsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+                VStack(alignment: .leading, spacing: 20 * layoutMetrics.uiScale) {
                     header
 
-                    VStack(spacing: 16) {
+                    VStack(spacing: 16 * layoutMetrics.uiScale) {
                         ForEach(store.outline) { chapter in
                             ChapterCard(
                                 chapter: chapter,
@@ -34,9 +34,9 @@ struct ContentsView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.horizontal, 20 * layoutMetrics.uiScale)
+                .padding(.top, 8 * layoutMetrics.uiScale)
+                .padding(.bottom, 24 * layoutMetrics.uiScale)
                 .frame(maxWidth: layoutMetrics.contentMaxWidth, alignment: .leading)
                 .frame(maxWidth: .infinity)
             }
@@ -53,12 +53,12 @@ struct ContentsView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4 * layoutMetrics.uiScale) {
             Text(store.t("contents", locale))
-                .font(layoutMetrics.isRegular ? .system(size: 46, weight: .bold) : .largeTitle.bold())
+                .font(layoutMetrics.font(.largeTitle.bold(), .system(size: 46, weight: .bold)))
                 .foregroundStyle(AppColor.textMain)
             Text(subtitle)
-                .font(layoutMetrics.isRegular ? .title2 : .subheadline)
+                .font(layoutMetrics.font(.subheadline, .title2))
                 .foregroundStyle(AppColor.textMuted)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,7 +111,7 @@ private struct ChapterCard: View {
 
     private func combinedRow(_ lesson: OutlineLesson) -> some View {
         NavigationLink(value: ReaderEntry.global(index: lesson.globalStart - 1)) {
-            HStack(spacing: 14) {
+            HStack(spacing: 14 * layoutMetrics.uiScale) {
                 iconChip
                 titleBlock(
                     title: chapter.chapter.title.text(locale),
@@ -135,7 +135,7 @@ private struct ChapterCard: View {
     private var multiLessonCard: some View {
         VStack(alignment: .leading, spacing: layoutMetrics.isRegular ? 18 : 14) {
             chapterHeader
-            VStack(spacing: 8) {
+            VStack(spacing: 8 * layoutMetrics.uiScale) {
                 ForEach(chapter.lessons) { lesson in
                     lessonRow(lesson)
                 }
@@ -147,7 +147,7 @@ private struct ChapterCard: View {
     }
 
     private var chapterHeader: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 12 * layoutMetrics.uiScale) {
             iconChip
             titleBlock(
                 title: chapter.chapter.title.text(locale),
@@ -164,7 +164,7 @@ private struct ChapterCard: View {
     /// `NavigationLink` into the reader at the lesson's first page.
     private func lessonRow(_ lesson: OutlineLesson) -> some View {
         NavigationLink(value: ReaderEntry.global(index: lesson.globalStart - 1)) {
-            HStack(spacing: 12) {
+            HStack(spacing: 12 * layoutMetrics.uiScale) {
                 titleBlock(
                     title: lesson.lesson.title.text(locale),
                     start: lesson.globalStart,
@@ -220,7 +220,7 @@ private struct ChapterCard: View {
 
     /// Trailing cluster: the green completed ✓ (when done) plus a chevron.
     private func trailing(isComplete: Bool) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 10 * layoutMetrics.uiScale) {
             if isComplete { completeMark }
             Image(systemName: "chevron.right")
                 .font(.system(size: layoutMetrics.isRegular ? 16 : 13, weight: .semibold))

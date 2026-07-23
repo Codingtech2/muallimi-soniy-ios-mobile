@@ -11,9 +11,24 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     var volume: Double
     var locale: AppLocale
     var theme: AppTheme
-    var fontSize: FontSize
     var loopMode: Bool
     var sequentialMode: Bool
+
+    // MARK: Reading options (reader "Aa" sheet)
+
+    /// Global Arabic text-size multiplier (range 0.8…2.5). Replaces the old
+    /// 3-step `FontSize` enum with a continuous slider.
+    var textScale: Double
+    /// Reader page/card background tint (paper / sepia / gray / night).
+    var readingBackground: ReadingBackground
+    /// Extra spacing between reader lines (range 1.0…2.0 multiplier).
+    var lineSpacingScale: Double
+    /// Renders reader Arabic text at a heavier weight for low-vision users.
+    var boldText: Bool
+    /// Renders the active tap-highlight pill with stronger contrast.
+    var strongHighlight: Bool
+    /// Disables the idle timer while the reader is open.
+    var keepScreenAwake: Bool
 
     /// Factory defaults matching the content package (`settings.json`).
     static let `default` = AppSettings(
@@ -22,8 +37,13 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
         volume: 1,
         locale: .uzLatn,
         theme: .light,
-        fontSize: .medium,
         loopMode: false,
-        sequentialMode: false
+        sequentialMode: false,
+        textScale: 1.0,
+        readingBackground: .paper,
+        lineSpacingScale: 1.0,
+        boldText: false,
+        strongHighlight: false,
+        keepScreenAwake: false
     )
 }

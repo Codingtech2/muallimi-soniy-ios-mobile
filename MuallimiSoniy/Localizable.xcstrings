@@ -1,28 +1,41 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "  ﴿%@﴾" : {},
-    " اورتیریب اوقیلادی." : {},
-    "%@" : {},
-    "%@ %@ / %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@ / %3$@"
-          }
-        }
-      }
+    "  ﴿%@﴾" : {
+
     },
-    "%@ / %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ / %2$@"
-          }
-        }
-      }
+    " · %@" : {
+
+    },
+    " اورتیریب اوقیلادی." : {
+
+    },
+    "-" : {
+
+    },
+    "—" : {
+
+    },
+    "،" : {
+
+    },
+    "·" : {
+
+    },
+    "(٭) بُو سُوزْ بِئْسَ لِسْمُ دیب اوقیلادی" : {
+
+    },
+    "(%@)" : {
+
+    },
+    "(کتاب مقدمه‌سیدن)" : {
+
+    },
+    "(کتابدن)" : {
+
+    },
+    "%@" : {
+
     },
     "%@ · v%@ · %@" : {
       "localizations" : {
@@ -30,6 +43,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ · v%2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "%@ %@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ / %3$@"
           }
         }
       }
@@ -44,17 +67,88 @@
         }
       }
     },
-    "(%@)" : {},
-    "(٭) بُو سُوزْ بِئْسَ لِسْمُ دیب اوقیلادی" : {},
-    "(کتاب مقدمه‌سیدن)" : {},
-    "(کتابدن)" : {},
-    "-" : {},
-    "=" : {},
-    "A" : {},
-    "Arab shrifti: %@" : {},
-    "M2 — primitivlar namunasi (vaqtinchalik)" : {},
-    "MUQADDIMA" : {},
-    "Tanlangan: %@" : {},
+    "•" : {
+
+    },
+    "۩" : {
+
+    },
+    "=" : {
+
+    },
+    "−" : {
+
+    },
+    "◇ ◇ ◇" : {
+
+    },
+    "❀" : {
+
+    },
+    "🎧" : {
+
+    },
+    "A" : {
+
+    },
+    "a11y_page_value" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ / %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ / %@"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ / %@"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ / %@"
+          }
+        }
+      }
+    },
+    "a11y_play_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Double tap to play audio"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дважды нажмите, чтобы воспроизвести аудио"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аудиони ижро этиш учун икки марта босинг"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audioni ijro etish uchun ikki marta bosing"
+          }
+        }
+      }
+    },
     "about_app" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -200,6 +294,9 @@
         }
       }
     },
+    "Arab shrifti: %@" : {
+
+    },
     "audio" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -254,6 +351,209 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Takror, tezlik va ovoz balandligi"
+          }
+        }
+      }
+    },
+    "audio_not_downloaded" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio not downloaded"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аудио не загружено"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аудио юкланмаган"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio yuklanmagan"
+          }
+        }
+      }
+    },
+    "audio_not_downloaded_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio (~127 MB) hasn't been downloaded yet. Download it to listen to this lesson."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аудио (~127 МБ) ещё не загружено. Скачайте его, чтобы прослушать этот урок."
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аудио (~127 MB) ҳали юкланмаган. Ушбу дарсни тинглаш учун уни юклаб олинг."
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Audio (~127 MB) hali yuklanmagan. Ushbu darsni tinglash uchun uni yuklab oling."
+          }
+        }
+      }
+    },
+    "bg_gray" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gray"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Серый"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кулранг"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kulrang"
+          }
+        }
+      }
+    },
+    "bg_night" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Night"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ночной"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тунги"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tungi"
+          }
+        }
+      }
+    },
+    "bg_paper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "White"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Белый"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оқ"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oq"
+          }
+        }
+      }
+    },
+    "bg_sepia" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sepia"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сепия"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сепия"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sepiya"
+          }
+        }
+      }
+    },
+    "bold_text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bold Text"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жирный текст"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Қалин шрифт"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qalin shrift"
           }
         }
       }
@@ -341,6 +641,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ahmad Hodiy Maqsudiy — arab alifbosi darsligi"
+          }
+        }
+      }
+    },
+    "cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отмена"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Бекор қилиш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bekor qilish"
           }
         }
       }
@@ -635,6 +964,35 @@
         }
       }
     },
+    "download_now" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download Now"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скачать сейчас"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ҳозир юклаб олиш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozir yuklab olish"
+          }
+        }
+      }
+    },
     "downloading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -925,6 +1283,64 @@
         }
       }
     },
+    "jump_to_page" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jump to page"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перейти к странице"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Саҳифага ўтиш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sahifaga oʻtish"
+          }
+        }
+      }
+    },
+    "keep_screen_awake" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Screen Awake"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не выключать экран"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Экран ўчмасин"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ekran oʻchmasin"
+          }
+        }
+      }
+    },
     "language" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1099,6 +1515,35 @@
         }
       }
     },
+    "line_spacing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Line Spacing"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Межстрочный интервал"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Қатор оралиғи"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qator oraligʻi"
+          }
+        }
+      }
+    },
     "loading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1157,6 +1602,9 @@
         }
       }
     },
+    "M2 — primitivlar namunasi (vaqtinchalik)" : {
+
+    },
     "medium" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1185,6 +1633,9 @@
           }
         }
       }
+    },
+    "MUQADDIMA" : {
+
     },
     "next" : {
       "extractionState" : "manual",
@@ -2201,6 +2652,35 @@
         }
       }
     },
+    "page_of" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Page %@ of %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Страница %@ из %@"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Саҳифа %@ / %@"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sahifa %@ / %@"
+          }
+        }
+      }
+    },
     "pages" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2400,6 +2880,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Maxfiylik siyosati"
+          }
+        }
+      }
+    },
+    "reading_background" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Background"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фон"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фон"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fon"
+          }
+        }
+      }
+    },
+    "reading_options" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reading Options"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Настройки чтения"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ўқиш созламалари"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oʻqish sozlamalari"
           }
         }
       }
@@ -2868,6 +3406,35 @@
         }
       }
     },
+    "strong_highlight" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strong Highlight"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усиленное выделение"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Кучли ажратиб кўрсатиш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kuchli ajratib koʻrsatish"
+          }
+        }
+      }
+    },
     "system" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2897,6 +3464,9 @@
         }
       }
     },
+    "Tanlangan: %@" : {
+
+    },
     "terms_of_use" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2922,6 +3492,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Foydalanish shartlari"
+          }
+        }
+      }
+    },
+    "text_size" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text Size"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер текста"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матн ўлчами"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matn oʻlchami"
           }
         }
       }
@@ -3187,31 +3786,54 @@
         }
       }
     },
-    "·" : {},
-    "،" : {},
-    "أحمد هادي مقصودي" : {},
-    "اشیتیش" : {},
-    "اوشبو اوچ تنوین علامتلرینینگ بیری قوییلگان حرفلردن سونگ " : {},
-    "اوقیدی: جهانگیر قاری نعمتاو" : {},
-    "بیر سکونلی نون" : {},
-    "تشدید قائده‌سی" : {},
-    "تشدیدلی حرفلر اوستیگه اوشبو تشدید علامتلری قوییلگان حرفلر ایککیلنتیریب اوقیلادی." : {},
-    "تنوينلي حرفلر" : {},
-    "سجده آیتی" : {},
-    "مؤلف" : {},
-    "مد یازیلیشی قائده‌لری" : {},
-    "مدلی حرفلر" : {},
-    "نقطه‌سیز ى هم خودّی عادی ي کبی اوقیلادی." : {},
-    "وصل — قوشیش" : {},
-    "ى" : {},
-    "ي ، يـ" : {},
-    "۩" : {},
-    "—" : {},
-    "•" : {},
-    "−" : {},
-    "◇ ◇ ◇" : {},
-    "❀" : {},
-    "🎧" : {}
+    "أحمد هادي مقصودي" : {
+
+    },
+    "اشیتیش" : {
+
+    },
+    "اوشبو اوچ تنوین علامتلرینینگ بیری قوییلگان حرفلردن سونگ " : {
+
+    },
+    "اوقیدی: جهانگیر قاری نعمتاو" : {
+
+    },
+    "بیر سکونلی نون" : {
+
+    },
+    "تشدید قائده‌سی" : {
+
+    },
+    "تشدیدلی حرفلر اوستیگه اوشبو تشدید علامتلری قوییلگان حرفلر ایککیلنتیریب اوقیلادی." : {
+
+    },
+    "تنوينلي حرفلر" : {
+
+    },
+    "سجده آیتی" : {
+
+    },
+    "مؤلف" : {
+
+    },
+    "مد یازیلیشی قائده‌لری" : {
+
+    },
+    "مدلی حرفلر" : {
+
+    },
+    "نقطه‌سیز ى هم خودّی عادی ي کبی اوقیلادی." : {
+
+    },
+    "وصل — قوشیش" : {
+
+    },
+    "ى" : {
+
+    },
+    "ي ، يـ" : {
+
+    }
   },
   "version" : "1.2"
 }

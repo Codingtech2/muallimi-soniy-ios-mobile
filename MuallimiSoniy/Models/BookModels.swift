@@ -38,4 +38,12 @@ nonisolated struct Element: Codable, Sendable, Identifiable, Hashable {
     let y: Double
     let width: Double
     let height: Double
+
+    /// VoiceOver label: the Uzbek transliteration when the content package
+    /// provides one, otherwise the raw Arabic glyphs — so a screen reader
+    /// always says something meaningful instead of staying silent or reading
+    /// an empty string.
+    var accessibilityLabelText: String {
+        uzbek.isEmpty ? arabic : uzbek
+    }
 }

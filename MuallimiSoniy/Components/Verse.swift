@@ -35,6 +35,18 @@ struct Verse: View {
 
     /// Global Arabic scale from the user's font-size preference (injected at root).
     @Environment(\.arabicFontScale) private var arabicFontScale
+    /// Reader page/text palette — defaults to `.paper` (today's exact look)
+    /// outside the reader; `ReaderView` injects the live value.
+    @Environment(\.readingTheme) private var readingTheme
+    /// Line spacing / bold / highlight / VoiceOver strings from the "Aa" sheet.
+    @Environment(\.readingAdjustments) private var adjustments
+    /// System-wide Settings → Accessibility → Bold Text — treated the same as
+    /// the app's own `boldText` reading option.
+    @Environment(\.legibilityWeight) private var legibilityWeight
+    /// Settings → Accessibility → Reduce Motion — skips the highlight spring.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var effectiveBold: Bool { adjustments.boldText || legibilityWeight == .bold }
 
     /// Canonical initialiser — the caller supplies `isActive`.
     init(
@@ -81,6 +93,7 @@ struct Verse: View {
             } label: {
                 verseText
                     .multilineTextAlignment(.center)
+                    .lineSpacing(1 * adjustments.lineSpacingScale)
                     .padding(.horizontal, 8)  // px-2
                     .padding(.vertical, 2)    // py-0.5
                     .background(
@@ -90,20 +103,24 @@ struct Verse: View {
                     .shadow(color: isActive ? AppColor.primaryGlow : .clear, radius: 10, x: 0, y: 6)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(element.accessibilityLabelText)
+            .accessibilityHint(adjustments.playHint)
+            .accessibilityAddTraits(isActive ? [.startsMediaSession, .isSelected] : .startsMediaSession)
+            .accessibilityValue(isActive ? adjustments.activeValueLabel : "")
 
             if ayah != nil {
                 AyahSeparator(pointSize: size.pointSize * arabicFontScale)
             }
         }
         .environment(\.layoutDirection, .rightToLeft)
-        .animation(.spring(response: 0.3, dampingFraction: 0.62), value: isActive)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.62), value: isActive)
     }
 
     /// The verse glyphs plus, when present, a smaller dimmed ayah marker.
     private var verseText: Text {
-        let base = isActive ? Color.white : AppColor.textMain
+        let base = isActive ? Color.white : readingTheme.textMain
         var text = Text(element.arabic)
-            .font(arabicFont(size.pointSize * arabicFontScale))
+            .font(arabicFont(size.pointSize * arabicFontScale, weight: arabicWeight(bold: effectiveBold)))
             .foregroundStyle(base)
         if let ayah {
             text = text + Text("  ﴿\(arabicIndicDigits(ayah))﴾")
@@ -115,15 +132,20 @@ struct Verse: View {
 }
 
 /// The decorative `❀` that trails a verse (web `AyahSeparator`): green
-/// `textSecondary`, lightly transparent, scaled to the verse text.
+/// `textSecondary`, lightly transparent, scaled to the verse text. Purely
+/// decorative — hidden from VoiceOver so it never becomes a confusing extra
+/// stop between two meaningful, tappable verses.
 struct AyahSeparator: View {
     var pointSize: CGFloat = 15
+
+    @Environment(\.readingTheme) private var readingTheme
 
     var body: some View {
         Text("❀")
             .font(arabicFont(pointSize, weight: .regular))
-            .foregroundStyle(AppColor.textSecondary)
+            .foregroundStyle(readingTheme.textSecondary)
             .opacity(0.75)
+            .accessibilityHidden(true)
     }
 }
 
