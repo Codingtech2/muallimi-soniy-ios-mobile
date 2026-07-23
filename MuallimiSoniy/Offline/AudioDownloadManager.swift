@@ -199,7 +199,7 @@ final class AudioDownloadManager {
 
     private func download(from url: URL, to destination: URL) async throws {
         try? FileManager.default.removeItem(at: destination)
-        let delegate = DownloadProgressDelegate { fraction in
+        let runner = DownloadProgressDelegate { fraction in
             // Capture `self` weakly directly on the Task (not the enclosing
             // @Sendable closure) so there's no captured `var self` crossing the
             // concurrency boundary. Behavior is unchanged: a weak hop to the
@@ -209,7 +209,7 @@ final class AudioDownloadManager {
                 self.phase = .downloading(fraction)
             }
         }
-        let (tempURL, response) = try await URLSession.shared.download(from: url, delegate: delegate)
+        let (tempURL, response) = try await runner.download(from: url)
         if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
             try? FileManager.default.removeItem(at: tempURL)
             throw AudioDownloadError.httpStatus(http.statusCode)
@@ -335,19 +335,57 @@ nonisolated enum AudioDownloadError: LocalizedError {
     }
 }
 
-/// Per-task download delegate that reports byte progress. The async
-/// `URLSession.download(from:delegate:)` manages the downloaded file itself, so
-/// this only forwards `didWriteData`. `nonisolated` + `@unchecked Sendable`:
-/// callbacks arrive on URLSession's serial delegate queue and the only mutable
-/// state is guarded by a lock.
+/// Runs one download on a session it owns, reporting byte progress.
+///
+/// It must be the **session's** delegate, not a per-task one: the async
+/// `URLSession.download(from:delegate:)` never forwards `didWriteData` to a task
+/// delegate (verified against both `.shared` and a dedicated session — zero
+/// callbacks either way), which pinned the offline card at "0 %" for the whole
+/// 127 MB transfer. `nonisolated` + `@unchecked Sendable`: callbacks arrive on
+/// URLSession's serial delegate queue and all mutable state is lock-guarded.
 private nonisolated final class DownloadProgressDelegate: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
     private let onProgress: @Sendable (Double) -> Void
     private let lock = NSLock()
     private var lastReported = -1.0
+    private var continuation: CheckedContinuation<(URL, URLResponse?), Error>?
+    private var session: URLSession?
 
     init(onProgress: @escaping @Sendable (Double) -> Void) {
         self.onProgress = onProgress
         super.init()
+    }
+
+    /// Downloads `url` to a temporary file this method owns, forwarding progress
+    /// as it goes. Cancelling the calling task cancels the transfer.
+    func download(from url: URL) async throws -> (URL, URLResponse?) {
+        let task: URLSessionDownloadTask = {
+            let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+            self.session = session
+            return session.downloadTask(with: url)
+        }()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                lock.lock()
+                self.continuation = continuation
+                lock.unlock()
+                task.resume()
+            }
+        } onCancel: {
+            task.cancel()
+        }
+    }
+
+    /// Resumes the waiting continuation exactly once, then tears the session down
+    /// (a session retains its delegate until invalidated).
+    private func finish(_ result: Result<(URL, URLResponse?), Error>) {
+        lock.lock()
+        let continuation = self.continuation
+        self.continuation = nil
+        lock.unlock()
+        guard let continuation else { return }
+        continuation.resume(with: result)
+        session?.finishTasksAndInvalidate()
+        session = nil
     }
 
     func urlSession(
@@ -372,6 +410,26 @@ private nonisolated final class DownloadProgressDelegate: NSObject, URLSessionDo
         downloadTask: URLSessionDownloadTask,
         didFinishDownloadingTo location: URL
     ) {
-        // No-op: the async download variant moves the file and returns its URL.
+        // URLSession deletes `location` as soon as this returns, so the move has
+        // to happen synchronously, right here.
+        let destination = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ms-download-\(UUID().uuidString).tmp")
+        do {
+            try FileManager.default.moveItem(at: location, to: destination)
+            finish(.success((destination, downloadTask.response)))
+        } catch {
+            finish(.failure(error))
+        }
+    }
+
+    /// Fires on failure *and* after a successful `didFinishDownloadingTo` — the
+    /// success path already resumed, and `finish` ignores the second call.
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        didCompleteWithError error: Error?
+    ) {
+        guard let error else { return }
+        finish(.failure(error))
     }
 }
