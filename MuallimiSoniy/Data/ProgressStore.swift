@@ -20,9 +20,14 @@ final class ProgressStore {
     private(set) var lastGlobalIndex: Int
     /// Ids of lessons whose final page has been reached.
     private(set) var completedLessons: Set<String>
+    /// Qur'an surah numbers (1...114) the user has marked as fully memorized
+    /// ("Yodladim"), driving the hifz surah-list checkmark and the `X/26` badge.
+    private(set) var memorizedSurahs: Set<Int>
 
     /// 0-based global page to resume from; `0` when there is no saved progress.
     var resumeGlobalIndex: Int { lastGlobalIndex }
+    /// How many surahs are currently marked memorized.
+    var memorizedCount: Int { memorizedSurahs.count }
 
     private static let defaultsKey = "muallimi-progress"
     private let defaults: UserDefaults
@@ -38,6 +43,7 @@ final class ProgressStore {
         lastLessonId = saved.lastLessonId
         lastGlobalIndex = saved.lastGlobalIndex
         completedLessons = saved.completedLessons
+        memorizedSurahs = saved.memorizedSurahs ?? []
     }
 
     // MARK: - API
@@ -66,6 +72,22 @@ final class ProgressStore {
         completedLessons.contains(lessonId)
     }
 
+    /// Marks (or unmarks) a surah as memorized — drives the hifz "Yodladim" toggle.
+    func setMemorized(_ number: Int, _ isOn: Bool) {
+        guard isOn != memorizedSurahs.contains(number) else { return }
+        if isOn {
+            memorizedSurahs.insert(number)
+        } else {
+            memorizedSurahs.remove(number)
+        }
+        persist()
+    }
+
+    /// Whether surah `number` has been marked memorized.
+    func isMemorized(_ number: Int) -> Bool {
+        memorizedSurahs.contains(number)
+    }
+
     #if DEBUG
     /// QA-only: injects a demo progress state in-memory (no persistence), so the
     /// `-MSScreen home|contents` screenshot hosts can show the resume CTA and the
@@ -84,7 +106,8 @@ final class ProgressStore {
             lastChapterId: lastChapterId,
             lastLessonId: lastLessonId,
             lastGlobalIndex: lastGlobalIndex,
-            completedLessons: completedLessons
+            completedLessons: completedLessons,
+            memorizedSurahs: memorizedSurahs
         )
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -105,12 +128,17 @@ final class ProgressStore {
         var lastLessonId: String?
         var lastGlobalIndex: Int
         var completedLessons: Set<String>
+        /// Optional so an older saved blob without this key still decodes instead of
+        /// throwing — `load(from:)` falls back to `.empty` on ANY decode error,
+        /// which would otherwise silently wipe out all existing progress.
+        var memorizedSurahs: Set<Int>?
 
         static let empty = Snapshot(
             lastChapterId: nil,
             lastLessonId: nil,
             lastGlobalIndex: 0,
-            completedLessons: []
+            completedLessons: [],
+            memorizedSurahs: nil
         )
     }
 }
