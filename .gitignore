@@ -46,3 +46,6 @@ screenshots/
 # === tools/surah-index — Quran API answer cache (local only) + Python bytecode ===
 tools/surah-index/.cache/
 __pycache__/
+
+# === Hifz feature work: research/QA cache (local only) ===
+.hifz-cache/
