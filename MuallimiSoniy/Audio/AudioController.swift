@@ -43,6 +43,40 @@ final class AudioController {
         category: "AudioController"
     )
 
+    // MARK: - Request tracking
+
+    /// A `playSegment`/`playFull` request, remembered so `pause()` can snapshot
+    /// it if it lands while the request is still awaiting its file load, and
+    /// `resume()` can re-issue it later.
+    private enum PlaybackRequest {
+        case segment(url: URL, start: Double, end: Double)
+        case full(url: URL)
+    }
+
+    /// Bumped by every `playSegment`/`playFull` call and by `pause()`/`stop()`
+    /// when they cancel a request still awaiting its load. A request compares
+    /// its captured id after `await engine.load` resolves; a mismatch means it
+    /// was superseded or cancelled, so it must never reach `engine.playSegment`/
+    /// `playFull` — the last *requested* segment always wins, not the last one
+    /// whose file happened to finish reading first.
+    private var requestID: Int = 0
+    /// The request currently between `await engine.load` and the matching
+    /// `engine.playSegment`/`playFull` call, if any.
+    private var inFlightRequest: PlaybackRequest?
+    /// A request cancelled mid-load by `pause()`. `resume()` re-issues it since
+    /// the engine never actually loaded it, so there is nothing there to resume.
+    private var pendingResumable: PlaybackRequest?
+    /// True once a `pause()` on live engine playback succeeds; cleared by
+    /// `stop()`. Lets `resume()` tell "was paused" apart from "was stopped", so
+    /// a stray lock-screen/AirPods/car PLAY after `stop()` is a no-op instead of
+    /// replaying a stale player in full-file mode.
+    private var isPaused: Bool = false
+
+    /// Whether `resume()` would restart anything right now — a live pause or a
+    /// request `pause()` cancelled mid-load. Lets a playback queue tell "paused"
+    /// apart from "idle" without reaching into the bookkeeping above.
+    var canResume: Bool { pendingResumable != nil || isPaused }
+
     init() {
         engine.onTimeUpdate = { [weak self] time in
             guard let self else { return }
@@ -68,46 +102,145 @@ final class AudioController {
 
     /// Loads `url` then plays the `[start, end]` segment with repeat / loop.
     /// Failures are logged and swallowed so a missing file never crashes the UI.
-    func playSegment(url: URL, start: Double, end: Double) async {
+    ///
+    /// Returns `true` only if playback actually started **for this request**.
+    /// The last *requested* segment always wins: if a newer `playSegment`/
+    /// `playFull` call arrives, or `stop()`/`pause()` cancels this one, while
+    /// its file is still loading, this returns `false` without ever touching
+    /// the engine.
+    @discardableResult
+    func playSegment(url: URL, start: Double, end: Double) async -> Bool {
+        requestID &+= 1
+        let myID = requestID
+        isPaused = false
+        pendingResumable = nil
+        inFlightRequest = .segment(url: url, start: start, end: end)
         AudioSession.shared.activate()
         do {
             try await engine.load(url: url)
-            duration = engine.duration
-            engine.playSegment(start: start, end: end)
+        } catch AudioEngineError.superseded {
+            if myID == requestID { inFlightRequest = nil }
+            logger.debug("playSegment(\(url.lastPathComponent, privacy: .public)) superseded while loading")
+            return false
         } catch {
+            if myID == requestID { inFlightRequest = nil }
             logger.error("playSegment failed: \(String(describing: error))")
+            return false
         }
+        guard myID == requestID else {
+            logger.debug("playSegment(\(url.lastPathComponent, privacy: .public)) cancelled before playback started")
+            return false
+        }
+        inFlightRequest = nil
+        duration = engine.duration
+        let started = engine.playSegment(start: start, end: end)
+        if !started {
+            logger.debug("playSegment(\(url.lastPathComponent, privacy: .public)) refused by engine")
+        }
+        return started
     }
 
-    /// Loads `url` then plays the whole file (full-lesson audio).
-    func playFull(url: URL) async {
+    /// Loads `url` then plays the whole file (full-lesson audio). Same request
+    /// semantics as `playSegment` (see above).
+    @discardableResult
+    func playFull(url: URL) async -> Bool {
+        requestID &+= 1
+        let myID = requestID
+        isPaused = false
+        pendingResumable = nil
+        inFlightRequest = .full(url: url)
         AudioSession.shared.activate()
         do {
             try await engine.load(url: url)
-            duration = engine.duration
-            engine.playFull()
+        } catch AudioEngineError.superseded {
+            if myID == requestID { inFlightRequest = nil }
+            logger.debug("playFull(\(url.lastPathComponent, privacy: .public)) superseded while loading")
+            return false
         } catch {
+            if myID == requestID { inFlightRequest = nil }
             logger.error("playFull failed: \(String(describing: error))")
+            return false
         }
+        guard myID == requestID else {
+            logger.debug("playFull(\(url.lastPathComponent, privacy: .public)) cancelled before playback started")
+            return false
+        }
+        inFlightRequest = nil
+        duration = engine.duration
+        let started = engine.playFull()
+        if !started {
+            logger.debug("playFull(\(url.lastPathComponent, privacy: .public)) refused by engine")
+        }
+        return started
     }
 
-    func pause() { engine.pause() }
+    /// Pauses playback. If a request is still awaiting its file load, the
+    /// engine never started it — cancel that request (so its `await engine.load`
+    /// never results in a late `playSegment`/`playFull` call) and remember it so
+    /// `resume()` can re-issue it. Otherwise pauses the engine as before.
+    func pause() {
+        if let pending = inFlightRequest {
+            requestID &+= 1
+            inFlightRequest = nil
+            pendingResumable = pending
+            logger.debug("pause: cancelled in-flight load, saved as pending resumable")
+            return
+        }
+        engine.pause()
+        isPaused = true
+    }
 
     /// Resumes playback. Reactivates the audio session first: after a system
     /// interruption the OS may have deactivated it, so a bare `play()` would be
     /// silent. `activate()` is a cheap no-op when the session is already live.
+    ///
+    /// If `pause()` cancelled a request mid-load, re-issues it here instead —
+    /// the engine never actually loaded it. Otherwise only resumes the engine
+    /// if the last state-changing call was a `pause()` on live playback: after
+    /// `stop()`, a stray lock-screen/AirPods/car PLAY must be a no-op instead of
+    /// replaying a stale player in full-file mode.
     func resume() {
+        if let pending = pendingResumable {
+            pendingResumable = nil
+            switch pending {
+            case .segment(let url, let start, let end):
+                Task { @MainActor [weak self] in await self?.playSegment(url: url, start: start, end: end) }
+            case .full(let url):
+                Task { @MainActor [weak self] in await self?.playFull(url: url) }
+            }
+            return
+        }
+        guard isPaused else {
+            logger.debug("resume: ignored — nothing paused")
+            return
+        }
         AudioSession.shared.activate()
-        engine.resume()
+        if engine.resume() {
+            isPaused = false
+        }
     }
 
     func togglePlayPause() { engine.togglePlayPause() }
 
-    /// Stops playback, clears segment state and tears down the Now Playing info.
-    /// The engine fires its play-state callback, which resets `isPlaying`.
+    /// Stops playback, cancels any request still awaiting its file load, clears
+    /// segment state and tears down the Now Playing info. Also resets the
+    /// mirrored progress fields so a stale progress line never freezes on the
+    /// next page. The engine fires its play-state callback, which
+    /// resets `isPlaying`.
     func stop() {
+        if inFlightRequest != nil {
+            logger.debug("stop: cancelled in-flight load")
+        }
+        requestID &+= 1
+        inFlightRequest = nil
+        pendingResumable = nil
+        isPaused = false
+        engine.invalidatePendingLoads()
         engine.stop()
         nowPlaying.clear()
+        currentTime = 0
+        duration = 0
+        repeatIndex = 0
     }
 
     func seek(_ time: Double) {
