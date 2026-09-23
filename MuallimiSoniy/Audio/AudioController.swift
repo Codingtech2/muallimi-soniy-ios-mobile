@@ -33,6 +33,11 @@ final class AudioController {
     var onRemoteNext: (() -> Void)?
     var onRemotePrev: (() -> Void)?
 
+    /// Invoked whenever playback actually starts or resumes, from any path
+    /// (in-app button, lock screen, a queue's next item). A playback queue uses
+    /// it to drop a stale "stalled" state once audio is moving again.
+    var onPlaybackStarted: (() -> Void)?
+
     // MARK: - Engine
 
     private let engine = AudioEngine()
@@ -66,10 +71,12 @@ final class AudioController {
     /// A request cancelled mid-load by `pause()`. `resume()` re-issues it since
     /// the engine never actually loaded it, so there is nothing there to resume.
     private var pendingResumable: PlaybackRequest?
-    /// True once a `pause()` on live engine playback succeeds; cleared by
-    /// `stop()`. Lets `resume()` tell "was paused" apart from "was stopped", so
-    /// a stray lock-screen/AirPods/car PLAY after `stop()` is a no-op instead of
-    /// replaying a stale player in full-file mode.
+    /// True once a `pause()` lands on audio the engine can really continue
+    /// (`engine.isArmed`); cleared by `stop()`. Lets `resume()` tell "was
+    /// paused" apart from "was stopped", so a stray lock-screen/AirPods/car PLAY
+    /// after `stop()` is a no-op instead of replaying a stale player in
+    /// full-file mode — even if an interruption or route change paused the
+    /// already-stopped engine in between.
     private var isPaused: Bool = false
 
     /// Whether `resume()` would restart anything right now — a live pause or a
@@ -87,12 +94,18 @@ final class AudioController {
             guard let self else { return }
             self.isPlaying = playing
             self.nowPlaying.setPlaybackRate(playing ? 1 : 0)
+            if playing { self.onPlaybackStarted?() }
         }
         engine.onRepeatUpdate = { [weak self] index in
             self?.repeatIndex = index
         }
         engine.onSegmentComplete = { [weak self] in
             self?.onSegmentComplete?()
+        }
+        engine.onExternalPause = { [weak self] in
+            // The system stopped the player mid-file (e.g. a call) and no
+            // interruption pause reached us — keep it resumable like a pause.
+            self?.isPaused = true
         }
         wireNowPlayingCommands()
         observeSessionEvents()
@@ -177,7 +190,10 @@ final class AudioController {
     /// Pauses playback. If a request is still awaiting its file load, the
     /// engine never started it — cancel that request (so its `await engine.load`
     /// never results in a late `playSegment`/`playFull` call) and remember it so
-    /// `resume()` can re-issue it. Otherwise pauses the engine as before.
+    /// `resume()` can re-issue it. Otherwise pauses the engine as before, and
+    /// only counts as "paused" if the engine holds audio it can continue — an
+    /// interruption, route change or remote PAUSE after `stop()` or a natural
+    /// finish must not make a later PLAY resume a stale player.
     func pause() {
         if let pending = inFlightRequest {
             requestID &+= 1
@@ -187,7 +203,7 @@ final class AudioController {
             return
         }
         engine.pause()
-        isPaused = true
+        isPaused = engine.isArmed
     }
 
     /// Resumes playback. Reactivates the audio session first: after a system
@@ -198,7 +214,9 @@ final class AudioController {
     /// the engine never actually loaded it. Otherwise only resumes the engine
     /// if the last state-changing call was a `pause()` on live playback: after
     /// `stop()`, a stray lock-screen/AirPods/car PLAY must be a no-op instead of
-    /// replaying a stale player in full-file mode.
+    /// replaying a stale player in full-file mode. After a natural finish
+    /// (never after `stop()`), PLAY replays that segment once, as the web does
+    /// for an ended `<audio>`.
     func resume() {
         if let pending = pendingResumable {
             pendingResumable = nil
@@ -211,7 +229,12 @@ final class AudioController {
             return
         }
         guard isPaused else {
-            logger.debug("resume: ignored — nothing paused")
+            if engine.canReplayFinished {
+                AudioSession.shared.activate()
+                engine.replayFinished()
+            } else {
+                logger.debug("resume: ignored — nothing paused")
+            }
             return
         }
         AudioSession.shared.activate()

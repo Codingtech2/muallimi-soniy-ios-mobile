@@ -1689,6 +1689,35 @@
         }
       }
     },
+    "hifz_menu_repeat_excerpt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repeat this passage"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторять этот отрывок"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шу қисмни такрорлаш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shu qismni takrorlash"
+          }
+        }
+      }
+    },
     "hifz_menu_repeat_surah" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1714,6 +1743,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Shu surani takrorlash"
+          }
+        }
+      }
+    },
+    "hifz_menu_repeat_unit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repeat %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повторять «%@»"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ни такрорлаш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ni takrorlash"
           }
         }
       }
@@ -1772,6 +1830,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Boshlanishi"
+          }
+        }
+      }
+    },
+    "hifz_order_from_nas" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "From An-Nas"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "С суры ан-Нас"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Насдан бошлаб"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nasdan boshlab"
+          }
+        }
+      }
+    },
+    "hifz_order_mushaf" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qurʼan order"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "По порядку Корана"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Қуръон тартибида"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qurʼon tartibida"
           }
         }
       }
@@ -1892,6 +2008,35 @@
         }
       }
     },
+    "hifz_round_progress_excerpt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Passage %@/%@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отрывок %@/%@"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Қисм %@/%@"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qism %@/%@"
+          }
+        }
+      }
+    },
     "hifz_scope_ayah" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2004,6 +2149,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Qurʼon tartibida Nas surasigacha davom etadi"
+          }
+        }
+      }
+    },
+    "hifz_scope_excerpt" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This passage"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Этот отрывок"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Шу қисм"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Shu qism"
+          }
+        }
+      }
+    },
+    "hifz_scope_excerpt_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayat %@–%@ from the start, again and again"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Аяты %@–%@ с начала, снова и снова"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@–%@-оятлар бошидан, қайта-қайта"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@–%@-oyatlar boshidan, qayta-qayta"
           }
         }
       }

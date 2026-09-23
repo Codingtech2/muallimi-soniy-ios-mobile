@@ -73,7 +73,9 @@ final class HifzController {
     /// into the matching silence-segment length (see `startGap`).
     private var playbackRate: Double = 1
 
-    private static let maxSilenceSeconds: Double = 10
+    /// Length of `hifz-silence.wav`. Speed tops out at 2× (settings and
+    /// engine), so the clip covers the longest 10 s gap in full at any speed.
+    private static let maxSilenceSeconds: Double = 20
     private static let silenceURL: URL? = Bundle.main.url(forResource: "hifz-silence", withExtension: "wav")
 
     private let logger = Logger(
@@ -123,6 +125,7 @@ final class HifzController {
         audio.setRepeatCount(1)
         audio.setLoopMode(false)
         audio.onSegmentComplete = { [weak self] in self?.segmentDidComplete() }
+        audio.onPlaybackStarted = { [weak self] in self?.playbackDidStart() }
         sessionID &+= 1
 
         let realSequence = HifzSequence(
@@ -185,7 +188,7 @@ final class HifzController {
     /// used when the engine is idle/stalled rather than genuinely paused.
     private func replayCurrent() {
         isStalled = false
-        if phase == .gap, let currentUnit, let pendingCursor {
+        if phase == .gap, let currentUnit {
             startGap(afterUnit: currentUnit, nextCursor: pendingCursor)
             return
         }
@@ -238,18 +241,27 @@ final class HifzController {
     }
 
     /// Starts the "your turn" silence gap after `unit`, then plays
-    /// `nextCursor` once it finishes. Highlight/current-unit stay pointed at
-    /// `unit` while the gap runs — only `phase`/`gapSeconds` change.
-    private func startGap(afterUnit unit: HifzUnit, nextCursor: HifzCursor) {
+    /// `nextCursor` once it finishes — or completes the session when there is
+    /// nothing left (the learner's turn after the last listen).
+    /// Highlight/current-unit stay pointed at `unit` while the gap runs — only
+    /// `phase`/`gapSeconds` change.
+    private func startGap(afterUnit unit: HifzUnit, nextCursor: HifzCursor?) {
         guard let silenceURL = Self.silenceURL else {
             logger.error("hifz gap silence file missing from bundle, skipping pause")
-            playUnit(at: nextCursor)
+            if let nextCursor {
+                playUnit(at: nextCursor)
+            } else {
+                finish(.completed)
+            }
             return
         }
 
         let safeRate = playbackRate > 0 ? playbackRate : 1
         let gap = HifzTiming.gapSeconds(unitSeconds: unit.duration, playbackRate: safeRate)
         let segmentEnd = min(gap * safeRate, Self.maxSilenceSeconds)
+        // The silence plays at the current speed, so this is how long it
+        // really lasts — what the strip counts down and Now Playing reports.
+        let silenceSeconds = segmentEnd / safeRate
 
         playToken &+= 1
         let myToken = playToken
@@ -257,10 +269,10 @@ final class HifzController {
 
         pendingCursor = nextCursor
         phase = .gap
-        gapSeconds = gap
+        gapSeconds = silenceSeconds
         isStalled = false
-        onGapStart?(unit, gap)
-        logGap(seconds: gap, after: unit)
+        onGapStart?(unit, silenceSeconds)
+        logGap(seconds: silenceSeconds, after: unit)
 
         Task { @MainActor [weak self] in
             guard let self, let audio = self.audio else { return }
@@ -296,18 +308,30 @@ final class HifzController {
         advance(after: unit)
     }
 
-    /// Decides what plays after `unit` finishes: the sequence's end, a gap
-    /// then the next step, or the next step immediately.
+    /// Decides what plays after `unit` finishes: a gap then the next step (the
+    /// last listen gets its gap too, then the session ends), the next step
+    /// immediately, or the sequence's end.
     private func advance(after unit: HifzUnit) {
-        guard let sequence, let cursor, let next = sequence.next(after: cursor) else {
+        guard let sequence, let cursor else {
             finish(.completed)
             return
         }
+        let next = sequence.next(after: cursor)
         if plan?.pauseToRepeat == true {
             startGap(afterUnit: unit, nextCursor: next)
-        } else {
+        } else if let next {
             playUnit(at: next)
+        } else {
+            finish(.completed)
         }
+    }
+
+    /// Wired to `audio.onPlaybackStarted` by `start()`: audio is moving again
+    /// (e.g. resumed from the lock screen after a call), so a retry prompt from
+    /// an earlier refused start is stale.
+    private func playbackDidStart() {
+        guard isActive else { return }
+        isStalled = false
     }
 
     // MARK: - Finish
@@ -320,6 +344,15 @@ final class HifzController {
         audio?.setRepeatCount(savedTapRepeatCount)
         audio?.setLoopMode(savedTapLoop)
         audio?.onSegmentComplete = nil
+        audio?.onPlaybackStarted = nil
+        if reason != .stopped {
+            // Ended on its own, so nothing plays next: clear the lock-screen
+            // entry and progress line, and hand the audio session back so
+            // other apps may resume. A stop (user, reader, restart) leaves the
+            // session to its caller, so a restart never bounces it.
+            audio?.stop()
+            AudioSession.shared.deactivate()
+        }
         sessionID &+= 1
         playToken &+= 1
         phase = .idle

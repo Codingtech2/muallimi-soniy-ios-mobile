@@ -156,6 +156,7 @@ struct ArabicElementView: View {
         .accessibilityAddTraits(isActive ? [.startsMediaSession, .isSelected] : .startsMediaSession)
         .accessibilityValue(isActive ? adjustments.activeValueLabel : "")
         .ayahContextMenu(for: element)
+        .id(element.id)
     }
 }
 

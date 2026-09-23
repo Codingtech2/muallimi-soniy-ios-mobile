@@ -21,6 +21,13 @@ import SwiftUI
 /// most-visible page changes mid-drag — otherwise a half swipe (past the
 /// midpoint, then back) commits twice and wrongly stops audio / marks a
 /// lesson complete. iOS 17 keeps the original immediate-commit behavior.
+///
+/// On iOS 18+ the settled page is read from the scroll view's real offset, not
+/// from the `scrollPosition` binding: SwiftUI does not report every move
+/// through that binding (a VoiceOver three-finger swipe, a keyboard scroll, or
+/// the scroll view shifting itself while an assistive technology attaches), and
+/// any such move left the card on one page while `currentIndex` — and the
+/// audio, highlight and counter driven by it — stayed on another.
 struct HorizontalBookPager: View {
     let pages: [BookPage]
     /// The **one** source of truth for cell geometry, measured by a single
@@ -33,12 +40,22 @@ struct HorizontalBookPager: View {
     let viewport: CGSize
     @Binding var currentIndex: Int
     let activeElementId: String?
+    /// While `true` (a memorize session is following the audio), the page that
+    /// holds `activeElementId` scrolls it into view whenever it changes. Off by
+    /// default, so a plain tap or normal page play never moves the page.
+    var autoFollowActive: Bool = false
     let onElementTap: (Element) -> Void
     /// Fired when the user settles on a new page (the binding has already moved
     /// `currentIndex`); the reader uses it to stop audio + clear the highlight.
     let onPageSettled: (Int) -> Void
 
     @Environment(\.layoutMetrics) private var layoutMetrics
+    /// Settings → Accessibility → Reduce Motion — the follow scroll jumps
+    /// straight to the active element instead of gliding.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Turns `true` when an assistive technology (VoiceOver, Voice Control,
+    /// Switch Control, an accessibility inspector…) first attaches to the app.
+    @Environment(\.accessibilityEnabled) private var accessibilityEnabled
 
     /// Reading-column cap so the card doesn't stretch edge-to-edge on iPad
     /// (mirrors the web `max-w-xl` centred column). This is the binding
@@ -64,12 +81,25 @@ struct HorizontalBookPager: View {
     /// `currentIndex` on every programmatic change; while the user is actively
     /// scrolling it instead tracks whatever page the scroll view currently
     /// reports as most visible, which may run ahead of `currentIndex` until the
-    /// gesture settles (see `commitSettledPageIfNeeded`). Unused below iOS 18,
-    /// where `legacyScrollBinding` commits immediately instead.
+    /// gesture settles (see `settleRestingPage`). Unused below iOS 18, where
+    /// `legacyScrollBinding` commits immediately instead.
     @State private var trackedPageID: String?
     /// iOS 18+ only: set while the user's finger drives the scroll, consumed by
-    /// the next idle commit — so only user gestures ever settle a new page.
+    /// the next settle — a finger swipe always commits the page it ends on.
     @State private var userScrollPending = false
+    /// iOS 18+ only: the page the horizontal scroll view is resting on, read
+    /// from its content offset. `nil` until the first geometry report.
+    @State private var restingPage: Int?
+    /// iOS 18+ only: `false` while any scroll (finger, deceleration, animation)
+    /// is in flight, so a page passed on the way is never mistaken for a settle.
+    @State private var scrollIsIdle = true
+    /// iOS 18+ only: `true` for a short window while the pager itself moves to
+    /// or re-asserts `currentIndex`. A displacement inside the window is put
+    /// back instead of being committed as a page change.
+    @State private var isHoldingPosition = false
+    /// Identifies the latest hold window, so an older window ending can't
+    /// release a newer one.
+    @State private var holdGeneration = 0
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -85,22 +115,30 @@ struct HorizontalBookPager: View {
             .scrollPosition(id: scrollBinding)
             .modifier(IdleCommitScrollPhase(
                 onUserScroll: { userScrollPending = true },
-                onIdle: commitSettledPageIfNeeded
+                onScrollActivity: { scrollIsIdle = !$0 },
+                onIdle: { settleRestingPage(proxy) },
+                onRestingPointChange: { old, new in restingPointDidChange(from: old, to: new, proxy: proxy) }
             ))
             .scrollIndicators(.hidden)
             .onAppear {
                 guard !didLandInitial else { return }
                 didLandInitial = true
-                landInitialPage(proxy)
+                reassertCurrentPage(proxy)
             }
             .onChange(of: currentIndex) { oldValue, newValue in
                 // Keep the iOS 18+ tracking id in lockstep with every change to
                 // `currentIndex`, whichever side caused it — a no-op when it was
-                // `commitSettledPageIfNeeded` itself (already equal to it), and
+                // `settleRestingPage` itself (already equal to it), and
                 // required when it was a TOC jump / chevron tap / deep-link
                 // resolve, so `scrollBinding`'s getter reflects the new page
                 // instead of wherever the finger last left the scroll view.
                 trackedPageID = currentPageID
+                // The reader moved the page (chevron, TOC, memorize follow):
+                // the scroll view still has to get there, so don't read the
+                // page it is leaving as a new settle.
+                if restingPage != newValue {
+                    holdPosition()
+                }
                 // A programmatic jump (deep-link resolve, TOC, page indicator)
                 // moves `currentIndex` by more than one page without a user
                 // scroll — force the content to follow. Adjacent (±1) changes are
@@ -118,8 +156,17 @@ struct HorizontalBookPager: View {
                 // everything driven by it: audio, transport, ⏮/⏭, progress) stays
                 // put. Re-snap to the page we're already logically on, including
                 // index 0, whose resting position just moved too.
+                holdPosition()
                 trackedPageID = currentPageID
                 scrollToCurrent(proxy, includingFirst: true)
+            }
+            .onChange(of: accessibilityEnabled) { _, _ in
+                // The scroll view can shift itself by a page while an
+                // assistive technology first attaches, without any scroll
+                // gesture. Hold the page the reader is on through that window.
+                guard #available(iOS 18.0, *) else { return }
+                trackedPageID = currentPageID
+                reassertCurrentPage(proxy, includingFirst: true)
             }
         }
     }
@@ -132,39 +179,79 @@ struct HorizontalBookPager: View {
     /// is the scroll view's own content margin, so it is one number per size
     /// class rather than a per-device safe-area accident.
     private func pageCell(_ page: BookPage) -> some View {
-        ScrollView(.vertical) {
-            PageHostView(
-                page: page,
-                activeId: activeElementId,
-                onTap: onElementTap,
-                viewportHeight: viewport.height
-            )
-            .frame(maxWidth: readingColumnWidth)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, cardInset)
+        ScrollViewReader { verticalProxy in
+            ScrollView(.vertical) {
+                PageHostView(
+                    page: page,
+                    activeId: activeElementId,
+                    onTap: onElementTap,
+                    viewportHeight: viewport.height
+                )
+                .frame(maxWidth: readingColumnWidth)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, cardInset)
+            }
+            .scrollIndicators(.hidden)
+            .contentMargins(.top, layoutMetrics.cardTopGap, for: .scrollContent)
+            .contentMargins(.bottom, layoutMetrics.cardBottomGap, for: .scrollContent)
+            .modifier(HardTopScrollEdge())
+            .frame(width: viewport.width, height: viewport.height)
+            .onChange(of: followedElementID(on: page)) { _, elementID in
+                scrollIntoView(elementID, with: verticalProxy, animated: true)
+            }
+            .onAppear {
+                // A memorize session can move to a page whose cell doesn't
+                // exist yet; the new cell starts on the active element.
+                scrollIntoView(followedElementID(on: page), with: verticalProxy, animated: false)
+            }
         }
-        .scrollIndicators(.hidden)
-        .contentMargins(.top, layoutMetrics.cardTopGap, for: .scrollContent)
-        .contentMargins(.bottom, layoutMetrics.cardBottomGap, for: .scrollContent)
-        .modifier(HardTopScrollEdge())
-        .frame(width: viewport.width, height: viewport.height)
     }
+
+    // MARK: - Follow the active element
+
+    /// The element this page keeps in view: the active one, only while the
+    /// reader asks to follow it and only on the page that holds it.
+    private func followedElementID(on page: BookPage) -> String? {
+        guard autoFollowActive, let activeElementId,
+              page.elements.contains(where: { $0.id == activeElementId }) else { return nil }
+        return activeElementId
+    }
+
+    /// Centres `elementID` in this page's vertical scroll view — the elements
+    /// carry their id (`ArabicElementView`, `Verse`), so the proxy can find them.
+    private func scrollIntoView(_ elementID: String?, with proxy: ScrollViewProxy, animated: Bool) {
+        guard let elementID else { return }
+        if animated, !reduceMotion {
+            withAnimation(.easeInOut(duration: Self.followScrollDuration)) {
+                proxy.scrollTo(elementID, anchor: .center)
+            }
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { proxy.scrollTo(elementID, anchor: .center) }
+        }
+    }
+
+    /// Glide time for the follow scroll, in seconds.
+    private static let followScrollDuration: Double = 0.35
 
     // MARK: - Deterministic initial landing
 
-    /// Lands the reader's start page on first appear. The reader resolves the
-    /// start index around the same time this view appears, so we assert once now
-    /// and re-assert across the push-transition / first-layout window — a single
-    /// attempt can be dropped while the scroll container is still sizing. Every
-    /// attempt targets `currentIndex` (protected against spurious resets by the
-    /// binding's delta guard), so a re-assert can never yank the user off a page
-    /// they scrolled to in the meantime.
-    private func landInitialPage(_ proxy: ScrollViewProxy) {
-        scrollToCurrent(proxy)
+    /// Asserts `currentIndex` now and again across a short window. Used for the
+    /// initial landing — the reader resolves the start index around the same
+    /// time this view appears, and a single attempt can be dropped while the
+    /// scroll container is still sizing (push transition / first layout) — and
+    /// when an assistive technology attaches. Every attempt targets
+    /// `currentIndex` (protected against spurious resets by the binding's delta
+    /// guard), so a re-assert can never yank the user off a page they scrolled
+    /// to in the meantime.
+    private func reassertCurrentPage(_ proxy: ScrollViewProxy, includingFirst: Bool = false) {
+        holdPosition()
+        scrollToCurrent(proxy, includingFirst: includingFirst)
         Task { @MainActor in
             for delayMs in Self.reassertDelaysMs {
                 try? await Task.sleep(for: .milliseconds(delayMs))
-                scrollToCurrent(proxy)
+                scrollToCurrent(proxy, includingFirst: includingFirst)
             }
         }
     }
@@ -172,6 +259,10 @@ struct HorizontalBookPager: View {
     /// Cumulative re-assert offsets (ms) spanning a slow navigation-push
     /// transition plus a loaded first layout; each `scrollTo` is idempotent.
     private static let reassertDelaysMs: [Int] = [90, 220, 420]
+
+    /// How long a hold window lasts (ms) — longer than the whole re-assert
+    /// schedule above, and than any move the pager makes on its own.
+    private static let holdDurationMs = 1_000
 
     /// Jumps the scroll view to `currentIndex` with no animation (matching the
     /// reader's instant jumps). Page 0 needs no assertion by default — it's the
@@ -187,6 +278,20 @@ struct HorizontalBookPager: View {
         withTransaction(transaction) { proxy.scrollTo(id, anchor: .center) }
     }
 
+    /// iOS 18+ only: opens (or extends) a hold window — see `isHoldingPosition`.
+    private func holdPosition() {
+        guard #available(iOS 18.0, *) else { return }
+        holdGeneration &+= 1
+        let generation = holdGeneration
+        isHoldingPosition = true
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(Self.holdDurationMs))
+            if holdGeneration == generation {
+                isHoldingPosition = false
+            }
+        }
+    }
+
     // MARK: - Scroll position ↔ index
 
     /// The binding actually attached to `.scrollPosition(id:)` in `body`. Below
@@ -194,9 +299,9 @@ struct HorizontalBookPager: View {
     /// view instead reads/writes `trackedPageID` — a plain tracking value with no
     /// side effects — so the getter never fights the finger mid-drag and the
     /// setter never commits a page the finger hasn't actually settled on;
-    /// `commitSettledPageIfNeeded()` does that, once `IdleCommitScrollPhase`
-    /// reports the scroll view has gone fully idle. That's what stops a half
-    /// swipe (past the midpoint, then back) from firing `onPageSettled` twice.
+    /// `settleRestingPage()` does that, once `IdleCommitScrollPhase` reports
+    /// the scroll view has gone fully idle. That's what stops a half swipe
+    /// (past the midpoint, then back) from firing `onPageSettled` twice.
     private var scrollBinding: Binding<String?> {
         guard #available(iOS 18.0, *) else { return legacyScrollBinding }
         return Binding<String?>(
@@ -232,23 +337,49 @@ struct HorizontalBookPager: View {
         )
     }
 
-    /// iOS 18+ only: commits a settled page change once scrolling is fully idle
-    /// (see `IdleCommitScrollPhase`) — writes `currentIndex` and fires
-    /// `onPageSettled` exactly once, only if the tracked page actually differs
-    /// from `currentIndex`. This is the *only* place a user swipe reaches
-    /// `currentIndex` on iOS 18+, so a half swipe that peeks at the next page and
-    /// returns settles back where it started and never reaches here with a
-    /// changed id.
-    private func commitSettledPageIfNeeded() {
-        // Only a settle the user's own finger caused is a page change — a layout
-        // pass or a programmatic jump can end in `.idle` too. Gating on the
-        // gesture (instead of a ±1 distance check) also keeps a fast double
-        // flick, which settles two pages away in one idle, from being dropped.
-        guard userScrollPending else { return }
+    /// iOS 18+ only: reconciles the page the scroll view rests on with
+    /// `currentIndex` once scrolling is idle. This is the *only* place a user
+    /// swipe reaches `currentIndex` on iOS 18+, and it commits at most once per
+    /// settle: a half swipe comes back to `currentIndex` and commits nothing, a
+    /// fast double flick commits the page it lands on. A move the pager didn't
+    /// make — a finger, or a VoiceOver / Voice Control / keyboard scroll —
+    /// commits (writes `currentIndex`, fires `onPageSettled`); a displacement
+    /// inside a hold window is put back instead, so the pager's own moves never
+    /// report a settle.
+    private func settleRestingPage(_ proxy: ScrollViewProxy) {
+        let userScrolled = userScrollPending
         userScrollPending = false
-        guard let trackedPageID, let index = indexByID[trackedPageID], index != currentIndex else { return }
-        currentIndex = index
-        onPageSettled(index)
+        // Before the first landing the scroll view still rests on page 0 while
+        // `currentIndex` may already hold a deep-linked page.
+        guard didLandInitial,
+              let resting = restingPage ?? trackedPageID.flatMap({ indexByID[$0] }),
+              pages.indices.contains(resting) else { return }
+        guard resting != currentIndex else {
+            // Nothing moved, but make sure the scroll-position binding names the
+            // page on screen, so SwiftUI never restores a stale one later.
+            if trackedPageID != currentPageID {
+                trackedPageID = currentPageID
+            }
+            return
+        }
+        if isHoldingPosition, !userScrolled {
+            trackedPageID = currentPageID
+            scrollToCurrent(proxy, includingFirst: true)
+            return
+        }
+        currentIndex = resting
+        onPageSettled(resting)
+    }
+
+    /// iOS 18+ only: records the page the content offset now rests on. A move
+    /// while scrolling is idle had no gesture behind it, so it is settled here
+    /// right away; a move during a scroll waits for `settleRestingPage` at idle.
+    private func restingPointDidChange(from old: PagerRestingPoint, to new: PagerRestingPoint, proxy: ScrollViewProxy) {
+        restingPage = min(max(new.page, 0), max(pages.count - 1, 0))
+        // A width change is a layout change (rotation, iPad resize), not a
+        // scroll; the `viewport` handler re-snaps it.
+        guard old.width == new.width, scrollIsIdle else { return }
+        settleRestingPage(proxy)
     }
 
     /// The `BookPage.id` at `currentIndex`, or the first page's id if the index is
@@ -263,6 +394,14 @@ struct HorizontalBookPager: View {
     private var indexByID: [String: Int] {
         Dictionary(pages.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
+}
+
+/// Where the horizontal pager's content offset rests: the nearest page index,
+/// plus the page width it was measured against (a change there is layout, not
+/// scrolling).
+private struct PagerRestingPoint: Equatable {
+    let page: Int
+    let width: CGFloat
 }
 
 /// Turns off the iOS 26 Liquid Glass progressive blur at the scroll view's top
@@ -280,28 +419,41 @@ private struct HardTopScrollEdge: ViewModifier {
     }
 }
 
-/// Fires `onIdle` once the horizontal pager's scroll view goes fully idle —
-/// finger up *and* any deceleration/snap animation finished, not the moment a
-/// drag crosses the halfway point. Pairs with `commitSettledPageIfNeeded` for
-/// the CR-3 fix: a half swipe that peeks past the midpoint and returns never
-/// reaches idle on the neighbour page, so it never gets committed. No-op below
-/// iOS 18, where `.onScrollPhaseChange` doesn't exist — `legacyScrollBinding`
-/// commits immediately there instead, exactly as before this fix.
+/// Reports the horizontal pager's scroll phases and resting page on iOS 18+:
+/// `onIdle` fires once the scroll view goes fully idle — finger up *and* any
+/// deceleration/snap animation finished, not the moment a drag crosses the
+/// halfway point — and `onRestingPointChange` whenever the content offset
+/// moves to a different page. Pairs with `settleRestingPage`, so a half swipe
+/// that peeks past the midpoint and returns never commits the neighbour page.
+/// No-op below iOS 18, where `.onScrollPhaseChange` doesn't exist —
+/// `legacyScrollBinding` commits immediately there instead, exactly as before.
 private struct IdleCommitScrollPhase: ViewModifier {
     /// The user's finger is driving the scroll (dragging, or the fling it left).
     let onUserScroll: () -> Void
+    /// `true` while any scroll is in flight, `false` once it is idle again.
+    let onScrollActivity: (Bool) -> Void
     let onIdle: () -> Void
+    let onRestingPointChange: (_ old: PagerRestingPoint, _ new: PagerRestingPoint) -> Void
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if #available(iOS 18.0, *) {
-            content.onScrollPhaseChange { _, newPhase in
-                switch newPhase {
-                case .interacting, .decelerating: onUserScroll()
-                case .idle: onIdle()
-                default: break
+            content
+                .onScrollPhaseChange { _, newPhase in
+                    onScrollActivity(newPhase != .idle)
+                    switch newPhase {
+                    case .interacting, .decelerating: onUserScroll()
+                    case .idle: onIdle()
+                    default: break
+                    }
                 }
-            }
+                .onScrollGeometryChange(for: PagerRestingPoint.self) { geometry in
+                    let width = geometry.containerSize.width
+                    let page = width > 0 ? Int((geometry.contentOffset.x / width).rounded()) : 0
+                    return PagerRestingPoint(page: page, width: width)
+                } action: { old, new in
+                    onRestingPointChange(old, new)
+                }
         } else {
             content
         }

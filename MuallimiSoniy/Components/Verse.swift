@@ -108,6 +108,7 @@ struct Verse: View {
             .accessibilityAddTraits(isActive ? [.startsMediaSession, .isSelected] : .startsMediaSession)
             .accessibilityValue(isActive ? adjustments.activeValueLabel : "")
             .ayahContextMenu(for: element)
+            .id(element.id)
 
             if ayah != nil {
                 AyahSeparator(pointSize: size.pointSize * arabicFontScale)

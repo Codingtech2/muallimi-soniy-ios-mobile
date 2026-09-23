@@ -5,21 +5,34 @@ import SwiftUI
 struct HifzListRoute: Hashable, Sendable {}
 
 /// Kid-friendly "which surah do you want to memorize" screen: every surah the
-/// catalog resolved, in Mushaf order, as a big card — Arabic name, localized
-/// name, ayah count (or the Baqara excerpt's "1–5-oyat · Boshlanishi"), a
-/// "Yodladim" checkmark and a big play button that opens the reader with that
-/// surah's hifz session already running. A "listen to all in order" button up
-/// top starts a continuous session from the very first unit in the whole
-/// book (Fatiha's isti'adha).
+/// catalog resolved, as a big card — Arabic name, localized name, ayah count
+/// (or the Baqara excerpt's "1–5-oyat · Boshlanishi"), a "Yodladim"
+/// checkmark and a big play button that opens the reader with that surah's
+/// hifz session already running. A "listen to all in order" button up top
+/// starts a continuous session from the very first unit in the whole book
+/// (Fatiha's isti'adha). The list shows in Mushaf order by default; a small
+/// switch can show it from An-Nas instead (display only — playback is always
+/// Qurʼan order).
 struct HifzSurahListView: View {
     @Environment(ContentStore.self) private var store
     @Environment(ProgressStore.self) private var progress
     @Environment(SettingsStore.self) private var settings
     @Environment(\.layoutMetrics) private var layoutMetrics
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Most children start memorizing from An-Nas, the last card in Mushaf
+    /// order — this only flips the order the cards are shown in.
+    @AppStorage("ms.hifzListFromNas") private var listFromNas = false
+    /// Lets the iPad's fixed 46 pt title grow with Dynamic Type, like the
+    /// system large title it replaces.
+    @ScaledMetric(relativeTo: .largeTitle) private var titleScale: CGFloat = 1
 
     private var locale: AppLocale { settings.settings.locale }
     private var catalog: HifzCatalog { store.hifzCatalog }
     private var totalSurahs: Int { catalog.surahs.count }
+    private var displayedSurahs: [HifzSurah] {
+        listFromNas ? Array(catalog.surahs.reversed()) : catalog.surahs
+    }
 
     private var gridColumns: [GridItem] {
         [GridItem(.adaptive(minimum: 340), spacing: 14 * layoutMetrics.uiScale)]
@@ -28,10 +41,11 @@ struct HifzSurahListView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18 * layoutMetrics.uiScale) {
-                summary
+                header
                 listenAllButton
+                orderSwitch
                 LazyVGrid(columns: gridColumns, alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
-                    ForEach(catalog.surahs) { surah in
+                    ForEach(displayedSurahs) { surah in
                         HifzSurahRow(surah: surah, store: store, progress: progress, locale: locale)
                     }
                 }
@@ -43,20 +57,39 @@ struct HifzSurahListView: View {
             .frame(maxWidth: .infinity)
         }
         .background(AppColor.background.ignoresSafeArea())
+        .sensoryFeedback(.selection, trigger: listFromNas)
+        // The title is drawn in the content column (see `header`), so the
+        // bar keeps only the back button; the navigation title stays set so
+        // the back-button history and VoiceOver still name this screen.
         .navigationTitle(store.t("hifz_list_title", locale))
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .modifier(HiddenBarTitle())
         .navigationDestination(for: HifzLaunch.self) { launch in
             ReaderView(entry: .global(index: launch.startGlobalIndex), hifzAutoStart: launch.plan)
         }
     }
 
-    // MARK: - Summary
+    // MARK: - Header
 
-    private var summary: some View {
-        Text(String(format: store.t("hifz_memorized_count", locale), "\(progress.memorizedCount)", "\(totalSurahs)"))
-            .font(layoutMetrics.font(.subheadline, .title3))
-            .foregroundStyle(AppColor.textMuted)
-            .monospacedDigit()
+    /// Title + "X/26 yodlandi", drawn inside the capped content column so on
+    /// iPad the title lines up with the cards — same as Home / Contents /
+    /// Settings (the system large title sat at the screen's own margin).
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 4 * layoutMetrics.uiScale) {
+            Text(store.t("hifz_list_title", locale))
+                .font(layoutMetrics.font(.largeTitle.bold(), .system(size: 46 * titleScale, weight: .bold)))
+                .foregroundStyle(AppColor.textMain)
+                .accessibilityAddTraits(.isHeader)
+            Text(memorizedSummary)
+                .font(layoutMetrics.font(.subheadline, .title2))
+                .foregroundStyle(AppColor.textMuted)
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var memorizedSummary: String {
+        String(format: store.t("hifz_memorized_count", locale), "\(progress.memorizedCount)", "\(totalSurahs)")
     }
 
     // MARK: - Listen to all
@@ -94,6 +127,73 @@ struct HifzSurahListView: View {
             .accessibilityLabel(store.t("hifz_listen_all", locale))
         }
     }
+
+    // MARK: - Order switch
+
+    /// Two small segments that only change the order the cards are shown in.
+    /// "Listen to all" and every surah's own playback stay in Qurʼan order
+    /// either way. Side by side when both labels fit; stacked when they
+    /// don't (very large Dynamic Type on a phone).
+    private var orderSwitch: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4 * layoutMetrics.uiScale) {
+                orderSegment(fromNas: false, titleKey: "hifz_order_mushaf", stretch: false)
+                orderSegment(fromNas: true, titleKey: "hifz_order_from_nas", stretch: false)
+            }
+            .fixedSize()
+            VStack(spacing: 4 * layoutMetrics.uiScale) {
+                orderSegment(fromNas: false, titleKey: "hifz_order_mushaf", stretch: true)
+                orderSegment(fromNas: true, titleKey: "hifz_order_from_nas", stretch: true)
+            }
+        }
+        .padding(4 * layoutMetrics.uiScale)
+        .background(
+            AppColor.surface,
+            in: RoundedRectangle(cornerRadius: 26 * layoutMetrics.uiScale, style: .continuous)
+        )
+        .accessibilityElement(children: .contain)
+    }
+
+    private func orderSegment(fromNas: Bool, titleKey: String, stretch: Bool) -> some View {
+        let isSelected = listFromNas == fromNas
+        let shape = RoundedRectangle(cornerRadius: 22 * layoutMetrics.uiScale, style: .continuous)
+        return Button {
+            withAnimation(reduceMotion ? nil : .snappy) { listFromNas = fromNas }
+        } label: {
+            Text(store.t(titleKey, locale))
+                .font(layoutMetrics.font(.subheadline.weight(.semibold), .title3.weight(.semibold)))
+                .multilineTextAlignment(.center)
+                // Dark green, not `primary`: primary text on its own tint
+                // falls under 3:1.
+                .foregroundStyle(isSelected ? AppColor.textSecondary : AppColor.textMuted)
+                .padding(.horizontal, 16 * layoutMetrics.uiScale)
+                .padding(.vertical, 6 * layoutMetrics.uiScale)
+                .frame(maxWidth: stretch ? .infinity : nil, minHeight: 44 * layoutMetrics.uiScale)
+                .background(isSelected ? AppColor.primary.opacity(0.15) : Color.clear, in: shape)
+                .overlay(shape.strokeBorder(isSelected ? AppColor.primary.opacity(0.35) : Color.clear, lineWidth: 1))
+                .contentShape(shape)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// Keeps the navigation title set (back-button history, VoiceOver) while
+/// the bar itself doesn't draw it. iOS 17 has no `toolbar(removing: .title)`,
+/// so an empty principal item takes the title's place there.
+private struct HiddenBarTitle: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.toolbar(removing: .title)
+        } else {
+            content.toolbar {
+                ToolbarItem(placement: .principal) {
+                    Color.clear.frame(width: 1, height: 1)
+                }
+            }
+        }
+    }
 }
 
 // MARK: - Surah row
@@ -118,11 +218,17 @@ private struct HifzSurahRow: View {
     /// Dynamic Type, capped so they never spill past their own circle — same
     /// technique as `ReaderControlBar`.
     @ScaledMetric(relativeTo: .body) private var typeScale: CGFloat = 1
+    /// The Arabic name is a fixed-size custom font, so it grows with Dynamic
+    /// Type through this instead — tracking `.title` keeps it larger than
+    /// the localized name under it at every text size.
+    @ScaledMetric(relativeTo: .title) private var titleScale: CGFloat = 1
+    @ScaledMetric(relativeTo: .caption2) private var badgeScale: CGFloat = 1
 
     private var isMemorized: Bool { progress.isMemorized(surah.number) }
+    private var surahName: String { surah.name.text(locale) }
     private var toggleSide: CGFloat { 44 * layoutMetrics.uiScale }
     private var playSide: CGFloat { 60 * layoutMetrics.uiScale }
-    private var arabicNameSize: CGFloat { layoutMetrics.isRegular ? 36 : 28 }
+    private var arabicNameSize: CGFloat { (layoutMetrics.isRegular ? 36 : 28) * titleScale }
 
     var body: some View {
         HStack(spacing: 14 * layoutMetrics.uiScale) {
@@ -131,7 +237,9 @@ private struct HifzSurahRow: View {
             playButton
         }
         .padding(layoutMetrics.isRegular ? 20 : 14)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // Fills the whole grid row, top-aligned, so two cards side by side
+        // on iPad keep equal heights even when only one has the badge.
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .glassCard(cornerRadius: 24)
     }
 
@@ -142,12 +250,16 @@ private struct HifzSurahRow: View {
             Text(surah.arabicName)
                 .font(arabicFont(arabicNameSize))
                 .foregroundStyle(AppColor.textMain)
+                // One word: shrink a little rather than break it mid-word
+                // when a huge text size meets a narrow card.
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
                 .environment(\.layoutDirection, .rightToLeft)
                 // VoiceOver would try to sound out raw Arabic glyphs using
                 // whatever language is active — hidden here, the localized
                 // name below carries the spoken label instead.
                 .accessibilityHidden(true)
-            Text(surah.name.text(locale))
+            Text(surahName)
                 .font(layoutMetrics.font(.subheadline.weight(.medium), .title3.weight(.medium)))
                 .foregroundStyle(AppColor.textSecondary)
             ayahLine
@@ -156,26 +268,43 @@ private struct HifzSurahRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// `.top`-aligned with `.fixedSize` on the ayah text: at very large
-    /// Dynamic Type "1–5-oyat" wraps to 2 lines next to the "Boshlanishi"
-    /// badge, and without these the wrapped text under-reports its own
-    /// height, letting the badge clip into the row below.
+    /// The ayah text never wraps — a break inside "1–5-oyat" ("1–5-" /
+    /// "oyat") misreads. When it and the "Boshlanishi" badge don't fit side
+    /// by side at large Dynamic Type, the badge moves under it instead.
     private var ayahLine: some View {
-        HStack(alignment: .top, spacing: 6 * layoutMetrics.uiScale) {
-            Text(ayahText)
-                .font(layoutMetrics.font(.caption, .subheadline))
-                .foregroundStyle(AppColor.textMuted)
-                .monospacedDigit()
-                .fixedSize(horizontal: false, vertical: true)
-            if surah.isPartial {
-                Text(store.t("hifz_opening_badge", locale))
-                    .font(.system(size: 11 * layoutMetrics.uiScale, weight: .semibold))
-                    .foregroundStyle(AppColor.primary)
-                    .padding(.horizontal, 8 * layoutMetrics.uiScale)
-                    .padding(.vertical, 3 * layoutMetrics.uiScale)
-                    .background(AppColor.primary.opacity(0.14), in: Capsule())
-                    .fixedSize()
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: 6 * layoutMetrics.uiScale) {
+                ayahLabel
+                openingBadge
             }
+            VStack(alignment: .leading, spacing: 4 * layoutMetrics.uiScale) {
+                ayahLabel
+                openingBadge
+            }
+        }
+    }
+
+    private var ayahLabel: some View {
+        Text(ayahText)
+            .font(layoutMetrics.font(.caption, .subheadline))
+            .foregroundStyle(AppColor.textMuted)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+    }
+
+    /// Dark green text on the light tint (about 5:1) — the old `primary`
+    /// text on its own 14% tint was under 3:1.
+    @ViewBuilder
+    private var openingBadge: some View {
+        if surah.isPartial {
+            Text(store.t("hifz_opening_badge", locale))
+                .font(.system(size: 11 * layoutMetrics.uiScale * badgeScale, weight: .semibold))
+                .foregroundStyle(AppColor.textSecondary)
+                .padding(.horizontal, 8 * layoutMetrics.uiScale)
+                .padding(.vertical, 3 * layoutMetrics.uiScale)
+                .background(AppColor.primary.opacity(0.14), in: Capsule())
+                .fixedSize()
         }
     }
 
@@ -194,13 +323,15 @@ private struct HifzSurahRow: View {
             progress.setMemorized(surah.number, !isMemorized)
         } label: {
             Image(systemName: isMemorized ? "checkmark.circle.fill" : "circle")
-                .font(.system(size: min(20 * typeScale, toggleSide * 0.6), weight: .semibold))
+                .font(.system(size: min(20 * typeScale * layoutMetrics.uiScale, toggleSide * 0.6), weight: .semibold))
                 .foregroundStyle(isMemorized ? AppColor.primary : AppColor.textMuted)
                 .frame(width: toggleSide, height: toggleSide)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(store.t("hifz_mark_memorized", locale))
+        // The surah name leads, so 26 rows don't all read the same
+        // "Yodladim" in the VoiceOver rotor or Voice Control.
+        .accessibilityLabel("\(surahName), \(store.t("hifz_mark_memorized", locale))")
         .accessibilityValue(store.t(isMemorized ? "hifz_memorized_yes" : "hifz_memorized_no", locale))
         .accessibilityAddTraits(isMemorized ? .isSelected : [])
     }
@@ -220,14 +351,14 @@ private struct HifzSurahRow: View {
             )
             NavigationLink(value: launch) {
                 Image(systemName: "play.fill")
-                    .font(.system(size: min(24 * typeScale, playSide * 0.5), weight: .semibold))
+                    .font(.system(size: min(24 * typeScale * layoutMetrics.uiScale, playSide * 0.5), weight: .semibold))
                     .foregroundStyle(.white)
                     .frame(width: playSide, height: playSide)
                     .background(AppColor.primary, in: Circle())
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(store.t("hifz_listen_surah", locale))
+            .accessibilityLabel("\(surahName), \(store.t("hifz_listen_surah", locale))")
         }
     }
 }

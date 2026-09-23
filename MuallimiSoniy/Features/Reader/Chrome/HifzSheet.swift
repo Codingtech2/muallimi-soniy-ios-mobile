@@ -4,8 +4,9 @@ import SwiftUI
 /// surah, or Qur'an order from here) and a few repeat/pause/speed options,
 /// then hands a finished `HifzPlan` back to the reader. Modelled on
 /// `ReadingOptionsSheet.swift`: a frosted header up top, plain rows on the
-/// app background below, `.presentationDragIndicator(.visible)` here and
-/// `.presentationDetents([.medium, .large])` at the `ReaderView` call site.
+/// app background below, `.presentationDragIndicator(.visible)`. Unlike that
+/// sheet it sets its own detents (`HifzSheetSizing`): every option has to be
+/// on screen before Start, so it opens at full height.
 ///
 /// This view is intentionally dumb: it only builds a `HifzPlan` from its own
 /// local state and calls `onStart`. Starting playback, dismissing the sheet
@@ -20,12 +21,18 @@ struct HifzSheet: View {
     @Environment(SettingsStore.self) private var preferences
     @Environment(\.dismiss) private var dismiss
     @Environment(\.layoutMetrics) private var layoutMetrics
+    /// Lets the few icon glyphs grow with Dynamic Type; every use caps it so a
+    /// glyph never outgrows its slot (same technique as `ReaderControlBar`).
+    @ScaledMetric(relativeTo: .body) private var typeScale: CGFloat = 1
 
     @State private var scopeChoice: ScopeChoice
     @State private var selectedSurahNumber: Int
     @State private var eachAyah: HifzRepeat
     @State private var rounds: HifzRepeat
     @State private var pauseToRepeat = false
+    /// iPhone detent. Starts at `.large` on every presentation, so the repeat
+    /// count, pause and speed are visible before Start.
+    @State private var detent: PresentationDetent = .large
 
     private enum ScopeChoice: Hashable {
         case ayah, surah, continuous
@@ -34,8 +41,15 @@ struct HifzSheet: View {
     private static let scopeButtonHeight: CGFloat = 56
     private static let chipSide: CGFloat = 48
     private static let startButtonHeight: CGFloat = 56
+    private static let closeButtonSide: CGFloat = 44
+    private static let disabledOpacity: CGFloat = 0.45
     private static let timesOptions: [HifzRepeat] = [.times(1), .times(3), .times(5), .times(10), .forever]
     private static let eachAyahOptions: [HifzRepeat] = [.times(1), .times(2), .times(3), .times(5)]
+    /// Fill behind a selected option. Deeper than `AppColor.primary` on
+    /// purpose: white text on the brand green is only ~3.3:1 (light) and
+    /// ~2.3:1 (dark), under the 4.5:1 small text needs, while this green keeps
+    /// white text at ~5:1 in both appearances.
+    private static let selectedFill = Color(hex: "15803d")
 
     init(
         catalog: HifzCatalog,
@@ -87,7 +101,10 @@ struct HifzSheet: View {
             startFooter
         }
         .background(AppColor.background.ignoresSafeArea())
+        // Same Dynamic Type cap as the reader's control bar and hifz strip.
+        .dynamicTypeSize(...DynamicTypeSize.accessibility3)
         .presentationDragIndicator(.visible)
+        .modifier(HifzSheetSizing(isRegular: layoutMetrics.isRegular, detent: $detent))
         .onChange(of: scopeChoice) { _, newValue in
             applyDefaults(for: newValue)
         }
@@ -104,24 +121,31 @@ private extension HifzSheet {
     func tr(_ key: String) -> String { store.t(key, locale) }
 
     var surahsOnPage: [HifzSurah] { catalog.surahs(onGlobalPage: pageGlobalIndex) }
-    var hasHighlightedUnit: Bool {
-        activeElementId.flatMap { catalog.unit(containing: $0) } != nil
-    }
+    var selectedSurah: HifzSurah? { catalog.surah(number: selectedSurahNumber) }
+    var highlightedUnit: HifzUnit? { activeElementId.flatMap { catalog.unit(containing: $0) } }
+    var hasHighlightedUnit: Bool { highlightedUnit != nil }
 
     // MARK: - Header
 
     var header: some View {
         HStack(alignment: .top) {
             Text(tr("hifz_title"))
-                .font(.system(size: 18 * layoutMetrics.uiScale, weight: .bold))
+                .font(layoutMetrics.font(.headline.weight(.bold), .title2.weight(.bold)))
                 .foregroundStyle(AppColor.textMain)
             Spacer()
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
-                    .font(.system(size: 15 * layoutMetrics.uiScale, weight: .semibold))
+                    .font(.system(size: min(15 * typeScale, 20) * layoutMetrics.uiScale, weight: .semibold))
                     .foregroundStyle(AppColor.textMain)
                     .frame(width: 36 * layoutMetrics.uiScale, height: 36 * layoutMetrics.uiScale)
                     .glassCard(cornerRadius: 12)
+                    // The same 36pt glass button as the reading-options sheet,
+                    // inside a 44pt hit target.
+                    .frame(
+                        width: Self.closeButtonSide * layoutMetrics.uiScale,
+                        height: Self.closeButtonSide * layoutMetrics.uiScale
+                    )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(tr("close"))
@@ -137,7 +161,7 @@ private extension HifzSheet {
     var surahPickerSection: some View {
         VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
             sectionTitle(tr("hifz_surah"))
-            HStack(spacing: 10 * layoutMetrics.uiScale) {
+            chipScroller {
                 ForEach(surahsOnPage) { surah in
                     surahChip(surah)
                 }
@@ -147,83 +171,127 @@ private extension HifzSheet {
 
     func surahChip(_ surah: HifzSurah) -> some View {
         let isSelected = surah.number == selectedSurahNumber
+        let title = surahChipTitle(surah)
+        let spokenLabel = "\(tr("hifz_surah")): \(title)"
         return Button {
             selectedSurahNumber = surah.number
         } label: {
-            Text(surah.name.text(locale))
-                .font(.system(size: 15 * layoutMetrics.uiScale, weight: .semibold))
+            Text(title)
+                .font(layoutMetrics.font(.subheadline.weight(.semibold), .title3.weight(.semibold)))
+                .lineLimit(1)
+                .fixedSize()
                 .foregroundStyle(isSelected ? .white : AppColor.textMain)
                 .padding(.horizontal, 16 * layoutMetrics.uiScale)
                 .frame(minHeight: 44 * layoutMetrics.uiScale)
-                .background(Capsule().fill(isSelected ? AppColor.primary : AppColor.surface))
+                .background(Capsule().fill(isSelected ? Self.selectedFill : AppColor.surface))
                 .overlay(Capsule().strokeBorder(isSelected ? Color.clear : AppColor.divider, lineWidth: 1))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(spokenLabel)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// The book only carries Baqara's opening ayat, so its chip names the
+    /// range ("Baqara · 1–5-oyat") instead of passing for the whole surah.
+    func surahChipTitle(_ surah: HifzSurah) -> String {
+        let name = surah.name.text(locale)
+        guard surah.isPartial else { return name }
+        return "\(name) · \(String(format: tr("hifz_ayah_range"), "1", "\(surah.ayahCount)"))"
     }
 
     // MARK: - Scope
 
     var scopeSection: some View {
         VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
-            scopeButton(
-                .ayah,
-                title: tr("hifz_scope_ayah"),
-                description: hasHighlightedUnit ? tr("hifz_scope_ayah_desc") : tr("hifz_tap_ayah_first")
-            )
-            scopeButton(.surah, title: tr("hifz_scope_surah"), description: tr("hifz_scope_surah_desc"))
+            scopeButton(.ayah, title: ayahScopeTitle, description: ayahScopeDescription)
+            scopeButton(.surah, title: surahScopeTitle, description: surahScopeDescription)
             scopeButton(
                 .continuous, title: tr("hifz_scope_continuous"), description: tr("hifz_scope_continuous_desc")
             )
         }
     }
 
+    /// "Shu oyat" for an ayah. The isti'adha and a bismillah outside Fatiha
+    /// aren't ayat, so they're offered under their own name, without the
+    /// "only this ayah" line.
+    var ayahScopeTitle: String {
+        switch highlightedUnit?.role {
+        case .taawwudh: return tr("hifz_taawwudh")
+        case .bismillah: return tr("hifz_bismillah")
+        case .ayah, nil: return tr("hifz_scope_ayah")
+        }
+    }
+
+    var ayahScopeDescription: String? {
+        guard let unit = highlightedUnit else { return tr("hifz_tap_ayah_first") }
+        return unit.role == .ayah ? tr("hifz_scope_ayah_desc") : nil
+    }
+
+    /// Baqara's excerpt is offered as "this passage, ayat 1–5", never as a
+    /// whole surah.
+    var surahScopeTitle: String {
+        selectedSurah?.isPartial == true ? tr("hifz_scope_excerpt") : tr("hifz_scope_surah")
+    }
+
+    var surahScopeDescription: String {
+        guard let surah = selectedSurah, surah.isPartial else { return tr("hifz_scope_surah_desc") }
+        return String(format: tr("hifz_scope_excerpt_desc"), "1", "\(surah.ayahCount)")
+    }
+
     /// One big scope row. Selection, disabled state and icon are all derived
     /// from `choice` itself so every call site only supplies the text.
-    private func scopeButton(_ choice: ScopeChoice, title: String, description: String) -> some View {
+    private func scopeButton(_ choice: ScopeChoice, title: String, description: String?) -> some View {
         let isSelected = scopeChoice == choice
         let isDisabled = choice == .ayah && !hasHighlightedUnit
+        // Disabled fades only the icon and title: the line under them is the
+        // hint telling the user what to do first, so it stays readable.
+        let fade = isDisabled ? Self.disabledOpacity : 1
+        let iconSize = min(22 * typeScale, 30) * layoutMetrics.uiScale
         return Button {
             scopeChoice = choice
         } label: {
             HStack(spacing: 14 * layoutMetrics.uiScale) {
                 Image(systemName: scopeIcon(choice))
-                    .font(.system(size: 22 * layoutMetrics.uiScale, weight: .semibold))
+                    .font(.system(size: iconSize, weight: .semibold))
                     .foregroundStyle(isSelected ? .white : AppColor.primary)
-                    .frame(width: 30 * layoutMetrics.uiScale)
+                    .frame(width: iconSize + 8 * layoutMetrics.uiScale)
+                    .opacity(fade)
                 VStack(alignment: .leading, spacing: 2 * layoutMetrics.uiScale) {
                     Text(title)
-                        .font(.system(size: 16 * layoutMetrics.uiScale, weight: .semibold))
+                        .font(layoutMetrics.font(.callout.weight(.semibold), .title3.weight(.semibold)))
                         .foregroundStyle(isSelected ? .white : AppColor.textMain)
-                    Text(description)
-                        .font(.system(size: 12 * layoutMetrics.uiScale))
-                        .foregroundStyle(isSelected ? .white.opacity(0.85) : AppColor.textMuted)
-                        .lineLimit(2)
+                        .opacity(fade)
+                    if let description {
+                        Text(description)
+                            .font(layoutMetrics.font(.footnote, .subheadline))
+                            .foregroundStyle(isSelected ? .white : AppColor.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer(minLength: 0)
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20 * layoutMetrics.uiScale))
+                        .font(.system(size: min(20 * typeScale, 30) * layoutMetrics.uiScale))
                         .foregroundStyle(.white)
                 }
             }
             .padding(.horizontal, 16 * layoutMetrics.uiScale)
+            .padding(.vertical, 6 * layoutMetrics.uiScale)
             .frame(minHeight: Self.scopeButtonHeight * layoutMetrics.uiScale)
             .frame(maxWidth: .infinity)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isSelected ? AppColor.primary : AppColor.surface)
+                    .fill(isSelected ? Self.selectedFill : AppColor.surface)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .strokeBorder(isSelected ? Color.clear : AppColor.divider, lineWidth: 1)
             )
-            .opacity(isDisabled ? 0.45 : 1)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
         .accessibilityLabel(title)
-        .accessibilityHint(description)
+        .accessibilityHint(description ?? "")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -237,13 +305,19 @@ private extension HifzSheet {
 
     // MARK: - Repeat chips
 
-    @ViewBuilder
     var repeatSection: some View {
         VStack(alignment: .leading, spacing: 20 * layoutMetrics.uiScale) {
-            if scopeChoice == .ayah {
+            switch scopeChoice {
+            case .ayah:
                 chipRow(title: tr("hifz_times"), options: Self.timesOptions, selection: eachAyah) { eachAyah = $0 }
-            } else {
+            case .surah:
                 chipRow(title: tr("hifz_times"), options: Self.timesOptions, selection: rounds) { rounds = $0 }
+                chipRow(
+                    title: tr("hifz_each_ayah"), options: Self.eachAyahOptions, selection: eachAyah
+                ) { eachAyah = $0 }
+            case .continuous:
+                // Qur'an order plays through to An-Nas once and stops, so there
+                // is no "how many times" to choose — only per-ayah repeats.
                 chipRow(
                     title: tr("hifz_each_ayah"), options: Self.eachAyahOptions, selection: eachAyah
                 ) { eachAyah = $0 }
@@ -259,27 +333,34 @@ private extension HifzSheet {
     ) -> some View {
         VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
             sectionTitle(title)
-            HStack(spacing: 10 * layoutMetrics.uiScale) {
+            chipScroller {
                 ForEach(options, id: \.self) { option in
-                    repeatChip(option, isSelected: option == selection) { onSelect(option) }
+                    repeatChip(option, rowTitle: title, isSelected: option == selection) { onSelect(option) }
                 }
             }
         }
     }
 
-    func repeatChip(_ value: HifzRepeat, isSelected: Bool, action: @escaping () -> Void) -> some View {
+    func repeatChip(
+        _ value: HifzRepeat, rowTitle: String, isSelected: Bool, action: @escaping () -> Void
+    ) -> some View {
         let side = Self.chipSide * layoutMetrics.uiScale
+        // The row title keeps "3" in "How many times" and in "Each ayah" apart.
+        let spokenLabel = "\(rowTitle): \(chipAccessibilityValue(value))"
         return Button(action: action) {
             Text(chipLabel(value))
-                .font(.system(size: 16 * layoutMetrics.uiScale, weight: .semibold, design: .rounded).monospacedDigit())
+                .font(layoutMetrics.font(
+                    .system(.callout, design: .rounded, weight: .semibold).monospacedDigit(),
+                    .system(.title3, design: .rounded, weight: .semibold).monospacedDigit()
+                ))
                 .foregroundStyle(isSelected ? .white : AppColor.textMain)
                 .frame(minWidth: side, minHeight: side)
                 .padding(.horizontal, 6 * layoutMetrics.uiScale)
-                .background(Capsule().fill(isSelected ? AppColor.primary : AppColor.surface))
+                .background(Capsule().fill(isSelected ? Self.selectedFill : AppColor.surface))
                 .overlay(Capsule().strokeBorder(isSelected ? Color.clear : AppColor.divider, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(chipAccessibilityLabel(value))
+        .accessibilityLabel(spokenLabel)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -290,7 +371,7 @@ private extension HifzSheet {
         }
     }
 
-    func chipAccessibilityLabel(_ value: HifzRepeat) -> String {
+    func chipAccessibilityValue(_ value: HifzRepeat) -> String {
         switch value {
         case .times(let count): return "\(count)"
         case .forever: return tr("hifz_forever")
@@ -318,7 +399,7 @@ private extension HifzSheet {
     var speedSection: some View {
         VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
             sectionTitle(tr("speed"))
-            HStack(spacing: 10 * layoutMetrics.uiScale) {
+            chipScroller {
                 speedChip(0.75)
                 speedChip(1.0)
             }
@@ -327,19 +408,34 @@ private extension HifzSheet {
 
     func speedChip(_ value: Double) -> some View {
         let isSelected = abs(preferences.settings.speed - value) < 0.01
+        let label = speedLabel(value)
+        let spokenLabel = "\(tr("speed")): \(label)"
         return Button {
             preferences.setSpeed(value)
         } label: {
-            Text(String(format: "%g×", value))
-                .font(.system(size: 15 * layoutMetrics.uiScale, weight: .semibold, design: .rounded))
+            Text(label)
+                .font(layoutMetrics.font(
+                    .system(.subheadline, design: .rounded, weight: .semibold),
+                    .system(.title3, design: .rounded, weight: .semibold)
+                ))
                 .foregroundStyle(isSelected ? .white : AppColor.textMain)
+                .padding(.horizontal, 6 * layoutMetrics.uiScale)
                 .frame(minWidth: 64 * layoutMetrics.uiScale, minHeight: Self.chipSide * layoutMetrics.uiScale)
-                .background(Capsule().fill(isSelected ? AppColor.primary : AppColor.surface))
+                .background(Capsule().fill(isSelected ? Self.selectedFill : AppColor.surface))
                 .overlay(Capsule().strokeBorder(isSelected ? Color.clear : AppColor.divider, lineWidth: 1))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(String(format: "%g×", value))
+        .accessibilityLabel(spokenLabel)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// "0.75×" in English, "0,75×" in Russian/Uzbek — the decimal separator
+    /// follows the app's own language, not the device region.
+    func speedLabel(_ value: Double) -> String {
+        let number = value.formatted(
+            .number.precision(.fractionLength(0...2)).locale(Locale(identifier: locale.appleLanguageCode))
+        )
+        return "\(number)×"
     }
 
     // MARK: - Start
@@ -352,7 +448,7 @@ private extension HifzSheet {
                 if let plan { onStart(plan) }
             } label: {
                 Text(tr("start"))
-                    .font(.system(size: 17 * layoutMetrics.uiScale, weight: .bold))
+                    .font(layoutMetrics.font(.headline.weight(.bold), .title2.weight(.bold)))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity, minHeight: Self.startButtonHeight * layoutMetrics.uiScale)
                     .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(AppColor.primary))
@@ -391,8 +487,9 @@ private extension HifzSheet {
             let anchor = activeElementId.flatMap { catalog.unit(containing: $0)?.id }
                 ?? catalog.surah(number: selectedSurahNumber)?.units.first?.id
             guard let anchor else { return nil }
+            // Always one pass: Qur'an order runs to An-Nas and never wraps back.
             return HifzPlan(
-                scope: .continuous(fromUnitID: anchor), eachAyah: eachAyah, rounds: rounds,
+                scope: .continuous(fromUnitID: anchor), eachAyah: eachAyah, rounds: .times(1),
                 pauseToRepeat: pauseToRepeat
             )
         }
@@ -424,6 +521,42 @@ private extension HifzSheet {
     var sectionDivider: some View {
         Rectangle().fill(AppColor.divider.opacity(0.5)).frame(height: 0.5)
     }
+
+    /// A row of option chips that scrolls sideways instead of squeezing or
+    /// wrapping names when they don't fit (4 surahs in ru/en, large Dynamic
+    /// Type). When they do fit it looks exactly like a plain row.
+    func chipScroller<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 10 * layoutMetrics.uiScale) {
+                content()
+            }
+        }
+        .scrollIndicators(.hidden)
+        .scrollClipDisabled()
+    }
+}
+
+/// iPad (regular width) gets the full-height sheet only, at page size on iOS
+/// 18+ — at the medium detent its form sheet showed little more than the
+/// surah chips and Start. iPhone keeps both detents but opens at `.large`.
+private struct HifzSheetSizing: ViewModifier {
+    let isRegular: Bool
+    @Binding var detent: PresentationDetent
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isRegular {
+            if #available(iOS 18.0, *) {
+                content
+                    .presentationDetents([.large])
+                    .presentationSizing(.page)
+            } else {
+                content.presentationDetents([.large])
+            }
+        } else {
+            content.presentationDetents([.medium, .large], selection: $detent)
+        }
+    }
 }
 
 #if DEBUG
@@ -443,7 +576,6 @@ private struct HifzSheetPreview: View {
     Color.clear
         .sheet(isPresented: .constant(true)) {
             HifzSheetPreview()
-                .presentationDetents([.medium, .large])
                 .environment(ContentStore())
                 .environment(SettingsStore())
         }

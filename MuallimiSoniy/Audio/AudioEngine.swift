@@ -10,7 +10,9 @@ import OSLog
 /// version which polls `HTMLAudioElement.currentTime` every 40 ms. A "boundary"
 /// is reached when `currentTime >= segmentEnd` **or** the player finished early —
 /// chunk files can be a few ms shorter than the declared `end`, which the web
-/// handles via the `ended` event and we detect as `intendedPlaying && !isPlaying`.
+/// handles via the `ended` event and we detect through the player's
+/// end-of-file delegate callback. A player the system stopped mid-file (a call,
+/// Siri) never counts as finished; it just pauses.
 ///
 /// Isolated to the main actor: it is created and driven from `AudioController`
 /// (also main-actor) and its `Timer` fires on the main run loop.
@@ -24,6 +26,11 @@ final class AudioEngine {
 
     /// Default repeat count, matching the web engine (`repeatTarget = 3`).
     private static let defaultRepeatTarget = 3
+
+    /// How many polls (~0.5 s) the player may sit stopped mid-file while we
+    /// meant it to play before the engine treats that as a pause from outside.
+    /// The interruption observer normally pauses us long before this.
+    private static let externalStopGraceTicks = 12
 
     /// Playback-rate bounds (AVAudioPlayer handles 0.5×–2× cleanly).
     private static let rateRange: ClosedRange<Float> = 0.5...2.0
@@ -40,6 +47,9 @@ final class AudioEngine {
     var onSegmentComplete: (() -> Void)?
     /// Fires with the current repeat index (0-based) — web parity.
     var onRepeatUpdate: ((Int) -> Void)?
+    /// Fires when the engine pauses itself because the player was stopped
+    /// mid-file from outside and no `pause()` followed (see `pollTick`).
+    var onExternalPause: (() -> Void)?
 
     // MARK: - State
 
@@ -59,11 +69,30 @@ final class AudioEngine {
     private var playbackRate: Float = 1.0
     private var playbackVolume: Float = 1.0
 
-    /// Whether we *intend* the player to be playing. Lets the poll detect a
-    /// natural finish (`intendedPlaying && !player.isPlaying`) — the AVAudioPlayer
-    /// equivalent of the web `ended` event, needed for chunks that are shorter
-    /// than their declared `end`.
+    /// Whether we *intend* the player to be playing. Lets the poll notice the
+    /// player stopping on its own (`intendedPlaying && !player.isPlaying`).
     private var intendedPlaying: Bool = false
+
+    /// Set by the player's end-of-file callback — the AVAudioPlayer equivalent
+    /// of the web `ended` event, needed for chunks that are shorter than their
+    /// declared `end` — and cleared whenever playback (re)starts. A stopped
+    /// player only counts as finished when this is set.
+    private var reachedEndOfFile = false
+    /// Consecutive polls that found the player stopped mid-file while we
+    /// meant it to play (see `externalStopGraceTicks`).
+    private var externalStopTicks = 0
+
+    /// True while the loaded player holds a started (or refused) segment /
+    /// full play that has neither finished nor been stopped — the only audio
+    /// `resume()` may continue.
+    private(set) var isArmed = false
+    /// True once the last segment / full play ran to its natural end, until
+    /// `stop()` or the next play — `replayFinished()` can then play it again.
+    private(set) var canReplayFinished = false
+
+    /// Receives the player's end-of-file callback (a player only holds its
+    /// delegate weakly, so the engine keeps it alive).
+    private let playerDelegate = PlayerDelegateProxy()
 
     /// Bumped by every `load()` call and by `invalidatePendingLoads()`. A
     /// suspended `load()` compares its captured value after its async file read
@@ -82,6 +111,10 @@ final class AudioEngine {
     var duration: Double { player?.duration ?? 0 }
     var currentTime: Double { player?.currentTime ?? 0 }
     var repeatIndex: Int { repeatIndexValue }
+
+    init() {
+        playerDelegate.engine = self
+    }
 
     // MARK: - Loading
 
@@ -127,6 +160,7 @@ final class AudioEngine {
             }
             newPlayer.rate = playbackRate
             newPlayer.volume = playbackVolume
+            newPlayer.delegate = playerDelegate
             player = newPlayer
             loadedURL = url
         } catch let error as AudioEngineError {
@@ -162,11 +196,14 @@ final class AudioEngine {
         segmentEnd = end
         repeatIndexValue = 0
         onRepeatUpdate?(0)
+        isArmed = true
+        canReplayFinished = false
         // Re-arming a finished player: pause + seek before play so a second
         // tap on the same element replays reliably (web comment: some engines
         // won't restart from an ended state without this).
         if player.isPlaying { player.pause() }
         player.currentTime = start
+        resetEndDetection()
         guard player.play() else {
             intendedPlaying = false
             stopTimer()
@@ -186,7 +223,10 @@ final class AudioEngine {
     func playFull() -> Bool {
         guard let player else { return false }
         isSegmentMode = false
+        isArmed = true
+        canReplayFinished = false
         player.currentTime = 0
+        resetEndDetection()
         guard player.play() else {
             intendedPlaying = false
             stopTimer()
@@ -208,11 +248,45 @@ final class AudioEngine {
         onPlayStateChange?(false)
     }
 
-    /// Resumes from the current position and restarts the poll. Returns `true`
-    /// only if playback actually resumed (see `playSegment`).
+    /// Resumes from the current position and restarts the poll. Only continues
+    /// audio the engine can really resume (`isArmed`) — after `stop()` or a
+    /// natural finish this is a no-op. Returns `true` only if playback actually
+    /// resumed (see `playSegment`).
     @discardableResult
     func resume() -> Bool {
-        guard let player else { return false }
+        guard let player, isArmed else { return false }
+        resetEndDetection()
+        guard player.play() else {
+            intendedPlaying = false
+            stopTimer()
+            onPlayStateChange?(false)
+            return false
+        }
+        intendedPlaying = true
+        player.rate = playbackRate
+        onPlayStateChange?(true)
+        startTimer()
+        return true
+    }
+
+    /// Plays the segment (or whole file) that last ran to its natural end once
+    /// more — what a lock-screen PLAY does after a tapped ayah has finished (the
+    /// web replays an ended `<audio>` the same way). Returns `true` only if
+    /// playback actually started (see `playSegment`).
+    @discardableResult
+    func replayFinished() -> Bool {
+        guard let player, canReplayFinished else { return false }
+        canReplayFinished = false
+        isArmed = true
+        if isSegmentMode {
+            // One short of the target, so a single pass completes it again.
+            repeatIndexValue = max(0, repeatTarget - 1)
+            onRepeatUpdate?(repeatIndexValue)
+            player.currentTime = segmentStart
+        } else {
+            player.currentTime = 0
+        }
+        resetEndDetection()
         guard player.play() else {
             intendedPlaying = false
             stopTimer()
@@ -264,6 +338,8 @@ final class AudioEngine {
         segmentStart = 0
         segmentEnd = 0
         repeatIndexValue = 0
+        isArmed = false
+        canReplayFinished = false
     }
 
     // MARK: - Poll
@@ -294,11 +370,26 @@ final class AudioEngine {
         guard let player else { return }
         onTimeUpdate?(player.currentTime)
 
+        // The player stopped although we meant it to play. Only a real end of
+        // file counts as finishing. The system also stops the player for a call
+        // or Siri — that waits for the interruption pause, and becomes a pause
+        // of its own if none arrives within the grace period.
+        let stoppedOnItsOwn = intendedPlaying && !player.isPlaying
+        guard !stoppedOnItsOwn || reachedEndOfFile else {
+            externalStopTicks += 1
+            if externalStopTicks >= Self.externalStopGraceTicks {
+                pauseAfterExternalStop()
+            }
+            return
+        }
+        externalStopTicks = 0
+
         guard isSegmentMode else {
             // Full playback: surface a natural finish as a stop (web `ended`).
-            if intendedPlaying && !player.isPlaying {
+            if stoppedOnItsOwn {
                 intendedPlaying = false
                 stopTimer()
+                markFinished()
                 onPlayStateChange?(false)
             }
             return
@@ -306,7 +397,7 @@ final class AudioEngine {
 
         // Boundary: reached segmentEnd, or the file ended before segmentEnd
         // (chunk durations can be slightly shorter than declared `end`).
-        let finishedEarly = intendedPlaying && !player.isPlaying
+        let finishedEarly = stoppedOnItsOwn
         let atBoundary = player.currentTime >= segmentEnd || finishedEarly
         guard atBoundary else { return }
 
@@ -322,10 +413,41 @@ final class AudioEngine {
             onRepeatUpdate?(0)
             restartSegment()
         } else {
-            // Done.
+            // Done. Marked finished before the callback, so a `stop()` or a
+            // new play started from inside it wins over this state.
             pause()
+            markFinished()
             onSegmentComplete?()
         }
+    }
+
+    /// A segment / full play ran to its natural end: nothing is left to resume,
+    /// but `replayFinished()` may play it once more.
+    private func markFinished() {
+        isArmed = false
+        canReplayFinished = true
+    }
+
+    /// Clears the end-of-file bookkeeping whenever playback (re)starts.
+    private func resetEndDetection() {
+        reachedEndOfFile = false
+        externalStopTicks = 0
+    }
+
+    /// The player was stopped mid-file from outside and nobody paused us:
+    /// settle into a normal, resumable pause instead of polling a silent
+    /// player forever.
+    private func pauseAfterExternalStop() {
+        logger.debug("player stopped mid-file from outside, treating it as a pause")
+        pause()
+        onExternalPause?()
+    }
+
+    /// End-of-file callback, forwarded by `PlayerDelegateProxy`. Ignored for a
+    /// player that has since been replaced, or one we no longer meant to play.
+    fileprivate func playerDidReachEnd(_ playerID: ObjectIdentifier) {
+        guard let player, ObjectIdentifier(player) == playerID, intendedPlaying else { return }
+        reachedEndOfFile = true
     }
 
     /// Seeks back to the segment start and resumes if the player has stopped.
@@ -334,6 +456,7 @@ final class AudioEngine {
     private func restartSegment() {
         guard let player else { return }
         player.currentTime = segmentStart
+        resetEndDetection()
         if !player.isPlaying {
             guard player.play() else {
                 intendedPlaying = false
@@ -354,6 +477,24 @@ enum AudioEngineError: Error {
     /// A newer `load()` request (or an explicit cancellation) arrived before
     /// this one's file read resumed — it must not install a player or play.
     case superseded
+}
+
+/// Receives `AVAudioPlayer`'s end-of-file callback for the engine. The system
+/// pauses a player for an interruption without calling it, which is how the
+/// engine tells a real finish apart from a call or Siri.
+private nonisolated final class PlayerDelegateProxy: NSObject, AVAudioPlayerDelegate {
+    weak var engine: AudioEngine?
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        let playerID = ObjectIdentifier(player)
+        let engine = engine
+        // AVAudioPlayer calls this on the main thread; hop there if it ever doesn't.
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { engine?.playerDidReachEnd(playerID) }
+        } else {
+            Task { @MainActor in engine?.playerDidReachEnd(playerID) }
+        }
+    }
 }
 
 /// Forwards `Timer` ticks to the engine without the timer retaining it, so the

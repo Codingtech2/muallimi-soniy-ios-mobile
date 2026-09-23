@@ -117,7 +117,11 @@ struct ReaderView: View {
                     if let hifzStripState {
                         HifzStatusStrip(
                             state: hifzStripState,
-                            onStop: { hifz.stop() },
+                            onStop: {
+                                hifz.stop()
+                                // The user ended the listening, so other apps' audio may resume.
+                                AudioSession.shared.deactivate()
+                            },
                             onRetry: { hifz.togglePlayPause() }
                         )
                     }
@@ -141,13 +145,26 @@ struct ReaderView: View {
         .toolbarBackground(readingTheme.pageFill, for: .navigationBar)
         .modifier(
             ReaderNavigationTitle(
-                title: currentPage?.lesson.title.text(locale) ?? "",
+                title: hifzSurahTitle ?? currentPage?.lesson.title.text(locale) ?? "",
                 counter: "\(currentPageIndex + 1)/\(pages.count)",
                 titleColor: readingTheme.textMain,
                 counterColor: readingTheme.textMuted
             )
         )
         .toolbar {
+            // Declared first so it sits leftmost: the Aa and contents buttons
+            // keep their exact spots when it appears or disappears between pages.
+            if store.hifzCatalog.hasUnits(onGlobalPage: currentPageIndex) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        hifzSheetOpen = true
+                    } label: {
+                        Image(systemName: "headphones")
+                            .imageScale(.large)
+                    }
+                    .accessibilityLabel(store.t("hifz_title", locale))
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     readingOptionsOpen = true
@@ -165,17 +182,6 @@ struct ReaderView: View {
                         .imageScale(.large)
                 }
                 .accessibilityLabel(store.t("lessons", locale))
-            }
-            if store.hifzCatalog.hasUnits(onGlobalPage: currentPageIndex) {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        hifzSheetOpen = true
-                    } label: {
-                        Image(systemName: "repeat.circle")
-                            .imageScale(.large)
-                    }
-                    .accessibilityLabel(store.t("hifz_title", locale))
-                }
             }
         }
         .sheet(isPresented: $tocOpen) {
@@ -208,7 +214,6 @@ struct ReaderView: View {
                     hifzSheetOpen = false
                 }
             )
-            .presentationDetents([.medium, .large])
         }
         .alert(
             store.t("audio_not_downloaded", locale),
@@ -267,6 +272,7 @@ struct ReaderView: View {
                 viewport: geo.size,
                 currentIndex: $currentPageIndex,
                 activeElementId: activeElementId,
+                autoFollowActive: hifz.isActive,
                 onElementTap: handleElementTap,
                 onPageSettled: { pageDidChange(settledIndex: $0) }
             )
@@ -721,6 +727,9 @@ private extension ReaderView {
     /// while something else is already playing — sequential playback and any
     /// running hifz session are stopped first.
     func startHifz(_ plan: HifzPlan) {
+        var plan = plan
+        // Qur'an order is one pass to An-Nas from any entry point — it never loops.
+        if case .continuous = plan.scope { plan.rounds = .times(1) }
         guard let session = store.hifzCatalog.session(for: plan.scope) else {
             Self.hifzLogger.error("hifz: could not resolve a session for the requested scope")
             return
@@ -757,6 +766,7 @@ private extension ReaderView {
         let activeBinding = $activeElementId
         let pageBinding = $currentPageIndex
         let alertBinding = $showAudioNotDownloadedAlert
+        let announced = HifzAnnouncedUnit()
 
         hifz.onUnitStart = { unit, cursor in
             activeBinding.wrappedValue = unit.id
@@ -766,75 +776,35 @@ private extension ReaderView {
                 withTransaction(transaction) { pageBinding.wrappedValue = unit.globalIndex }
             }
             let locale = preferences.settings.locale
-            let title = Self.hifzNowPlayingTitle(unit: unit, store: store, locale: locale)
-            let progress = Self.hifzProgressLabel(cursor: cursor, plan: plan, store: store, locale: locale)
+            let title = HifzLabels.nowPlayingTitle(unit: unit, store: store, locale: locale)
+            let progress = HifzLabels.progress(cursor: cursor, plan: plan, store: store, locale: locale)
             audioRef.setNowPlaying(title: title, artist: progress, album: store.t("hifz_title", locale))
-            if UIAccessibility.isVoiceOverRunning {
+            // Name a unit once, when the session moves to it — spoken on every
+            // repeat it would talk over the very recitation being memorized.
+            if UIAccessibility.isVoiceOverRunning, announced.unitID != unit.id {
                 UIAccessibility.post(notification: .announcement, argument: title)
             }
+            announced.unitID = unit.id
         }
 
         hifz.onGapStart = { unit, _ in
             let locale = preferences.settings.locale
-            let unitTitle = Self.hifzNowPlayingTitle(unit: unit, store: store, locale: locale)
+            let unitTitle = HifzLabels.nowPlayingTitle(unit: unit, store: store, locale: locale)
             audioRef.setNowPlaying(
                 title: store.t("hifz_your_turn", locale),
                 artist: unitTitle,
                 album: store.t("hifz_title", locale)
             )
+            // The gap is silence, so this prompt never talks over the qori.
+            if UIAccessibility.isVoiceOverRunning {
+                UIAccessibility.post(notification: .announcement, argument: store.t("hifz_your_turn", locale))
+            }
         }
 
         hifz.onEnd = { reason in
             if case .failed = reason, !downloadManager.isReady {
                 alertBinding.wrappedValue = true
             }
-        }
-    }
-
-    /// "<surah name> · <ayah label>" for Now Playing / VoiceOver, e.g. "Ixlos · 3–4-oyat".
-    private static func hifzNowPlayingTitle(unit: HifzUnit, store: ContentStore, locale: AppLocale) -> String {
-        let surahName = store.hifzCatalog.surah(number: unit.surahNumber)?.name.text(locale) ?? ""
-        let ayah = hifzAyahLabel(for: unit, store: store, locale: locale)
-        return "\(surahName) · \(ayah)"
-    }
-
-    /// The unit's own label: bismillah / ta'awwudh, a single ayah, or a merged pair's range.
-    private static func hifzAyahLabel(for unit: HifzUnit, store: ContentStore, locale: AppLocale) -> String {
-        switch unit.role {
-        case .bismillah:
-            return store.t("hifz_bismillah", locale)
-        case .taawwudh:
-            return store.t("hifz_taawwudh", locale)
-        case .ayah:
-            if let from = unit.ayahFrom, let toAyah = unit.ayahTo, toAyah != from {
-                return String(format: store.t("hifz_ayah_range", locale), "\(from)", "\(toAyah)")
-            }
-            let ayah = unit.ayahFrom ?? unit.ayahTo ?? 0
-            return String(format: store.t("hifz_ayah_label", locale), "\(ayah)")
-        }
-    }
-
-    /// "Takror k/n" / "Sura r/R" progress text for Now Playing's artist field —
-    /// only the dimensions the plan actually repeats (each ≠ 1, rounds ≠ 1) show.
-    private static func hifzProgressLabel(
-        cursor: HifzCursor, plan: HifzPlan, store: ContentStore, locale: AppLocale
-    ) -> String {
-        var parts: [String] = []
-        if plan.eachAyah != .times(1) {
-            let total = hifzRepeatLabel(plan.eachAyah)
-            parts.append(String(format: store.t("hifz_repeat_progress", locale), "\(cursor.playIndex + 1)", total))
-        }
-        if plan.rounds != .times(1) {
-            let total = hifzRepeatLabel(plan.rounds)
-            parts.append(String(format: store.t("hifz_round_progress", locale), "\(cursor.roundIndex + 1)", total))
-        }
-        return parts.joined(separator: " · ")
-    }
-
-    private static func hifzRepeatLabel(_ value: HifzRepeat) -> String {
-        switch value {
-        case .times(let count): return "\(count)"
-        case .forever: return "∞"
         }
     }
 
@@ -848,34 +818,49 @@ private extension ReaderView {
         guard hifz.isActive, let unit = hifz.currentUnit, let plan = hifz.plan, let cursor = hifz.cursor else {
             return nil
         }
-        let unitTitle = Self.hifzNowPlayingTitle(unit: unit, store: store, locale: locale)
-        let progress = Self.hifzProgressLabel(cursor: cursor, plan: plan, store: store, locale: locale)
+        let unitTitle = HifzLabels.nowPlayingTitle(unit: unit, store: store, locale: locale)
+        let progress = HifzLabels.progress(cursor: cursor, plan: plan, store: store, locale: locale)
+        let spokenProgress = HifzLabels.progress(
+            cursor: cursor, plan: plan, store: store, locale: locale, spoken: true
+        )
         let isGap = hifz.phase == .gap
 
+        // The isti'adha and a bismillah outside Fatiha aren't ayat — no "only this ayah" badge.
         var badge: String?
-        if case .ayah = plan.scope {
+        if case .ayah = plan.scope, unit.role == .ayah {
             badge = store.t("hifz_only_this_ayah", locale)
         }
 
-        // Dots count finished listens: during a play the current one isn't done
-        // yet, but in the "your turn" gap right after it, it is.
+        // One dot per listen, filled up to the one playing now (and kept through
+        // the gap after it), so the dots always match "Takror k/n".
         var dots: HifzStripState.DotsState?
         if case .times(let total) = plan.eachAyah, total > 1, total <= 10 {
-            let finished = min(cursor.playIndex + (isGap ? 1 : 0), total)
-            dots = HifzStripState.DotsState(done: finished, total: total)
+            dots = HifzStripState.DotsState(done: min(cursor.playIndex + 1, total), total: total)
         }
 
+        let title = isGap ? store.t("hifz_your_turn", locale) : unitTitle
+        let spoken = [title, badge, isGap ? unitTitle : spokenProgress].compactMap { $0 }.filter { !$0.isEmpty }
         return HifzStripState(
-            title: isGap ? store.t("hifz_your_turn", locale) : unitTitle,
+            title: title,
             detail: isGap ? unitTitle : progress,
             badge: badge,
             isGap: isGap,
             gapSeconds: hifz.gapSeconds,
+            isGapRunning: isGap && audio.isPlaying,
+            reservesCountdown: plan.pauseToRepeat,
             dots: dots,
             isStalled: hifz.isStalled,
+            accessibilityLabel: spoken.joined(separator: ", "),
             stopLabel: store.t("hifz_stop", locale),
             retryLabel: store.t("play", locale)
         )
+    }
+
+    /// While a session runs, the bar names the surah being recited: the lesson
+    /// title is the same on every surah page and truncates next to the back button.
+    var hifzSurahTitle: String? {
+        guard hifz.isActive, let unit = hifz.currentUnit else { return nil }
+        return store.hifzCatalog.surah(number: unit.surahNumber)?.name.text(locale)
     }
 
     // MARK: - Long-press menu
@@ -885,15 +870,24 @@ private extension ReaderView {
     /// on `readerContent`, so it's reachable only inside this reader.
     private var ayahMenuProvider: AyahMenuProvider {
         { element in
-            guard store.hifzCatalog.unit(containing: element.id) != nil else { return [] }
+            guard let unit = store.hifzCatalog.unit(containing: element.id) else { return [] }
+            // The isti'adha / a bismillah is named for what it is, not "this
+            // ayah"; Baqara's excerpt is "this passage", not "this surah".
+            let repeatUnitTitle = unit.role == .ayah
+                ? store.t("hifz_menu_repeat_ayah", locale)
+                : String(
+                    format: store.t("hifz_menu_repeat_unit", locale),
+                    HifzLabels.unitLabel(for: unit, store: store, locale: locale)
+                )
+            let isExcerpt = store.hifzCatalog.surah(containing: element.id)?.isPartial == true
             return [
                 AyahMenuAction(
-                    title: store.t("hifz_menu_repeat_ayah", locale),
+                    title: repeatUnitTitle,
                     systemImage: "repeat.1",
                     action: { startHifzFromMenu(.ayah(unitID: element.id)) }
                 ),
                 AyahMenuAction(
-                    title: store.t("hifz_menu_repeat_surah", locale),
+                    title: store.t(isExcerpt ? "hifz_menu_repeat_excerpt" : "hifz_menu_repeat_surah", locale),
                     systemImage: "repeat",
                     action: {
                         guard let surah = store.hifzCatalog.surah(containing: element.id) else { return }
@@ -909,6 +903,11 @@ private extension ReaderView {
                     title: store.t("hifz_menu_customize", locale),
                     systemImage: "slider.horizontal.3",
                     action: {
+                        // Stop whatever plays first, as a tap does, so audio never
+                        // keeps going under a highlight that just moved.
+                        hifz.stop()
+                        cancelSequential()
+                        audio.stop()
                         activeElementId = element.id
                         hifzSheetOpen = true
                     }
@@ -922,6 +921,13 @@ private extension ReaderView {
     private func startHifzFromMenu(_ scope: HifzScope) {
         startHifz(HifzPlan.defaults(for: scope))
     }
+}
+
+/// The unit VoiceOver last named in a hifz session — a reference the stored
+/// hook closures share, so repeats of the same unit stay silent.
+@MainActor
+private final class HifzAnnouncedUnit {
+    var unitID: String?
 }
 
 /// Persistent cursor for sequential playback — the reference-type analogue of the
