@@ -1,6 +1,7 @@
 import SwiftUI
 import Foundation
 import UIKit
+import OSLog
 
 /// Where the reader should open. Mirrors the web lesson-page entry contract: a
 /// lesson id + 0-based `lessonPageIndex` (the `?page=` query param), or a direct
@@ -26,6 +27,12 @@ struct ReaderView: View {
     /// Where to open. Resolved to `currentPageIndex` on first appear.
     let entry: ReaderEntry
 
+    /// A hifz (memorization) session to start automatically once the reader
+    /// appears — the surah-list "play" button and DEBUG `-MSHifz` launch args
+    /// pass this; every other opener leaves it `nil`, so existing
+    /// `ReaderView(entry:)` call sites keep compiling unchanged.
+    var hifzAutoStart: HifzPlan?
+
     /// Logical current page (0-based global index) — the single source of truth
     /// for which page's elements are live. The pager's scroll position follows it.
     @State private var currentPageIndex = 0
@@ -33,6 +40,11 @@ struct ReaderView: View {
     @State private var activeElementId: String?
     /// One-shot guard so the start page is resolved only on the first appear.
     @State private var didResolveStart = false
+    /// The active hifz (memorization) session, if any. Owns its own playback
+    /// queue; this view only assigns its hooks and forwards transport intents.
+    @State private var hifz = HifzController()
+    /// One-shot guard so `hifzAutoStart` starts a session only on first appear.
+    @State private var didAutoStartHifz = false
     /// Persistent cursor for sequential playback (a reference, like the web ref).
     @State private var sequential = SequentialCursor()
     /// Whether the table-of-contents sheet is presented.
@@ -178,6 +190,7 @@ struct ReaderView: View {
         .onAppear {
             resolveStartIfNeeded()
             configureAudioDefaults()
+            autoStartHifzIfNeeded()
             wireRemoteCommands()
             recordProgress()
             applyKeepScreenAwake()
@@ -187,6 +200,7 @@ struct ReaderView: View {
         }
         .onChange(of: preferences.settings.speed) {
             audio.setSpeed(preferences.settings.speed)
+            hifz.setPlaybackRate(preferences.settings.speed)
         }
         .onChange(of: preferences.settings.volume) {
             audio.setVolume(preferences.settings.volume)
@@ -195,6 +209,7 @@ struct ReaderView: View {
             applyKeepScreenAwake()
         }
         .onDisappear {
+            hifz.stop()
             cancelSequential()
             audio.onRemoteNext = nil
             audio.onRemotePrev = nil
@@ -219,7 +234,7 @@ struct ReaderView: View {
                 currentIndex: $currentPageIndex,
                 activeElementId: activeElementId,
                 onElementTap: handleElementTap,
-                onPageSettled: { _ in pageDidChange() }
+                onPageSettled: { pageDidChange(settledIndex: $0) }
             )
         }
     }
@@ -233,6 +248,7 @@ struct ReaderView: View {
             canGoPrevPage: currentPageIndex > 0,
             canGoNextPage: currentPageIndex < pages.count - 1,
             loopOn: loopMode,
+            loopEnabled: !hifz.isActive,
             prevPageLabel: store.t("prev_page", locale),
             nextPageLabel: store.t("next_page", locale),
             prevElementLabel: store.t("prev_element", locale),
@@ -351,11 +367,16 @@ private extension ReaderView {
     /// element does carry an audio path but the file isn't installed yet, this
     /// offers the download instead of silently playing nothing.
     private func handleElementTap(_ element: Element) {
+        hifz.stop()
         cancelSequential()
         activeElementId = element.id
-        guard element.start != element.end else { return }
+        guard element.start != element.end else {
+            audio.stop()
+            return
+        }
         guard let url = audioURL(for: element) else { return }
         guard MediaLocator.exists(url) else {
+            audio.stop()
             offerDownloadIfMissing()
             return
         }
@@ -387,9 +408,16 @@ private extension ReaderView {
 
     // MARK: - Page change
 
-    /// Page changed (user swipe): stop audio and clear the highlight. The index
-    /// itself is owned by the pager's binding, so we don't set it here.
-    private func pageDidChange() {
+    /// Page settled on `settledIndex` (user swipe, or hifz's own auto-follow
+    /// landing on the unit it just moved to): stop audio and clear the
+    /// highlight. The index itself is owned by the pager's binding, so we
+    /// don't set it here. A hifz session following its own playback onto this
+    /// same page is not a manual page change — let it keep playing.
+    private func pageDidChange(settledIndex: Int) {
+        if hifz.isActive, settledIndex == hifz.currentUnit?.globalIndex {
+            return
+        }
+        hifz.stop()
         cancelSequential()
         activeElementId = nil
         audio.stop()
@@ -405,6 +433,7 @@ private extension ReaderView {
     private func goToPage(_ index: Int) {
         let target = min(max(index, 0), pages.count - 1)
         guard target != currentPageIndex else { return }
+        hifz.stop()
         cancelSequential()
         activeElementId = nil
         audio.stop()
@@ -419,6 +448,7 @@ private extension ReaderView {
     /// alert instead of playing nothing when the active element's file isn't
     /// installed yet (see `offerDownloadIfMissing`).
     private func handlePlayPause() {
+        if hifz.isActive { hifz.togglePlayPause(); return }
         if audio.isPlaying { audio.pause(); return }
         if sequential.active, activeElementId != nil { audio.resume(); return }
         if let page = currentPage, let id = activeElementId,
@@ -442,10 +472,12 @@ private extension ReaderView {
         startSequentialPlay()
     }
 
-    /// Toggles loop mode and pushes it to the audio engine.
+    /// Toggles loop mode, pushes it to the audio engine, and persists it —
+    /// mirrors the web `SettingsProvider`, so the choice survives a relaunch.
     private func toggleLoop() {
         loopMode.toggle()
         audio.setLoopMode(loopMode)
+        preferences.setLoopMode(loopMode)
     }
 
     /// Mirrors the "keep screen awake" reading option onto the idle timer.
@@ -477,13 +509,18 @@ private extension ReaderView {
     /// button. Captures only reference types + bindings (never the view struct),
     /// so the stored callback stays valid across renders.
     private func startSequentialPlay() {
+        hifz.stop()
         cancelSequential()
         guard let page = currentPage else { return }
         let fallback = MediaLocator.url(for: page.lesson)
-        let playable = page.elements.filter {
+        let playable = mergeAdjacentDuplicates(page.elements.filter {
             (MediaLocator.url(for: $0) != nil || fallback != nil) && $0.start != $0.end
-        }
+        })
         guard !playable.isEmpty else { return }
+        guard let firstURL = MediaLocator.url(for: playable[0]) ?? fallback, MediaLocator.exists(firstURL) else {
+            offerDownloadIfMissing()
+            return
+        }
 
         sequential.elements = playable
         sequential.index = 0
@@ -510,7 +547,16 @@ private extension ReaderView {
             let url = MediaLocator.url(for: element) ?? fallback
             if let url {
                 controller.setNowPlaying(title: element.arabic, artist: element.uzbek, album: album)
-                Task { await controller.playSegment(url: url, start: element.start, end: element.end) }
+                Task {
+                    let started = await controller.playSegment(url: url, start: element.start, end: element.end)
+                    guard !started, cursor.active, cursor.index == index, !controller.canResume else { return }
+                    // A genuine failure (missing file / decode error), not a
+                    // supersede or a user pause mid-load — end the sequence so
+                    // ▶ never gets stuck waiting on a load that already gave up.
+                    cursor.active = false
+                    controller.onSegmentComplete = nil
+                    activeBinding.wrappedValue = nil
+                }
             }
         }
 
@@ -519,6 +565,23 @@ private extension ReaderView {
             play(cursor.index + 1)
         }
         play(0)
+    }
+
+    /// Drops an element that is immediately adjacent to the one before it in
+    /// the playable list and shares the same underlying audio take (the qori
+    /// recorded two ayat as one clip — e.g. Ma'un 4-5, Ikhlas 3-4) — so the
+    /// clip isn't replayed back to back. Reuse of the same clip *elsewhere* on
+    /// the page (not adjacent) is untouched.
+    private func mergeAdjacentDuplicates(_ elements: [Element]) -> [Element] {
+        var result: [Element] = []
+        for element in elements {
+            if let last = result.last,
+               last.audioUrl == element.audioUrl, last.start == element.start, last.end == element.end {
+                continue
+            }
+            result.append(element)
+        }
+        return result
     }
 
     /// Stops any in-flight sequence and detaches the completion handler (also
@@ -541,9 +604,14 @@ private extension ReaderView {
         let pageBinding = $currentPageIndex
         let activeBinding = $activeElementId
         let audioRef = self.audio
+        let hifzRef = self.hifz
 
         let navigate: (Int) -> Void = { [weak audioRef] offset in
             guard let audioRef else { return }
+            if hifzRef.isActive {
+                hifzRef.skip(by: offset)
+                return
+            }
             let pages = store.allBookPages
             let index = pageBinding.wrappedValue
             guard pages.indices.contains(index) else { return }
@@ -559,7 +627,10 @@ private extension ReaderView {
             activeBinding.wrappedValue = element.id
             guard element.start != element.end,
                   let url = MediaLocator.url(for: element) ?? MediaLocator.url(for: page.lesson)
-            else { return }
+            else {
+                audioRef.stop()
+                return
+            }
             audioRef.setNowPlaying(
                 title: element.arabic,
                 artist: element.uzbek,
@@ -575,16 +646,161 @@ private extension ReaderView {
     // MARK: - Per-element prev / next (wired for M4 Stage 2 chrome)
 
     private func handlePrevElement() {
+        if hifz.isActive { hifz.skip(by: -1); return }
         guard let page = currentPage, let active = activeElementId,
               let index = page.elements.firstIndex(where: { $0.id == active }), index > 0 else { return }
         handleElementTap(page.elements[index - 1])
     }
 
     private func handleNextElement() {
+        if hifz.isActive { hifz.skip(by: 1); return }
         guard let page = currentPage, let active = activeElementId,
               let index = page.elements.firstIndex(where: { $0.id == active }),
               index < page.elements.count - 1 else { return }
         handleElementTap(page.elements[index + 1])
+    }
+}
+
+// MARK: - Hifz
+
+/// Reader-side glue for a hifz (memorization) session: resolves a plan into a
+/// playable `HifzSession`, wires the controller's hooks (highlight, page
+/// auto-follow, Now Playing, VoiceOver), then hands playback over to `hifz`.
+/// All the sequencing itself lives in `HifzController` — this extension never
+/// touches the audio engine directly beyond starting/stopping the controller.
+private extension ReaderView {
+    private static let hifzLogger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "MuallimiSoniy",
+        category: "Hifz"
+    )
+
+    /// Starts `hifzAutoStart` once, right after the reader resolves its own
+    /// start page and audio defaults.
+    private func autoStartHifzIfNeeded() {
+        guard !didAutoStartHifz, let plan = hifzAutoStart else { return }
+        didAutoStartHifz = true
+        startHifz(plan)
+    }
+
+    /// Resolves `plan` against the catalog and starts a session. Safe to call
+    /// while something else is already playing — sequential playback and any
+    /// running hifz session are stopped first.
+    func startHifz(_ plan: HifzPlan) {
+        guard let session = store.hifzCatalog.session(for: plan.scope) else {
+            Self.hifzLogger.error("hifz: could not resolve a session for the requested scope")
+            return
+        }
+        guard let firstUnit = session.units.first else { return }
+        let firstURL = MediaLocator.url(forRelativePath: firstUnit.audioPath)
+        guard MediaLocator.exists(firstURL) else {
+            offerDownloadIfMissing()
+            return
+        }
+
+        cancelSequential()
+        hifz.stop()
+        assignHifzHooks(plan: plan)
+        hifz.start(
+            plan: plan,
+            session: session,
+            audio: audio,
+            tapRepeatCount: preferences.settings.repeatCount,
+            tapLoop: loopMode,
+            playbackRate: preferences.settings.speed
+        )
+    }
+
+    /// Wires `hifz`'s hooks right before `start()` fires them for the first
+    /// time. Captures only stores/bindings extracted into local `let`s, never
+    /// `self`, so the closures stored on `hifz` never keep this view struct
+    /// alive — `hifz.finish()` clears all three when the session ends.
+    private func assignHifzHooks(plan: HifzPlan) {
+        let store = self.store
+        let preferences = self.preferences
+        let audioRef = self.audio
+        let downloadManager = self.downloadManager
+        let activeBinding = $activeElementId
+        let pageBinding = $currentPageIndex
+        let alertBinding = $showAudioNotDownloadedAlert
+
+        hifz.onUnitStart = { unit, cursor in
+            activeBinding.wrappedValue = unit.id
+            if unit.globalIndex != pageBinding.wrappedValue {
+                var transaction = Transaction()
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { pageBinding.wrappedValue = unit.globalIndex }
+            }
+            let locale = preferences.settings.locale
+            let title = Self.hifzNowPlayingTitle(unit: unit, store: store, locale: locale)
+            let progress = Self.hifzProgressLabel(cursor: cursor, plan: plan, store: store, locale: locale)
+            audioRef.setNowPlaying(title: title, artist: progress, album: store.t("hifz_title", locale))
+            if UIAccessibility.isVoiceOverRunning {
+                UIAccessibility.post(notification: .announcement, argument: title)
+            }
+        }
+
+        hifz.onGapStart = { unit, _ in
+            let locale = preferences.settings.locale
+            let unitTitle = Self.hifzNowPlayingTitle(unit: unit, store: store, locale: locale)
+            audioRef.setNowPlaying(
+                title: store.t("hifz_your_turn", locale),
+                artist: unitTitle,
+                album: store.t("hifz_title", locale)
+            )
+        }
+
+        hifz.onEnd = { reason in
+            if case .failed = reason, !downloadManager.isReady {
+                alertBinding.wrappedValue = true
+            }
+        }
+    }
+
+    /// "<surah name> · <ayah label>" for Now Playing / VoiceOver, e.g. "Ixlos · 3–4-oyat".
+    private static func hifzNowPlayingTitle(unit: HifzUnit, store: ContentStore, locale: AppLocale) -> String {
+        let surahName = store.hifzCatalog.surah(number: unit.surahNumber)?.name.text(locale) ?? ""
+        let ayah = hifzAyahLabel(for: unit, store: store, locale: locale)
+        return "\(surahName) · \(ayah)"
+    }
+
+    /// The unit's own label: bismillah / ta'awwudh, a single ayah, or a merged pair's range.
+    private static func hifzAyahLabel(for unit: HifzUnit, store: ContentStore, locale: AppLocale) -> String {
+        switch unit.role {
+        case .bismillah:
+            return store.t("hifz_bismillah", locale)
+        case .taawwudh:
+            return store.t("hifz_taawwudh", locale)
+        case .ayah:
+            if let from = unit.ayahFrom, let toAyah = unit.ayahTo, toAyah != from {
+                return String(format: store.t("hifz_ayah_range", locale), "\(from)", "\(toAyah)")
+            }
+            let ayah = unit.ayahFrom ?? unit.ayahTo ?? 0
+            return String(format: store.t("hifz_ayah_label", locale), "\(ayah)")
+        }
+    }
+
+    /// "Takror k/n" / "Sura r/R" progress text for Now Playing's artist field —
+    /// only the dimensions the plan actually repeats (each ≠ 1, rounds ≠ 1) show.
+    private static func hifzProgressLabel(
+        cursor: HifzCursor, plan: HifzPlan, store: ContentStore, locale: AppLocale
+    ) -> String {
+        var parts: [String] = []
+        if plan.eachAyah != .times(1) {
+            let total = hifzRepeatLabel(plan.eachAyah)
+            parts.append(String(format: store.t("hifz_repeat_progress", locale), "\(cursor.playIndex + 1)", total))
+        }
+        if plan.rounds != .times(1) {
+            let total = hifzRepeatLabel(plan.rounds)
+            parts.append(String(format: store.t("hifz_round_progress", locale), "\(cursor.roundIndex + 1)", total))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    private static func hifzRepeatLabel(_ value: HifzRepeat) -> String {
+        switch value {
+        case .times(let count): return "\(count)"
+        case .forever: return "∞"
+        }
     }
 }
 

@@ -36,6 +36,10 @@ struct ReaderControlBar: View {
     let canGoPrevPage: Bool
     let canGoNextPage: Bool
     let loopOn: Bool
+    /// Disabled during an active hifz session (it owns tap-repeat/loop
+    /// internally and restores the user's own setting when it ends). `var`
+    /// with a default so the existing call site and `#Preview` still compile.
+    var loopEnabled: Bool = true
 
     let prevPageLabel: String
     let nextPageLabel: String
@@ -170,8 +174,8 @@ struct ReaderControlBar: View {
                 .contentShape(loopShape)
         }
         .buttonStyle(.plain)
-        .disabled(!hasAudio)
-        .opacity(hasAudio ? 1 : Self.disabledOpacity)
+        .disabled(!hasAudio || !loopEnabled)
+        .opacity(hasAudio && loopEnabled ? 1 : Self.disabledOpacity)
         .accessibilityLabel(loopLabel)
         .accessibilityAddTraits(loopOn ? .isSelected : [])
     }
