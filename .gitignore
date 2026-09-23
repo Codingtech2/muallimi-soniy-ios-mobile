@@ -42,3 +42,7 @@ screenshots/
 # === Docs — only README.md is tracked (project rule) ===
 *.md
 !README.md
+
+# === tools/surah-index — Quran API answer cache (local only) + Python bytecode ===
+tools/surah-index/.cache/
+__pycache__/

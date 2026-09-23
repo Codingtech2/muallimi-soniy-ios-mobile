@@ -1,0 +1,2399 @@
+{
+ "schemaVersion": 1,
+ "contentVersion": "2.0.0",
+ "surahs": [
+  {
+   "number": 1,
+   "key": "fatiha",
+   "arabicName": "الفاتحة",
+   "name": {
+    "uz-latn": "Fotiha",
+    "uz-cyrl": "Фотиҳа",
+    "ru": "Аль-Фатиха",
+    "en": "Al-Fatihah"
+   },
+   "ayahCount": 7,
+   "mushafAyahCount": 7,
+   "isPartial": false,
+   "pages": [
+    36
+   ],
+   "items": [
+    {
+     "elementId": "p36_taawwudh",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "taawwudh",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_fa_bismi",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true,
+     "basmalaAsAyah": true
+    },
+    {
+     "elementId": "p36_fa_v2",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_fa_v3",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_fa_v4",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_fa_v5",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_fa_v6",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_fa_v7",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 2,
+   "key": "baqara",
+   "arabicName": "البقرة",
+   "name": {
+    "uz-latn": "Baqara",
+    "uz-cyrl": "Бақара",
+    "ru": "Аль-Бакара",
+    "en": "Al-Baqarah"
+   },
+   "ayahCount": 5,
+   "mushafAyahCount": 286,
+   "isPartial": true,
+   "pages": [
+    36
+   ],
+   "items": [
+    {
+     "elementId": "p36_bq_bismi",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_bq_v1",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_bq_v2",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_bq_v3",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_bq_v4",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p36_bq_v5",
+     "pageNumber": 36,
+     "globalIndex": 37,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 91,
+   "key": "shams",
+   "arabicName": "الشمس",
+   "name": {
+    "uz-latn": "Shams",
+    "uz-cyrl": "Шамс",
+    "ru": "Аш-Шамс",
+    "en": "Ash-Shams"
+   },
+   "ayahCount": 15,
+   "mushafAyahCount": 15,
+   "isPartial": false,
+   "pages": [
+    37
+   ],
+   "items": [
+    {
+     "elementId": "p37_sh_title",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "title",
+     "ayah": null,
+     "hasAudio": false
+    },
+    {
+     "elementId": "p37_sh_bismillah",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a1",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a2",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a3",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a4",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a5",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a6",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a7",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a8",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a9",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a10",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 10,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a11",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 11,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a12",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 12,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a13",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 13,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a14",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 14,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_sh_a15",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 15,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 92,
+   "key": "layl",
+   "arabicName": "الليل",
+   "name": {
+    "uz-latn": "Layl",
+    "uz-cyrl": "Лайл",
+    "ru": "Аль-Лайл",
+    "en": "Al-Layl"
+   },
+   "ayahCount": 21,
+   "mushafAyahCount": 21,
+   "isPartial": false,
+   "pages": [
+    37,
+    38
+   ],
+   "items": [
+    {
+     "elementId": "p37_ll_title",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "title",
+     "ayah": null,
+     "hasAudio": false
+    },
+    {
+     "elementId": "p37_ll_bismillah",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a1",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a2",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a3",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a4",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a5",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a6",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p37_ll_a7",
+     "pageNumber": 37,
+     "globalIndex": 38,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a8",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a9",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a10",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 10,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a11",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 11,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a12",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 12,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a13",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 13,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a14",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 14,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a15",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 15,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a16",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 16,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a17",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 17,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a18",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 18,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a19",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 19,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a20",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 20,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_ll_a21",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 21,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 93,
+   "key": "duha",
+   "arabicName": "الضحى",
+   "name": {
+    "uz-latn": "Zuho",
+    "uz-cyrl": "Зуҳо",
+    "ru": "Ад-Духа",
+    "en": "Ad-Duha"
+   },
+   "ayahCount": 11,
+   "mushafAyahCount": 11,
+   "isPartial": false,
+   "pages": [
+    38,
+    39
+   ],
+   "items": [
+    {
+     "elementId": "p38_du_title",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "title",
+     "ayah": null,
+     "hasAudio": false
+    },
+    {
+     "elementId": "p38_du_bism",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a1",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a2",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a3",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a4",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a5",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a6",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a7",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a8",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a9",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p38_du_a10",
+     "pageNumber": 38,
+     "globalIndex": 39,
+     "role": "ayah",
+     "ayah": 10,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_duho_v11",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 11,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 94,
+   "key": "sharh",
+   "arabicName": "الشرح",
+   "name": {
+    "uz-latn": "Sharh",
+    "uz-cyrl": "Шарҳ",
+    "ru": "Аш-Шарх",
+    "en": "Ash-Sharh"
+   },
+   "ayahCount": 8,
+   "mushafAyahCount": 8,
+   "isPartial": false,
+   "pages": [
+    39
+   ],
+   "items": [
+    {
+     "elementId": "p39_sharh_bism",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v1",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v2",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v3",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v4",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v5",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v6",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v7",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_sharh_v8",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 95,
+   "key": "tin",
+   "arabicName": "التين",
+   "name": {
+    "uz-latn": "Tin",
+    "uz-cyrl": "Тин",
+    "ru": "Ат-Тин",
+    "en": "At-Tin"
+   },
+   "ayahCount": 8,
+   "mushafAyahCount": 8,
+   "isPartial": false,
+   "pages": [
+    39
+   ],
+   "items": [
+    {
+     "elementId": "p39_tin_bism",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v1",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v2",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v3",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v4",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v5",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v6",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v7",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p39_tin_v8",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 96,
+   "key": "alaq",
+   "arabicName": "العلق",
+   "name": {
+    "uz-latn": "Alaq",
+    "uz-cyrl": "Алақ",
+    "ru": "Аль-Аляк",
+    "en": "Al-'Alaq"
+   },
+   "ayahCount": 19,
+   "mushafAyahCount": 19,
+   "isPartial": false,
+   "pages": [
+    39,
+    40
+   ],
+   "items": [
+    {
+     "elementId": "p39_alaq_bism",
+     "pageNumber": 39,
+     "globalIndex": 40,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a01",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a02",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a03",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a04",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a05",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a06",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a07",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a08",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a09",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a10",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 10,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a11",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 11,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a12",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 12,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a13",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 13,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a14",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 14,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a15",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 15,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a16",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 16,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a17",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 17,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a18",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 18,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_a19",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 19,
+     "hasAudio": true,
+     "sajda": true
+    }
+   ]
+  },
+  {
+   "number": 97,
+   "key": "qadr",
+   "arabicName": "القدر",
+   "name": {
+    "uz-latn": "Qadr",
+    "uz-cyrl": "Қадр",
+    "ru": "Аль-Кадр",
+    "en": "Al-Qadr"
+   },
+   "ayahCount": 5,
+   "mushafAyahCount": 5,
+   "isPartial": false,
+   "pages": [
+    40
+   ],
+   "items": [
+    {
+     "elementId": "p40_q_bism",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_q01",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_q02",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_q03",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_q04",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p40_q05",
+     "pageNumber": 40,
+     "globalIndex": 41,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 98,
+   "key": "bayyina",
+   "arabicName": "البينة",
+   "name": {
+    "uz-latn": "Bayyina",
+    "uz-cyrl": "Баййина",
+    "ru": "Аль-Баййина",
+    "en": "Al-Bayyinah"
+   },
+   "ayahCount": 8,
+   "mushafAyahCount": 8,
+   "isPartial": false,
+   "pages": [
+    41
+   ],
+   "items": [
+    {
+     "elementId": "p41_bism",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a1",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a2",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a3",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a4",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a5",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a6",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a7",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p41_a8",
+     "pageNumber": 41,
+     "globalIndex": 42,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 99,
+   "key": "zalzala",
+   "arabicName": "الزلزلة",
+   "name": {
+    "uz-latn": "Zalzala",
+    "uz-cyrl": "Залзала",
+    "ru": "Аз-Зальзаля",
+    "en": "Az-Zalzalah"
+   },
+   "ayahCount": 8,
+   "mushafAyahCount": 8,
+   "isPartial": false,
+   "pages": [
+    42
+   ],
+   "items": [
+    {
+     "elementId": "p42_zz_bism",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a1",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a2",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a3",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a4",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a5",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a6",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a7",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_zz_a8",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 100,
+   "key": "adiyat",
+   "arabicName": "العاديات",
+   "name": {
+    "uz-latn": "Adiyat",
+    "uz-cyrl": "Адият",
+    "ru": "Аль-Адият",
+    "en": "Al-'Adiyat"
+   },
+   "ayahCount": 11,
+   "mushafAyahCount": 11,
+   "isPartial": false,
+   "pages": [
+    42
+   ],
+   "items": [
+    {
+     "elementId": "p42_ad_bism",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a1",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a2",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a3",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a4",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a5",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a6",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a7",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a8",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a9",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a10",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 10,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p42_ad_a11",
+     "pageNumber": 42,
+     "globalIndex": 43,
+     "role": "ayah",
+     "ayah": 11,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 101,
+   "key": "qaria",
+   "arabicName": "القارعة",
+   "name": {
+    "uz-latn": "Qoriʼa",
+    "uz-cyrl": "Қориъа",
+    "ru": "Аль-Кариа",
+    "en": "Al-Qari'ah"
+   },
+   "ayahCount": 11,
+   "mushafAyahCount": 11,
+   "isPartial": false,
+   "pages": [
+    43
+   ],
+   "items": [
+    {
+     "elementId": "p43_qr_bism",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a1",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a2",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a3",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a4",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a5",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a6",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a7",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a8",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a9",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a10",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 10,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_qr_a11",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 11,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 102,
+   "key": "takathur",
+   "arabicName": "التكاثر",
+   "name": {
+    "uz-latn": "Takasur",
+    "uz-cyrl": "Такасур",
+    "ru": "Ат-Такасур",
+    "en": "At-Takathur"
+   },
+   "ayahCount": 8,
+   "mushafAyahCount": 8,
+   "isPartial": false,
+   "pages": [
+    43
+   ],
+   "items": [
+    {
+     "elementId": "p43_tk_bism",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a1",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a2",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a3",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a4",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a5",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a6",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a7",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p43_tk_a8",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 103,
+   "key": "asr",
+   "arabicName": "العصر",
+   "name": {
+    "uz-latn": "Asr",
+    "uz-cyrl": "Аср",
+    "ru": "Аль-Аср",
+    "en": "Al-'Asr"
+   },
+   "ayahCount": 3,
+   "mushafAyahCount": 3,
+   "isPartial": false,
+   "pages": [
+    43,
+    44
+   ],
+   "items": [
+    {
+     "elementId": "p43_as_bism",
+     "pageNumber": 43,
+     "globalIndex": 44,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_as_a1",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_as_a2",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_as_a3",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 104,
+   "key": "humaza",
+   "arabicName": "الهمزة",
+   "name": {
+    "uz-latn": "Humaza",
+    "uz-cyrl": "Ҳумаза",
+    "ru": "Аль-Хумаза",
+    "en": "Al-Humazah"
+   },
+   "ayahCount": 9,
+   "mushafAyahCount": 9,
+   "isPartial": false,
+   "pages": [
+    44
+   ],
+   "items": [
+    {
+     "elementId": "p44_hu_title",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "title",
+     "ayah": null,
+     "hasAudio": false
+    },
+    {
+     "elementId": "p44_hu_bism",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a1",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a2",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a3",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a4",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a5",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a6",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a7",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a8",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 8,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_hu_a9",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 9,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 105,
+   "key": "fil",
+   "arabicName": "الفيل",
+   "name": {
+    "uz-latn": "Fil",
+    "uz-cyrl": "Фил",
+    "ru": "Аль-Филь",
+    "en": "Al-Fil"
+   },
+   "ayahCount": 5,
+   "mushafAyahCount": 5,
+   "isPartial": false,
+   "pages": [
+    44
+   ],
+   "items": [
+    {
+     "elementId": "p44_fi_title",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "title",
+     "ayah": null,
+     "hasAudio": false
+    },
+    {
+     "elementId": "p44_fi_bism",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_fi_a1",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_fi_a2",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_fi_a3",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_fi_a4",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p44_fi_a5",
+     "pageNumber": 44,
+     "globalIndex": 45,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 106,
+   "key": "quraysh",
+   "arabicName": "قريش",
+   "name": {
+    "uz-latn": "Quraysh",
+    "uz-cyrl": "Қурайш",
+    "ru": "Курайш",
+    "en": "Quraysh"
+   },
+   "ayahCount": 4,
+   "mushafAyahCount": 4,
+   "isPartial": false,
+   "pages": [
+    45
+   ],
+   "items": [
+    {
+     "elementId": "p45_qu_bism",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_qu_a1",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_qu_a2",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_qu_a3",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_qu_a4",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 107,
+   "key": "maun",
+   "arabicName": "الماعون",
+   "name": {
+    "uz-latn": "Moʼun",
+    "uz-cyrl": "Моъун",
+    "ru": "Аль-Маун",
+    "en": "Al-Ma'un"
+   },
+   "ayahCount": 7,
+   "mushafAyahCount": 7,
+   "isPartial": false,
+   "pages": [
+    45
+   ],
+   "items": [
+    {
+     "elementId": "p45_ma_bism",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ma_a1",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ma_a2",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ma_a3",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ma_a4",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true,
+     "sharedAudioWith": "p45_ma_a5"
+    },
+    {
+     "elementId": "p45_ma_a5",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true,
+     "sharedAudioWith": "p45_ma_a4"
+    },
+    {
+     "elementId": "p45_ma_a6",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ma_a7",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 7,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 108,
+   "key": "kawthar",
+   "arabicName": "الكوثر",
+   "name": {
+    "uz-latn": "Kavsar",
+    "uz-cyrl": "Кавсар",
+    "ru": "Аль-Кавсар",
+    "en": "Al-Kawthar"
+   },
+   "ayahCount": 3,
+   "mushafAyahCount": 3,
+   "isPartial": false,
+   "pages": [
+    45
+   ],
+   "items": [
+    {
+     "elementId": "p45_ka_bism",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ka_a1",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ka_a2",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p45_ka_a3",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 109,
+   "key": "kafirun",
+   "arabicName": "الكافرون",
+   "name": {
+    "uz-latn": "Kofirun",
+    "uz-cyrl": "Кофирун",
+    "ru": "Аль-Кафирун",
+    "en": "Al-Kafirun"
+   },
+   "ayahCount": 6,
+   "mushafAyahCount": 6,
+   "isPartial": false,
+   "pages": [
+    45,
+    46
+   ],
+   "items": [
+    {
+     "elementId": "p45_kf_bism",
+     "pageNumber": 45,
+     "globalIndex": 46,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_kf_a1",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_kf_a2",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_kf_a3",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_kf_a4",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_kf_a5",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_kf_a6",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 110,
+   "key": "nasr",
+   "arabicName": "النصر",
+   "name": {
+    "uz-latn": "Nasr",
+    "uz-cyrl": "Наср",
+    "ru": "Ан-Наср",
+    "en": "An-Nasr"
+   },
+   "ayahCount": 3,
+   "mushafAyahCount": 3,
+   "isPartial": false,
+   "pages": [
+    46
+   ],
+   "items": [
+    {
+     "elementId": "p46_ns_bism",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ns_a1",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ns_a2",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ns_a3",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 111,
+   "key": "masad",
+   "arabicName": "المسد",
+   "name": {
+    "uz-latn": "Masad",
+    "uz-cyrl": "Масад",
+    "ru": "Аль-Масад",
+    "en": "Al-Masad"
+   },
+   "ayahCount": 5,
+   "mushafAyahCount": 5,
+   "isPartial": false,
+   "pages": [
+    46
+   ],
+   "items": [
+    {
+     "elementId": "p46_ms_bism",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ms_a1",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ms_a2",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ms_a3",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ms_a4",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ms_a5",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 112,
+   "key": "ikhlas",
+   "arabicName": "الإخلاص",
+   "name": {
+    "uz-latn": "Ixlos",
+    "uz-cyrl": "Ихлос",
+    "ru": "Аль-Ихляс",
+    "en": "Al-Ikhlas"
+   },
+   "ayahCount": 4,
+   "mushafAyahCount": 4,
+   "isPartial": false,
+   "pages": [
+    46
+   ],
+   "items": [
+    {
+     "elementId": "p46_ix_bism",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ix_a1",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ix_a2",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p46_ix_a3",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true,
+     "sharedAudioWith": "p46_ix_a4"
+    },
+    {
+     "elementId": "p46_ix_a4",
+     "pageNumber": 46,
+     "globalIndex": 47,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true,
+     "sharedAudioWith": "p46_ix_a3"
+    }
+   ]
+  },
+  {
+   "number": 113,
+   "key": "falaq",
+   "arabicName": "الفلق",
+   "name": {
+    "uz-latn": "Falaq",
+    "uz-cyrl": "Фалақ",
+    "ru": "Аль-Фалак",
+    "en": "Al-Falaq"
+   },
+   "ayahCount": 5,
+   "mushafAyahCount": 5,
+   "isPartial": false,
+   "pages": [
+    47
+   ],
+   "items": [
+    {
+     "elementId": "p47_fq_bism",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_fq_a1",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_fq_a2",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_fq_a3",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_fq_a4",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_fq_a5",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    }
+   ]
+  },
+  {
+   "number": 114,
+   "key": "nas",
+   "arabicName": "الناس",
+   "name": {
+    "uz-latn": "Nas",
+    "uz-cyrl": "Нас",
+    "ru": "Ан-Нас",
+    "en": "An-Nas"
+   },
+   "ayahCount": 6,
+   "mushafAyahCount": 6,
+   "isPartial": false,
+   "pages": [
+    47
+   ],
+   "items": [
+    {
+     "elementId": "p47_ns_bism",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "bismillah",
+     "ayah": null,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_ns_a1",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 1,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_ns_a2",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 2,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_ns_a3",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 3,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_ns_a4",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 4,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_ns_a5",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 5,
+     "hasAudio": true
+    },
+    {
+     "elementId": "p47_ns_a6",
+     "pageNumber": 47,
+     "globalIndex": 48,
+     "role": "ayah",
+     "ayah": 6,
+     "hasAudio": true
+    }
+   ]
+  }
+ ]
+}
