@@ -67,6 +67,10 @@ final class ContentStore {
     private(set) var allBookPages: [BookPage] = []
     /// Chapter → lesson outline with 1-based global page spans (for the TOC).
     private(set) var outline: [OutlineChapter] = []
+    /// Resolved memorization (hifz) content, built from `surah-index.json`
+    /// against `allBookPages`. Empty when the index is missing or unresolvable
+    /// — the hifz UI hides itself rather than crashing.
+    private(set) var hifzCatalog: HifzCatalog = .empty
 
     /// Introduction prose that lives outside the page/element structure.
     var muqaddimaParagraphs: [String] { book?.extras.muqaddimaParagraphs ?? [] }
@@ -96,6 +100,7 @@ final class ContentStore {
         // the absent `volume` key, leaving this stuck on `.default`).
         defaultSettings = SettingsStore.bundledDefaultSettings()
         rebuild()
+        buildHifzCatalog()
     }
 
     /// Decodes a bundled `<name>.json` resource, returning `nil` (and logging)
@@ -178,6 +183,35 @@ final class ContentStore {
             chapters[chapterIndex].globalEnd = globalPage
         }
         return chapters
+    }
+
+    // MARK: - Hifz catalog
+
+    /// Resolves `Resources/surah-index.json` against `allBookPages` into
+    /// `hifzCatalog`. Never crashes on a missing or malformed index — degrades
+    /// to `.empty` and logs every problem, so the hifz UI just hides itself.
+    private func buildHifzCatalog() {
+        let indexFile = decodeBundled("surah-index", as: SurahIndexFile.self)
+
+        // Pages 25 and 30 each belong to two lessons, so the same element id
+        // shows up twice in allBookPages (once per occurrence). Keep the first
+        // one — a plain Dictionary(uniqueKeysWithValues:) would trap here.
+        var lookup: [String: HifzElementRef] = [:]
+        for page in allBookPages {
+            for element in page.elements where lookup[element.id] == nil {
+                lookup[element.id] = HifzElementRef(element: element, globalIndex: page.globalIndex)
+            }
+        }
+
+        let (catalog, problems) = HifzCatalog.build(from: indexFile, lookup: lookup)
+        for problem in problems {
+            logger.error("\(problem, privacy: .public)")
+        }
+        hifzCatalog = catalog
+
+        let surahCount = catalog.surahs.count
+        let unitCount = catalog.surahs.reduce(0) { $0 + $1.units.count }
+        logger.info("hifz catalog: \(surahCount, privacy: .public) surahs, \(unitCount, privacy: .public) units")
     }
 
     // MARK: - Localization (native String Catalog)
