@@ -18,6 +18,9 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 22 * layoutMetrics.uiScale) {
                     GreetingHeader(locale: locale)
                     ContinueHeroCard(store: store, progress: progress, locale: locale)
+                    if !store.hifzCatalog.isEmpty {
+                        HifzHomeCard(store: store, progress: progress, locale: locale)
+                    }
                     StatsRow(store: store, progress: progress, audio: audio, locale: locale)
                     ChaptersSection(store: store, progress: progress, locale: locale)
                 }
@@ -31,6 +34,7 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ReaderEntry.self) { ReaderView(entry: $0) }
+            .navigationDestination(for: HifzListRoute.self) { _ in HifzSurahListView() }
         }
     }
 }
@@ -131,6 +135,60 @@ private struct ContinueHeroCard: View {
         .padding(layoutMetrics.isRegular ? 28 : 20)
         .frame(maxWidth: .infinity)
         .glassCard(cornerRadius: 26)
+    }
+}
+
+// MARK: - Hifz entry card
+
+/// Entry point into the hifz (memorization) surah list — hidden entirely by
+/// the caller when the catalog failed to build (`HifzCatalog.empty`, e.g. a
+/// missing or corrupt surah index). One glass row: icon, title, a live
+/// "X/26 yodlandi" progress subtitle, chevron — same visual language as the
+/// chapter cards below.
+private struct HifzHomeCard: View {
+    let store: ContentStore
+    let progress: ProgressStore
+    let locale: AppLocale
+
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
+    private var totalSurahs: Int { store.hifzCatalog.surahs.count }
+    private var subtitle: String {
+        String(format: store.t("hifz_memorized_count", locale), "\(progress.memorizedCount)", "\(totalSurahs)")
+    }
+    private var iconSide: CGFloat { layoutMetrics.isRegular ? 52 : 40 }
+
+    var body: some View {
+        NavigationLink(value: HifzListRoute()) {
+            HStack(spacing: 14 * layoutMetrics.uiScale) {
+                Image(systemName: "repeat.circle.fill")
+                    .font(.system(size: layoutMetrics.isRegular ? 28 : 21))
+                    .foregroundStyle(AppColor.primary)
+                    .frame(width: iconSide, height: iconSide)
+                    .background(AppColor.primary.opacity(0.16), in: Circle())
+
+                VStack(alignment: .leading, spacing: 2 * layoutMetrics.uiScale) {
+                    Text(store.t("hifz_list_title", locale))
+                        .font(layoutMetrics.font(.headline, .title3.weight(.semibold)))
+                        .foregroundStyle(AppColor.textMain)
+                    Text(subtitle)
+                        .font(layoutMetrics.font(.subheadline, .title3))
+                        .foregroundStyle(AppColor.textMuted)
+                        .monospacedDigit()
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: layoutMetrics.isRegular ? 16 : 13, weight: .semibold))
+                    .foregroundStyle(AppColor.textMuted)
+            }
+            .padding(layoutMetrics.isRegular ? 22 : 16)
+            .frame(maxWidth: .infinity, minHeight: 44 * layoutMetrics.uiScale, alignment: .leading)
+            .contentShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .glassCard(cornerRadius: 22)
     }
 }
 

@@ -129,6 +129,7 @@ private struct DebugScreenHost: View {
             case "home": HomeView()
             case "contents": ContentsView()
             case "settings": SettingsView()
+            case "hifz": NavigationStack { HifzSurahListView() }
             default:
                 ContentUnavailableView("Unknown screen: \(screen)", systemImage: "questionmark.circle")
             }
