@@ -11,6 +11,16 @@ import SwiftUI
 /// layout, so it's also asserted through a `ScrollViewProxy` — `.scrollPosition`
 /// alone can drop that jump while the container is still sizing (navigation-push
 /// transition / main-thread load), leaving the pager stranded on page 1.
+///
+/// Two more corrections layer on top of those iOS 17 APIs. A `viewport` size
+/// change (rotation, iPad window / Stage Manager resize) moves every cell's
+/// width without moving the scroll offset, so the pager re-snaps to
+/// `currentIndex` whenever `viewport` changes. And on iOS 18+, a settled page
+/// change only commits (writes `currentIndex`, fires `onPageSettled`) once
+/// scrolling goes fully idle (`.onScrollPhaseChange`), not the moment the
+/// most-visible page changes mid-drag — otherwise a half swipe (past the
+/// midpoint, then back) commits twice and wrongly stops audio / marks a
+/// lesson complete. iOS 17 keeps the original immediate-commit behavior.
 struct HorizontalBookPager: View {
     let pages: [BookPage]
     /// The **one** source of truth for cell geometry, measured by a single
@@ -49,6 +59,18 @@ struct HorizontalBookPager: View {
     /// One-shot guard so the initial deep-link landing runs a single time.
     @State private var didLandInitial = false
 
+    /// iOS 18+ only: backs `.scrollPosition(id:)` directly (see `scrollBinding`)
+    /// so its getter never fights the finger mid-drag. Kept in lockstep with
+    /// `currentIndex` on every programmatic change; while the user is actively
+    /// scrolling it instead tracks whatever page the scroll view currently
+    /// reports as most visible, which may run ahead of `currentIndex` until the
+    /// gesture settles (see `commitSettledPageIfNeeded`). Unused below iOS 18,
+    /// where `legacyScrollBinding` commits immediately instead.
+    @State private var trackedPageID: String?
+    /// iOS 18+ only: set while the user's finger drives the scroll, consumed by
+    /// the next idle commit — so only user gestures ever settle a new page.
+    @State private var userScrollPending = false
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
@@ -61,6 +83,10 @@ struct HorizontalBookPager: View {
             }
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: scrollBinding)
+            .modifier(IdleCommitScrollPhase(
+                onUserScroll: { userScrollPending = true },
+                onIdle: commitSettledPageIfNeeded
+            ))
             .scrollIndicators(.hidden)
             .onAppear {
                 guard !didLandInitial else { return }
@@ -68,6 +94,13 @@ struct HorizontalBookPager: View {
                 landInitialPage(proxy)
             }
             .onChange(of: currentIndex) { oldValue, newValue in
+                // Keep the iOS 18+ tracking id in lockstep with every change to
+                // `currentIndex`, whichever side caused it — a no-op when it was
+                // `commitSettledPageIfNeeded` itself (already equal to it), and
+                // required when it was a TOC jump / chevron tap / deep-link
+                // resolve, so `scrollBinding`'s getter reflects the new page
+                // instead of wherever the finger last left the scroll view.
+                trackedPageID = currentPageID
                 // A programmatic jump (deep-link resolve, TOC, page indicator)
                 // moves `currentIndex` by more than one page without a user
                 // scroll — force the content to follow. Adjacent (±1) changes are
@@ -76,6 +109,17 @@ struct HorizontalBookPager: View {
                 if abs(newValue - oldValue) > 1 {
                     scrollToCurrent(proxy)
                 }
+            }
+            .onChange(of: viewport) { _, _ in
+                // Rotation or an iPad window / Stage Manager resize changes every
+                // cell's width out from under the scroll view, which keeps its old
+                // *point* offset rather than its page index — the visible page
+                // silently drifts onto a neighbour while `currentIndex` (and
+                // everything driven by it: audio, transport, ⏮/⏭, progress) stays
+                // put. Re-snap to the page we're already logically on, including
+                // index 0, whose resting position just moved too.
+                trackedPageID = currentPageID
+                scrollToCurrent(proxy, includingFirst: true)
             }
         }
     }
@@ -130,10 +174,13 @@ struct HorizontalBookPager: View {
     private static let reassertDelaysMs: [Int] = [90, 220, 420]
 
     /// Jumps the scroll view to `currentIndex` with no animation (matching the
-    /// reader's instant jumps). Page 0 needs no assertion — it's the resting
-    /// default and the `.scrollPosition` getter already holds it.
-    private func scrollToCurrent(_ proxy: ScrollViewProxy) {
-        guard pages.indices.contains(currentIndex), currentIndex != 0 else { return }
+    /// reader's instant jumps). Page 0 needs no assertion by default — it's the
+    /// resting default and the `.scrollPosition` getter already holds it — unless
+    /// `includingFirst` says the container itself just changed shape (see the
+    /// `viewport` `onChange` above), in which case index 0's resting position
+    /// moved too and needs the same re-assert as every other index.
+    private func scrollToCurrent(_ proxy: ScrollViewProxy, includingFirst: Bool = false) {
+        guard pages.indices.contains(currentIndex), includingFirst || currentIndex != 0 else { return }
         let id = pages[currentIndex].id
         var transaction = Transaction()
         transaction.disablesAnimations = true
@@ -142,15 +189,31 @@ struct HorizontalBookPager: View {
 
     // MARK: - Scroll position ↔ index
 
-    /// Two-way bridge between the paged scroll position (a `BookPage.id`) and the
-    /// integer `currentIndex`. The getter keeps the scroll view pinned to the
-    /// current index (so programmatic jumps work); the setter reports user swipes.
+    /// The binding actually attached to `.scrollPosition(id:)` in `body`. Below
+    /// iOS 18 this *is* `legacyScrollBinding`, unchanged. From iOS 18 the scroll
+    /// view instead reads/writes `trackedPageID` — a plain tracking value with no
+    /// side effects — so the getter never fights the finger mid-drag and the
+    /// setter never commits a page the finger hasn't actually settled on;
+    /// `commitSettledPageIfNeeded()` does that, once `IdleCommitScrollPhase`
+    /// reports the scroll view has gone fully idle. That's what stops a half
+    /// swipe (past the midpoint, then back) from firing `onPageSettled` twice.
     private var scrollBinding: Binding<String?> {
+        guard #available(iOS 18.0, *) else { return legacyScrollBinding }
+        return Binding<String?>(
+            get: { trackedPageID ?? currentPageID },
+            set: { trackedPageID = $0 }
+        )
+    }
+
+    /// The original iOS 17 two-way bridge between the paged scroll position (a
+    /// `BookPage.id`) and the integer `currentIndex`, unchanged by the iOS 18+
+    /// idle-commit fix above: the getter keeps the scroll view pinned to the
+    /// current index (so programmatic jumps work); the setter commits a user
+    /// swipe — and fires `onPageSettled` — the instant the most-visible page
+    /// changes, even while the finger is still down.
+    private var legacyScrollBinding: Binding<String?> {
         Binding<String?>(
-            get: {
-                guard pages.indices.contains(currentIndex) else { return pages.first?.id }
-                return pages[currentIndex].id
-            },
+            get: { currentPageID },
             set: { newValue in
                 guard let newValue,
                       let index = indexByID[newValue],
@@ -169,6 +232,33 @@ struct HorizontalBookPager: View {
         )
     }
 
+    /// iOS 18+ only: commits a settled page change once scrolling is fully idle
+    /// (see `IdleCommitScrollPhase`) — writes `currentIndex` and fires
+    /// `onPageSettled` exactly once, only if the tracked page actually differs
+    /// from `currentIndex`. This is the *only* place a user swipe reaches
+    /// `currentIndex` on iOS 18+, so a half swipe that peeks at the next page and
+    /// returns settles back where it started and never reaches here with a
+    /// changed id.
+    private func commitSettledPageIfNeeded() {
+        // Only a settle the user's own finger caused is a page change — a layout
+        // pass or a programmatic jump can end in `.idle` too. Gating on the
+        // gesture (instead of a ±1 distance check) also keeps a fast double
+        // flick, which settles two pages away in one idle, from being dropped.
+        guard userScrollPending else { return }
+        userScrollPending = false
+        guard let trackedPageID, let index = indexByID[trackedPageID], index != currentIndex else { return }
+        currentIndex = index
+        onPageSettled(index)
+    }
+
+    /// The `BookPage.id` at `currentIndex`, or the first page's id if the index is
+    /// momentarily out of range (defensive; `pages` is never empty by the time
+    /// this view exists — `ReaderView` gates on `pages.isEmpty` before building it).
+    private var currentPageID: String? {
+        guard pages.indices.contains(currentIndex) else { return pages.first?.id }
+        return pages[currentIndex].id
+    }
+
     /// Map of page id → index for O(1) resolution of the settled page.
     private var indexByID: [String: Int] {
         Dictionary(pages.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -184,6 +274,34 @@ private struct HardTopScrollEdge: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content.scrollEdgeEffectStyle(.hard, for: .top)
+        } else {
+            content
+        }
+    }
+}
+
+/// Fires `onIdle` once the horizontal pager's scroll view goes fully idle —
+/// finger up *and* any deceleration/snap animation finished, not the moment a
+/// drag crosses the halfway point. Pairs with `commitSettledPageIfNeeded` for
+/// the CR-3 fix: a half swipe that peeks past the midpoint and returns never
+/// reaches idle on the neighbour page, so it never gets committed. No-op below
+/// iOS 18, where `.onScrollPhaseChange` doesn't exist — `legacyScrollBinding`
+/// commits immediately there instead, exactly as before this fix.
+private struct IdleCommitScrollPhase: ViewModifier {
+    /// The user's finger is driving the scroll (dragging, or the fling it left).
+    let onUserScroll: () -> Void
+    let onIdle: () -> Void
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollPhaseChange { _, newPhase in
+                switch newPhase {
+                case .interacting, .decelerating: onUserScroll()
+                case .idle: onIdle()
+                default: break
+                }
+            }
         } else {
             content
         }
