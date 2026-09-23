@@ -51,6 +51,8 @@ struct ReaderView: View {
     @State private var tocOpen = false
     /// Whether the reading-options ("Aa") sheet is presented.
     @State private var readingOptionsOpen = false
+    /// Whether the hifz (memorization) settings sheet is presented.
+    @State private var hifzSheetOpen = false
     /// Loop toggle state, kept in sync with the audio engine.
     @State private var loopMode = false
     /// Drives the "audio not downloaded" alert. Shared by the tap and
@@ -111,7 +113,16 @@ struct ReaderView: View {
         // the only way both see the same value.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !pages.isEmpty {
-                controlBar
+                VStack(spacing: 0) {
+                    if let hifzStripState {
+                        HifzStatusStrip(
+                            state: hifzStripState,
+                            onStop: { hifz.stop() },
+                            onRetry: { hifz.togglePlayPause() }
+                        )
+                    }
+                    controlBar
+                }
             }
         }
         .background(readingTheme.pageFill.ignoresSafeArea())
@@ -155,6 +166,17 @@ struct ReaderView: View {
                 }
                 .accessibilityLabel(store.t("lessons", locale))
             }
+            if store.hifzCatalog.hasUnits(onGlobalPage: currentPageIndex) {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        hifzSheetOpen = true
+                    } label: {
+                        Image(systemName: "repeat.circle")
+                            .imageScale(.large)
+                    }
+                    .accessibilityLabel(store.t("hifz_title", locale))
+                }
+            }
         }
         .sheet(isPresented: $tocOpen) {
             TocSheet(
@@ -175,6 +197,18 @@ struct ReaderView: View {
         .sheet(isPresented: $readingOptionsOpen) {
             ReadingOptionsSheet()
                 .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $hifzSheetOpen) {
+            HifzSheet(
+                catalog: store.hifzCatalog,
+                pageGlobalIndex: currentPageIndex,
+                activeElementId: activeElementId,
+                onStart: { plan in
+                    startHifz(plan)
+                    hifzSheetOpen = false
+                }
+            )
+            .presentationDetents([.medium, .large])
         }
         .alert(
             store.t("audio_not_downloaded", locale),
@@ -237,6 +271,7 @@ struct ReaderView: View {
                 onPageSettled: { pageDidChange(settledIndex: $0) }
             )
         }
+        .environment(\.ayahMenuProvider, ayahMenuProvider)
     }
 
     /// The one bottom bar. Page stepping, element transport and loop live here
@@ -801,6 +836,91 @@ private extension ReaderView {
         case .times(let count): return "\(count)"
         case .forever: return "∞"
         }
+    }
+
+    // MARK: - Status strip
+
+    /// Builds the status strip's current snapshot from `hifz`'s live state,
+    /// or `nil` while no session is active (the strip itself stays hidden
+    /// then). Reuses the same label helpers the Now Playing hooks call, so
+    /// the strip and the lock screen always agree on wording.
+    var hifzStripState: HifzStripState? {
+        guard hifz.isActive, let unit = hifz.currentUnit, let plan = hifz.plan, let cursor = hifz.cursor else {
+            return nil
+        }
+        let unitTitle = Self.hifzNowPlayingTitle(unit: unit, store: store, locale: locale)
+        let progress = Self.hifzProgressLabel(cursor: cursor, plan: plan, store: store, locale: locale)
+        let isGap = hifz.phase == .gap
+
+        var badge: String?
+        if case .ayah = plan.scope {
+            badge = store.t("hifz_only_this_ayah", locale)
+        }
+
+        // Dots count finished listens: during a play the current one isn't done
+        // yet, but in the "your turn" gap right after it, it is.
+        var dots: HifzStripState.DotsState?
+        if case .times(let total) = plan.eachAyah, total > 1, total <= 10 {
+            let finished = min(cursor.playIndex + (isGap ? 1 : 0), total)
+            dots = HifzStripState.DotsState(done: finished, total: total)
+        }
+
+        return HifzStripState(
+            title: isGap ? store.t("hifz_your_turn", locale) : unitTitle,
+            detail: isGap ? unitTitle : progress,
+            badge: badge,
+            isGap: isGap,
+            gapSeconds: hifz.gapSeconds,
+            dots: dots,
+            isStalled: hifz.isStalled,
+            stopLabel: store.t("hifz_stop", locale),
+            retryLabel: store.t("play", locale)
+        )
+    }
+
+    // MARK: - Long-press menu
+
+    /// Long-press actions for a tappable element — only elements that belong
+    /// to a hifz unit get a menu at all. Injected into `\.ayahMenuProvider`
+    /// on `readerContent`, so it's reachable only inside this reader.
+    private var ayahMenuProvider: AyahMenuProvider {
+        { element in
+            guard store.hifzCatalog.unit(containing: element.id) != nil else { return [] }
+            return [
+                AyahMenuAction(
+                    title: store.t("hifz_menu_repeat_ayah", locale),
+                    systemImage: "repeat.1",
+                    action: { startHifzFromMenu(.ayah(unitID: element.id)) }
+                ),
+                AyahMenuAction(
+                    title: store.t("hifz_menu_repeat_surah", locale),
+                    systemImage: "repeat",
+                    action: {
+                        guard let surah = store.hifzCatalog.surah(containing: element.id) else { return }
+                        startHifzFromMenu(.surah(number: surah.number))
+                    }
+                ),
+                AyahMenuAction(
+                    title: store.t("hifz_menu_from_here", locale),
+                    systemImage: "arrow.right",
+                    action: { startHifzFromMenu(.continuous(fromUnitID: element.id)) }
+                ),
+                AyahMenuAction(
+                    title: store.t("hifz_menu_customize", locale),
+                    systemImage: "slider.horizontal.3",
+                    action: {
+                        activeElementId = element.id
+                        hifzSheetOpen = true
+                    }
+                )
+            ]
+        }
+    }
+
+    /// Starts a session with the scope's product defaults — the long-press
+    /// menu never opens the sheet, it plays immediately.
+    private func startHifzFromMenu(_ scope: HifzScope) {
+        startHifz(HifzPlan.defaults(for: scope))
     }
 }
 
