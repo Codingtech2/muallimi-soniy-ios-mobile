@@ -168,16 +168,23 @@ final class SettingsStore {
     /// Loads persisted settings leniently: any missing or unrecognised field
     /// (e.g. a theme this build doesn't know) falls back to `fallback`, so an
     /// unknown theme resolves to light rather than discarding the whole load.
+    /// A field of the wrong type is dropped on its own (see `StoredSettings`);
+    /// only a blob that isn't a settings object at all falls back as a whole,
+    /// and that is logged.
     private static func loadPersisted(
         from defaults: UserDefaults,
         fallback: AppSettings
     ) -> AppSettings {
-        guard let data = defaults.data(forKey: storageKey),
-              let stored = try? JSONDecoder().decode(StoredSettings.self, from: data)
-        else {
+        guard let data = defaults.data(forKey: storageKey) else { return fallback }
+        do {
+            let stored = try JSONDecoder().decode(StoredSettings.self, from: data)
+            return merged(stored, over: fallback)
+        } catch {
+            StoredSettings.logger.error(
+                "Persisted settings unreadable, using defaults: \(String(describing: error), privacy: .public)"
+            )
             return fallback
         }
-        return merged(stored, over: fallback)
     }
 
     /// Factory defaults for a **fresh install**, decoded leniently from the
@@ -249,7 +256,15 @@ private nonisolated struct RawDefaults: Decodable {
 
 /// All-optional mirror of `AppSettings` for tolerant decoding of persisted JSON:
 /// a field this build can't parse becomes `nil` and falls back to the default.
+/// Decoded field by field, so one value of the wrong type (a future type
+/// change, outside corruption) is logged and dropped on its own instead of
+/// taking every other preference down with it.
 private nonisolated struct StoredSettings: Decodable {
+    static let logger = Logger(
+        subsystem: Bundle.main.bundleIdentifier ?? "MuallimiSoniy",
+        category: "SettingsStore"
+    )
+
     var repeatCount: Int?
     var speed: Double?
     var volume: Double?
@@ -269,4 +284,45 @@ private nonisolated struct StoredSettings: Decodable {
     /// `merged(_:over:)` to derive `textScale` when an old persisted JSON has
     /// no `textScale` key yet.
     var fontSize: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case repeatCount, speed, volume, locale, theme, loopMode, sequentialMode
+        case textScale, readingBackground, lineSpacingScale, boldText, strongHighlight, keepScreenAwake
+        case fontSize
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        repeatCount = Self.field(Int.self, .repeatCount, in: container)
+        speed = Self.field(Double.self, .speed, in: container)
+        volume = Self.field(Double.self, .volume, in: container)
+        locale = Self.field(String.self, .locale, in: container)
+        theme = Self.field(String.self, .theme, in: container)
+        loopMode = Self.field(Bool.self, .loopMode, in: container)
+        sequentialMode = Self.field(Bool.self, .sequentialMode, in: container)
+        textScale = Self.field(Double.self, .textScale, in: container)
+        readingBackground = Self.field(String.self, .readingBackground, in: container)
+        lineSpacingScale = Self.field(Double.self, .lineSpacingScale, in: container)
+        boldText = Self.field(Bool.self, .boldText, in: container)
+        strongHighlight = Self.field(Bool.self, .strongHighlight, in: container)
+        keepScreenAwake = Self.field(Bool.self, .keepScreenAwake, in: container)
+        fontSize = Self.field(String.self, .fontSize, in: container)
+    }
+
+    /// One optional field: missing or `null` is `nil`, and so is a value of
+    /// the wrong type — which is logged, then left to fall back to the default.
+    private static func field<Value: Decodable>(
+        _ type: Value.Type,
+        _ key: CodingKeys,
+        in container: KeyedDecodingContainer<CodingKeys>
+    ) -> Value? {
+        do {
+            return try container.decodeIfPresent(type, forKey: key)
+        } catch {
+            let name = key.stringValue
+            let reason = String(describing: error)
+            logger.error("Ignoring unreadable settings field \(name, privacy: .public): \(reason, privacy: .public)")
+            return nil
+        }
+    }
 }
