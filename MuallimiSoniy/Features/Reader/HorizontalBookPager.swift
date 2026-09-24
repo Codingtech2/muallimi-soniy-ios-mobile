@@ -22,12 +22,15 @@ import SwiftUI
 /// midpoint, then back) commits twice and wrongly stops audio / marks a
 /// lesson complete. iOS 17 keeps the original immediate-commit behavior.
 ///
-/// On iOS 18+ the settled page is read from the scroll view's real offset, not
-/// from the `scrollPosition` binding: SwiftUI does not report every move
-/// through that binding (a VoiceOver three-finger swipe, a keyboard scroll, or
-/// the scroll view shifting itself while an assistive technology attaches), and
+/// On iOS 18+ the settled page is the page the scroll view really shows, not
+/// the `scrollPosition` binding: SwiftUI does not report every move through
+/// that binding (a VoiceOver three-finger swipe, a keyboard scroll, or the
+/// scroll view shifting itself while an assistive technology attaches), and
 /// any such move left the card on one page while `currentIndex` — and the
-/// audio, highlight and counter driven by it — stayed on another.
+/// audio, highlight and counter driven by it — stayed on another. It isn't
+/// worked out from the content offset either: after an assistive technology
+/// attaches, the lazy stack can lay every page out one width further along,
+/// so offset ÷ width named the page after the one on screen.
 struct HorizontalBookPager: View {
     let pages: [BookPage]
     /// The **one** source of truth for cell geometry, measured by a single
@@ -87,9 +90,12 @@ struct HorizontalBookPager: View {
     /// iOS 18+ only: set while the user's finger drives the scroll, consumed by
     /// the next settle — a finger swipe always commits the page it ends on.
     @State private var userScrollPending = false
-    /// iOS 18+ only: the page the horizontal scroll view is resting on, read
-    /// from its content offset. `nil` until the first geometry report.
+    /// iOS 18+ only: the page the horizontal scroll view is resting on — the
+    /// one filling most of it. `nil` until the first visibility report.
     @State private var restingPage: Int?
+    /// iOS 18+ only: the pager width `restingPage` was last seen at, so a
+    /// page change that comes with a new width reads as layout, not a scroll.
+    @State private var restingWidth: CGFloat?
     /// iOS 18+ only: `false` while any scroll (finger, deceleration, animation)
     /// is in flight, so a page passed on the way is never mistaken for a settle.
     @State private var scrollIsIdle = true
@@ -117,7 +123,7 @@ struct HorizontalBookPager: View {
                 onUserScroll: { userScrollPending = true },
                 onScrollActivity: { scrollIsIdle = !$0 },
                 onIdle: { settleRestingPage(proxy) },
-                onRestingPointChange: { old, new in restingPointDidChange(from: old, to: new, proxy: proxy) }
+                onVisiblePagesChange: { visiblePagesDidChange($0, proxy: proxy) }
             ))
             .scrollIndicators(.hidden)
             .onAppear {
@@ -158,6 +164,7 @@ struct HorizontalBookPager: View {
                 // index 0, whose resting position just moved too.
                 holdPosition()
                 trackedPageID = currentPageID
+                restingWidth = viewport.width
                 scrollToCurrent(proxy, includingFirst: true)
             }
             .onChange(of: accessibilityEnabled) { _, _ in
@@ -371,14 +378,19 @@ struct HorizontalBookPager: View {
         onPageSettled(resting)
     }
 
-    /// iOS 18+ only: records the page the content offset now rests on. A move
-    /// while scrolling is idle had no gesture behind it, so it is settled here
-    /// right away; a move during a scroll waits for `settleRestingPage` at idle.
-    private func restingPointDidChange(from old: PagerRestingPoint, to new: PagerRestingPoint, proxy: ScrollViewProxy) {
-        restingPage = min(max(new.page, 0), max(pages.count - 1, 0))
+    /// iOS 18+ only: records the page the scroll view now shows. A move while
+    /// scrolling is idle had no gesture behind it, so it is settled here right
+    /// away; a move during a scroll waits for `settleRestingPage` at idle.
+    private func visiblePagesDidChange(_ ids: [BookPage.ID], proxy: ScrollViewProxy) {
+        // Mid-swipe, or while pages are still being laid out, no single page
+        // fills most of the view, so nothing is resting anywhere yet.
+        guard ids.count == 1, let page = ids.first.flatMap({ indexByID[$0] }) else { return }
+        let widthChanged = restingWidth.map { $0 != viewport.width } ?? false
+        restingPage = page
+        restingWidth = viewport.width
         // A width change is a layout change (rotation, iPad resize), not a
         // scroll; the `viewport` handler re-snaps it.
-        guard old.width == new.width, scrollIsIdle else { return }
+        guard !widthChanged, scrollIsIdle else { return }
         settleRestingPage(proxy)
     }
 
@@ -394,14 +406,6 @@ struct HorizontalBookPager: View {
     private var indexByID: [String: Int] {
         Dictionary(pages.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
     }
-}
-
-/// Where the horizontal pager's content offset rests: the nearest page index,
-/// plus the page width it was measured against (a change there is layout, not
-/// scrolling).
-private struct PagerRestingPoint: Equatable {
-    let page: Int
-    let width: CGFloat
 }
 
 /// Turns off the iOS 26 Liquid Glass progressive blur at the scroll view's top
@@ -422,9 +426,10 @@ private struct HardTopScrollEdge: ViewModifier {
 /// Reports the horizontal pager's scroll phases and resting page on iOS 18+:
 /// `onIdle` fires once the scroll view goes fully idle — finger up *and* any
 /// deceleration/snap animation finished, not the moment a drag crosses the
-/// halfway point — and `onRestingPointChange` whenever the content offset
-/// moves to a different page. Pairs with `settleRestingPage`, so a half swipe
-/// that peeks past the midpoint and returns never commits the neighbour page.
+/// halfway point — and `onVisiblePagesChange` with the ids of the pages that
+/// fill more than half of the view, measured from where they are really laid
+/// out. Pairs with `settleRestingPage`, so a half swipe that peeks past the
+/// midpoint and returns never commits the neighbour page.
 /// No-op below iOS 18, where `.onScrollPhaseChange` doesn't exist —
 /// `legacyScrollBinding` commits immediately there instead, exactly as before.
 private struct IdleCommitScrollPhase: ViewModifier {
@@ -433,7 +438,10 @@ private struct IdleCommitScrollPhase: ViewModifier {
     /// `true` while any scroll is in flight, `false` once it is idle again.
     let onScrollActivity: (Bool) -> Void
     let onIdle: () -> Void
-    let onRestingPointChange: (_ old: PagerRestingPoint, _ new: PagerRestingPoint) -> Void
+    let onVisiblePagesChange: ([BookPage.ID]) -> Void
+
+    /// How much of a page has to be on screen to count as the one shown.
+    private static let restingShare: Double = 0.5
 
     @ViewBuilder
     func body(content: Content) -> some View {
@@ -447,12 +455,8 @@ private struct IdleCommitScrollPhase: ViewModifier {
                     default: break
                     }
                 }
-                .onScrollGeometryChange(for: PagerRestingPoint.self) { geometry in
-                    let width = geometry.containerSize.width
-                    let page = width > 0 ? Int((geometry.contentOffset.x / width).rounded()) : 0
-                    return PagerRestingPoint(page: page, width: width)
-                } action: { old, new in
-                    onRestingPointChange(old, new)
+                .onScrollTargetVisibilityChange(idType: BookPage.ID.self, threshold: Self.restingShare) { ids in
+                    onVisiblePagesChange(ids)
                 }
         } else {
             content
