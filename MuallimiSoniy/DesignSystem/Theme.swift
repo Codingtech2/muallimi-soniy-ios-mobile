@@ -61,6 +61,13 @@ nonisolated enum AppColor {
         dark: Color(hex: "22c55e").opacity(0.10)
     )
 
+    // MARK: Warm accent
+
+    /// The one warm note beside the green: a quiet gilt, like the gold of an
+    /// illuminated surah header. Marks the Home hifz (memorization) entry —
+    /// icons and tints only, so the green stays the single hero colour.
+    static let gold = Color(light: Color(hex: "a16207"), dark: Color(hex: "fbbf24"))
+
     // MARK: Element-type accents (legend / future use; reader uses `primary`)
 
     static let elHarf = Color(hex: "a78bfa")
