@@ -46,7 +46,7 @@ private struct AyahContextMenuModifier: ViewModifier {
         if actions.isEmpty {
             content
         } else {
-            content.contextMenu {
+            content.hifzPeekableContextMenu(for: element) {
                 // Menu titles are localized UI chrome (Latin/Cyrillic script),
                 // never the Arabic reading content — force left-to-right so
                 // icon+text ordering stays normal no matter which reading

@@ -388,8 +388,9 @@ final class HifzController {
         let rounds = Self.repeatDescription(plan.rounds)
         let pause = plan.pauseToRepeat ? 1 : 0
         let sleep = plan.sleepAfter.map { String(format: "%.0fs", $0) } ?? "off"
+        let hide = plan.hideText ? 1 : 0
         let message = "hifz start scope=\(scopeName) target=\(target) units=\(unitCount) "
-            + "each=\(each) rounds=\(rounds) pause=\(pause) sleep=\(sleep)"
+            + "each=\(each) rounds=\(rounds) pause=\(pause) sleep=\(sleep) hide=\(hide)"
         logger.info("\(message, privacy: .public)")
     }
 

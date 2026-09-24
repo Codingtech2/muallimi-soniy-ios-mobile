@@ -222,9 +222,25 @@ func testCatalogBuilderDegradesGracefully() {
     check(result.catalog.isEmpty, "builder: unsupported schemaVersion -> empty catalog")
 }
 
+func testHiddenTextCoversWholeSurahs() {
+    let (catalog, _) = HifzCatalog.build(from: fixtureIndexFile(), lookup: fixtureLookup())
+    let ayahSession = catalog.session(for: .ayah(unitID: "s_a1"))
+    let ayahHidden = ayahSession.map { catalog.elementIds(inSurahsOf: $0) } ?? []
+    check(ayahHidden == ["s_a1", "s_a2", "s_a3"], "hide text: one-ayah session hides its whole surah, merged pair too")
+
+    let continuous = catalog.session(for: .continuous(fromUnitID: "s_a2"))
+    let continuousHidden = continuous.map { catalog.elementIds(inSurahsOf: $0) } ?? []
+    check(continuousHidden == ["s_a1", "s_a2", "s_a3"], "hide text: continuous hides the surahs it plays, no earlier ones")
+
+    let everything = catalog.session(for: .continuous(fromUnitID: "t_a1"))
+    let everythingHidden = everything.map { catalog.elementIds(inSurahsOf: $0) } ?? []
+    check(!everythingHidden.contains("t_title"), "hide text: a surah title is never hidden")
+}
+
 func runCatalogBuilderTests() {
     testCatalogBuilderMergingAndDropping()
     testCatalogBuilderDegradesGracefully()
+    testHiddenTextCoversWholeSurahs()
 }
 
 // MARK: - Section D: real data (book.json + surah-index.json), if ready yet
@@ -271,6 +287,10 @@ func checkRealDataExpectations(catalog: HifzCatalog, problems: [String]) {
     check(allInRange, "real-data: every unit's globalIndex is in 37...48")
 
     check(catalog.surah(number: 2)?.isPartial == true, "real-data: Baqara is marked isPartial")
+
+    let ikhlasHidden = catalog.session(for: .ayah(unitID: "p46_ix_a1")).map { catalog.elementIds(inSurahsOf: $0) }
+    let ikhlasIds: Set<String> = ["p46_ix_bism", "p46_ix_a1", "p46_ix_a2", "p46_ix_a3", "p46_ix_a4"]
+    check(ikhlasHidden == ikhlasIds, "real-data: hide text on an Ikhlas ayah hides all of Ikhlas, nothing else")
 
     let problemSummary = problems.joined(separator: "; ")
     check(problems.isEmpty, "real-data: no problems reported (\(problems.count): \(problemSummary))")

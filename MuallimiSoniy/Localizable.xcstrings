@@ -1399,6 +1399,64 @@
         }
       }
     },
+    "hifz_hide_text" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide text"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скрыть текст"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матнни яшириш"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matnni yashirish"
+          }
+        }
+      }
+    },
+    "hifz_hide_text_desc" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ayat are blurred while you listen — press and hold one to peek"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Во время прослушивания аяты размыты — чтобы подсмотреть, нажмите на аят и удерживайте"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тинглаш пайтида оятлар хиралашади — кўриш учун оятни босиб туринг"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tinglash paytida oyatlar xiralashadi — koʻrish uchun oyatni bosib turing"
+          }
+        }
+      }
+    },
     "hifz_list_title" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -282,6 +282,7 @@ struct ReaderView: View {
             )
         }
         .environment(\.ayahMenuProvider, ayahMenuProvider)
+        .environment(\.hifzHiddenElementIds, hifzHiddenElementIds)
         .hifzResumeChip(
             offer: $hifzResumeOffer,
             title: store.t("hifz_resume", locale),
@@ -867,6 +868,13 @@ private extension ReaderView {
     var hifzSurahTitle: String? {
         guard hifz.isActive, let unit = hifz.currentUnit else { return nil }
         return store.hifzCatalog.surah(number: unit.surahNumber)?.name.text(locale)
+    }
+
+    /// With "hide text" on, the running session's surah(s) are hidden for the
+    /// self-test; `nil` (nothing hidden) the rest of the time.
+    var hifzHiddenElementIds: Set<String>? {
+        guard hifz.isActive, let plan = hifz.plan, plan.hideText, let session = hifz.session else { return nil }
+        return store.hifzCatalog.elementIds(inSurahsOf: session)
     }
 
     // MARK: - Long-press menu

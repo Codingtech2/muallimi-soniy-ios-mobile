@@ -94,6 +94,7 @@ struct Verse: View {
                 verseText
                     .multilineTextAlignment(.center)
                     .lineSpacing(1 * adjustments.lineSpacingScale)
+                    .hifzHiddenText(element)
                     .padding(.horizontal, 8)  // px-2
                     .padding(.vertical, 2)    // py-0.5
                     .background(

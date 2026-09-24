@@ -30,6 +30,8 @@ struct HifzSheet: View {
     @State private var eachAyah: HifzRepeat
     @State private var rounds: HifzRepeat
     @State private var pauseToRepeat = false
+    /// Self-test "hide text". Starts off on every presentation, like pause.
+    @State private var hideText = false
     /// Sleep timer in minutes, `nil` = off. Session-only: starts off on every
     /// presentation and is never saved.
     @State private var sleepMinutes: Int?
@@ -98,6 +100,8 @@ struct HifzSheet: View {
                     repeatSection
                     sectionDivider
                     pauseSection
+                    sectionDivider
+                    hideTextSection
                     sectionDivider
                     speedSection
                     sectionDivider
@@ -401,6 +405,22 @@ private extension HifzSheet {
         .tint(AppColor.primary)
     }
 
+    // MARK: - Hide text
+
+    var hideTextSection: some View {
+        Toggle(isOn: $hideText) {
+            VStack(alignment: .leading, spacing: 2 * layoutMetrics.uiScale) {
+                Text(tr("hifz_hide_text"))
+                    .font(layoutMetrics.font(.subheadline.weight(.semibold), .title3.weight(.semibold)))
+                    .foregroundStyle(AppColor.textMain)
+                Text(tr("hifz_hide_text_desc"))
+                    .font(layoutMetrics.font(.caption, .subheadline))
+                    .foregroundStyle(AppColor.textMuted)
+            }
+        }
+        .tint(AppColor.primary)
+    }
+
     // MARK: - Speed
 
     var speedSection: some View {
@@ -520,13 +540,13 @@ private extension HifzSheet {
             guard let activeElementId, catalog.unit(containing: activeElementId) != nil else { return nil }
             return HifzPlan(
                 scope: .ayah(unitID: activeElementId), eachAyah: eachAyah, rounds: .times(1),
-                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter
+                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter, hideText: hideText
             )
         case .surah:
             guard catalog.surah(number: selectedSurahNumber) != nil else { return nil }
             return HifzPlan(
                 scope: .surah(number: selectedSurahNumber), eachAyah: eachAyah, rounds: rounds,
-                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter
+                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter, hideText: hideText
             )
         case .continuous:
             let anchor = activeElementId.flatMap { catalog.unit(containing: $0)?.id }
@@ -535,7 +555,7 @@ private extension HifzSheet {
             // Always one pass: Qur'an order runs to An-Nas and never wraps back.
             return HifzPlan(
                 scope: .continuous(fromUnitID: anchor), eachAyah: eachAyah, rounds: .times(1),
-                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter
+                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter, hideText: hideText
             )
         }
     }

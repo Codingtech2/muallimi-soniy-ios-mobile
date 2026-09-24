@@ -147,6 +147,11 @@ nonisolated struct HifzPlan: Sendable, Hashable {
     /// off. Session-only, never saved: the sheet sets it, a resume carries
     /// over the time that was left, and every other way in starts it off.
     var sleepAfter: TimeInterval?
+    /// Self-test: while the session runs, the ayat of its surah(s) are
+    /// blurred on the page, and a press and hold peeks at one. Off unless
+    /// the sheet turns it on — a resume keeps it, every other way in
+    /// starts with it off.
+    var hideText = false
 
     /// Product defaults from the feature matrix: ayah = 5x/1 round, surah =
     /// 1x-each/3 rounds, continuous = 1x/1 round. Pause-to-repeat always

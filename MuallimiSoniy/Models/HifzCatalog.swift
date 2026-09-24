@@ -97,6 +97,16 @@ nonisolated struct HifzCatalog: Sendable {
         surahByNumber[surahNumber]?.startGlobalIndex
     }
 
+    /// Every element id of every surah `session` plays from — what "hide
+    /// text" blurs, so the rest of a surah stays hidden too while only one
+    /// ayah (or the tail of it) is being played. Titles are never units,
+    /// so they stay readable.
+    func elementIds(inSurahsOf session: HifzSession) -> Set<String> {
+        let numbers = Set(session.units.map(\.surahNumber))
+        let surahs = numbers.compactMap { surahByNumber[$0] }
+        return Set(surahs.flatMap { $0.units.flatMap(\.elementIds) })
+    }
+
     /// Builds a ready-to-play session for the given scope, or nil if its
     /// target can't be resolved in this catalog (stale/unknown unit id).
     func session(for scope: HifzScope) -> HifzSession? {

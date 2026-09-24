@@ -121,6 +121,7 @@ struct ArabicElementView: View {
                 .foregroundStyle(isActive ? Color.white : readingTheme.textMain)
                 // Web `textShadow: 0 1px 2px rgba(0,0,0,0.3)` on the active glyph.
                 .shadow(color: isActive ? Color.black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
+                .hifzHiddenText(element)
                 .padding(.horizontal, size.horizontalPadding)
                 .padding(.vertical, size.verticalPadding)
                 .background(
