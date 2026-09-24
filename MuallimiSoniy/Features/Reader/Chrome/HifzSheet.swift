@@ -288,7 +288,7 @@ private extension HifzSheet {
                     .strokeBorder(isSelected ? Color.clear : AppColor.divider, lineWidth: 1)
             )
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ScopeRowButtonStyle())
         .disabled(isDisabled)
         .accessibilityLabel(title)
         .accessibilityHint(description ?? "")
@@ -533,6 +533,18 @@ private extension HifzSheet {
         }
         .scrollIndicators(.hidden)
         .scrollClipDisabled()
+    }
+}
+
+/// Looks like `.plain`, but without its automatic dimming of a disabled
+/// button: that halved the whole scope row, so the "tap an ayah first" hint
+/// dropped under 4.5:1. A disabled row fades only its own icon and title.
+private struct ScopeRowButtonStyle: ButtonStyle {
+    private static let pressedOpacity: CGFloat = 0.6
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? Self.pressedOpacity : 1)
     }
 }
 
