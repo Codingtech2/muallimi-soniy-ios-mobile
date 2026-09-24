@@ -8,7 +8,7 @@ import SwiftUI
 /// value into a `textScale` on first launch after the upgrade. Nothing else
 /// should read this.
 extension FontSize {
-    var arabicScale: CGFloat {
+    nonisolated var arabicScale: CGFloat {
         switch self {
         case .small: return 0.875
         case .medium: return 1.0
