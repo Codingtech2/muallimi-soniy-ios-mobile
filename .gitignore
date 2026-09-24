@@ -52,3 +52,6 @@ __pycache__/
 
 # === Release review sheets (imom / native-speaker / device QA — local only) ===
 review/
+
+# Playwright MCP page snapshots (local only)
+.playwright-mcp/
