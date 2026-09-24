@@ -49,3 +49,6 @@ __pycache__/
 
 # === Hifz feature work: research/QA cache (local only) ===
 .hifz-cache/
+
+# === Release review sheets (imom / native-speaker / device QA — local only) ===
+review/
