@@ -196,6 +196,39 @@ private struct HiddenBarTitle: ViewModifier {
     }
 }
 
+// MARK: - Card surface
+
+/// The look Liquid Glass gave the surah cards on this flat background (a
+/// faint lift, a bright rim, a soft shadow in light mode), drawn with plain
+/// fills: 26 live glass cards re-sampled the backdrop on every scrolled frame.
+private struct SurahCardSurface: ViewModifier {
+    let cornerRadius: CGFloat
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    /// The faint lift over the page background: white in light, grey in dark.
+    private static let lift = Color(light: Color(white: 1, opacity: 0.3), dark: Color(white: 0.2, opacity: 0.28))
+    private static let rim = Color(light: Color(white: 1, opacity: 0.9), dark: Color(white: 1, opacity: 0.12))
+    private static let rimWidth: CGFloat = 0.5
+    /// Light mode only: on the dark background a black shadow can't be seen.
+    private static let lightShadow = ShadowStyle.drop(color: .black.opacity(0.1), radius: 16, y: 2)
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let shadow = colorScheme == .dark ? ShadowStyle.drop(color: .clear, radius: 0) : Self.lightShadow
+        content.background {
+            ZStack {
+                // An opaque base in the page colour casts the shadow, so the
+                // shadow never shows through the translucent lift above it.
+                shape.fill(AppColor.background.shadow(shadow))
+                shape.fill(Self.lift)
+                // Increase Contrast gets the app's hairline border instead of the faint rim.
+                shape.strokeBorder(contrast == .increased ? AppColor.divider : Self.rim, lineWidth: Self.rimWidth)
+            }
+        }
+    }
+}
+
 // MARK: - Surah row
 
 /// One surah card: Arabic name (large, RTL), localized name, ayah count, a
@@ -240,7 +273,7 @@ private struct HifzSurahRow: View {
         // Fills the whole grid row, top-aligned, so two cards side by side
         // on iPad keep equal heights even when only one has the badge.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .glassCard(cornerRadius: 24)
+        .modifier(SurahCardSurface(cornerRadius: 24))
     }
 
     // MARK: Static info (Arabic name, localized name, ayah count/range)
