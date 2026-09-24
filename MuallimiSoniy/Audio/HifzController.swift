@@ -87,8 +87,8 @@ final class HifzController {
 
     // MARK: - Start / stop
 
-    // 6 params is a fixed entry-point contract the reader calls directly — a
-    // config struct would just move the same 6 values one level out.
+    // These params are a fixed entry-point contract the reader calls directly —
+    // a config struct would just move the same values one level out.
     // swiftlint:disable function_parameter_count
 
     /// Starts a new session. If one is already active, it is finished as
@@ -97,14 +97,17 @@ final class HifzController {
     ///
     /// Rebuilds the real sequence from `session.sequence` (which only carries
     /// the resolved `unitCount`/`firstRoundOnlyCount`) combined with the
-    /// user's `plan.eachAyah`/`plan.rounds`.
+    /// user's `plan.eachAyah`/`plan.rounds`. `resumeCursor` — a cursor this
+    /// same plan reached before it was interrupted — starts there instead of
+    /// at the first unit.
     func start(
         plan: HifzPlan,
         session: HifzSession,
         audio: AudioController,
         tapRepeatCount: Int,
         tapLoop: Bool,
-        playbackRate: Double
+        playbackRate: Double,
+        resumingAt resumeCursor: HifzCursor? = nil
     ) {
         // swiftlint:enable function_parameter_count
         if isActive {
@@ -137,7 +140,7 @@ final class HifzController {
         sequence = realSequence
         logStart(plan: plan, unitCount: realSequence.unitCount)
 
-        guard let first = realSequence.first() else {
+        guard let first = resumeCursor ?? realSequence.first() else {
             finish(.completed)
             return
         }

@@ -45,6 +45,8 @@ struct ReaderView: View {
     @State private var hifz = HifzController()
     /// One-shot guard so `hifzAutoStart` starts a session only on first appear.
     @State private var didAutoStartHifz = false
+    /// A session the user just broke off by accident; drives the "resume" chip.
+    @State private var hifzResumeOffer: HifzResumeOffer?
     /// Persistent cursor for sequential playback (a reference, like the web ref).
     @State private var sequential = SequentialCursor()
     /// Whether the table-of-contents sheet is presented.
@@ -280,6 +282,12 @@ struct ReaderView: View {
             )
         }
         .environment(\.ayahMenuProvider, ayahMenuProvider)
+        .hifzResumeChip(
+            offer: $hifzResumeOffer,
+            title: store.t("hifz_resume", locale),
+            detail: { HifzLabels.nowPlayingTitle(unit: $0, store: store, locale: locale) },
+            onResume: { startHifz($0.plan, resumingAt: $0.cursor) }
+        )
     }
 
     /// The one bottom bar. Page stepping, element transport and loop live here
@@ -410,7 +418,7 @@ private extension ReaderView {
     /// element does carry an audio path but the file isn't installed yet, this
     /// offers the download instead of silently playing nothing.
     private func handleElementTap(_ element: Element) {
-        hifz.stop()
+        interruptHifz()
         cancelSequential()
         activeElementId = element.id
         guard element.start != element.end else {
@@ -460,7 +468,7 @@ private extension ReaderView {
         if hifz.isActive, settledIndex == hifz.currentUnit?.globalIndex {
             return
         }
-        hifz.stop()
+        interruptHifz()
         cancelSequential()
         activeElementId = nil
         audio.stop()
@@ -476,7 +484,7 @@ private extension ReaderView {
     private func goToPage(_ index: Int) {
         let target = min(max(index, 0), pages.count - 1)
         guard target != currentPageIndex else { return }
-        hifz.stop()
+        interruptHifz()
         cancelSequential()
         activeElementId = nil
         audio.stop()
@@ -745,8 +753,10 @@ private extension ReaderView {
 
     /// Resolves `plan` against the catalog and starts a session. Safe to call
     /// while something else is already playing — sequential playback and any
-    /// running hifz session are stopped first.
-    func startHifz(_ plan: HifzPlan) {
+    /// running hifz session are stopped first. `resumeCursor` (the resume
+    /// chip) starts from that listen instead of the top.
+    func startHifz(_ plan: HifzPlan, resumingAt resumeCursor: HifzCursor? = nil) {
+        hifzResumeOffer = nil
         var plan = plan
         // Qur'an order is one pass to An-Nas from any entry point — it never loops.
         if case .continuous = plan.scope { plan.rounds = .times(1) }
@@ -770,8 +780,17 @@ private extension ReaderView {
             audio: audio,
             tapRepeatCount: preferences.settings.repeatCount,
             tapLoop: loopMode,
-            playbackRate: preferences.settings.speed
+            playbackRate: preferences.settings.speed,
+            resumingAt: resumeCursor
         )
+    }
+
+    /// Stops a running session the user may have broken off by accident (a
+    /// swipe, a tap on another element, a jump) and offers to resume it.
+    private func interruptHifz() {
+        let offer = HifzResumeOffer(interrupting: hifz)
+        hifz.stop()
+        if offer != nil { hifzResumeOffer = offer }
     }
 
     /// Wires `hifz`'s hooks right before `start()` fires them for the first
