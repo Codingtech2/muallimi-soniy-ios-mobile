@@ -51,6 +51,15 @@ final class AudioSession {
         isActive = false
     }
 
+    /// The system's media services restarted, which puts the shared session
+    /// back to its defaults (`.soloAmbient`, inactive). Forget both cached
+    /// flags so the next `activate()` re-applies `.playback` and really
+    /// reactivates, instead of trusting state from before the reset.
+    func resetAfterMediaServicesReset() {
+        isConfigured = false
+        isActive = false
+    }
+
     /// Deactivates the session (e.g. when leaving the reader), letting other
     /// apps resume their audio.
     func deactivate() {

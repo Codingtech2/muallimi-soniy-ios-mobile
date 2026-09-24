@@ -24,8 +24,12 @@ final class AudioEngine {
     /// Poll cadence, mirroring the web engine's 40 ms `setInterval`.
     private static let pollInterval: TimeInterval = 0.04
 
-    /// Default repeat count, matching the web engine (`repeatTarget = 3`).
-    private static let defaultRepeatTarget = 3
+    /// Default repeat count, matching the settings default (1×, reset every
+    /// launch). The web engine starts at 3, but the web lesson page always
+    /// overwrites it from settings before anything plays; here a play can
+    /// start before any screen has pushed the setting, so the engine itself
+    /// must already agree with it.
+    private static let defaultRepeatTarget = 1
 
     /// How many polls (~0.5 s) the player may sit stopped mid-file while we
     /// meant it to play before the engine treats that as a pause from outside.
@@ -179,6 +183,26 @@ final class AudioEngine {
     /// request following it (Back / swipe / stop while a load is in flight).
     func invalidatePendingLoads() {
         loadGeneration &+= 1
+    }
+
+    /// Drops the loaded player after the system's media services restarted:
+    /// every audio object from before is dead, so the same-file fast path in
+    /// `load()` must never hand it out again. Returns the segment / whole-file
+    /// play it was still in the middle of (playing or paused), so the owner
+    /// can start it over on a fresh player.
+    func discardPlayer() -> UnfinishedPlay? {
+        var unfinished: UnfinishedPlay?
+        if isArmed, let loadedURL {
+            unfinished = UnfinishedPlay(
+                url: loadedURL,
+                segment: isSegmentMode ? (start: segmentStart, end: segmentEnd) : nil
+            )
+        }
+        stop()
+        player?.delegate = nil
+        player = nil
+        loadedURL = nil
+        return unfinished
     }
 
     // MARK: - Playback
@@ -468,6 +492,14 @@ final class AudioEngine {
             player.rate = playbackRate
         }
     }
+}
+
+/// A play a discarded player was still in the middle of (see
+/// `AudioEngine.discardPlayer()`).
+struct UnfinishedPlay {
+    let url: URL
+    /// The `[start, end]` segment, or `nil` for a whole-file play.
+    let segment: (start: Double, end: Double)?
 }
 
 /// Errors surfaced by `AudioEngine.load` so callers can degrade gracefully.

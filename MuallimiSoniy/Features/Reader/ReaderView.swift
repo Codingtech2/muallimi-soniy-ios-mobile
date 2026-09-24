@@ -252,6 +252,8 @@ struct ReaderView: View {
             cancelSequential()
             audio.onRemoteNext = nil
             audio.onRemotePrev = nil
+            audio.canRemoteSkip = nil
+            audio.onRemoteTogglePlayPause = nil
             audio.stop()
             AudioSession.shared.deactivate()
             // Always release the idle-timer lock on the way out, even if the
@@ -580,6 +582,7 @@ private extension ReaderView {
                 cursor.active = false
                 controller.onSegmentComplete = nil
                 activeBinding.wrappedValue = nil
+                controller.clearNowPlaying()
                 return
             }
             cursor.index = index
@@ -597,6 +600,7 @@ private extension ReaderView {
                     cursor.active = false
                     controller.onSegmentComplete = nil
                     activeBinding.wrappedValue = nil
+                    controller.clearNowPlaying()
                 }
             }
         }
@@ -638,6 +642,7 @@ private extension ReaderView {
     /// Captures only stable references (environment stores + state bindings), never
     /// the view struct, so the long-lived handlers read live page/element state and
     /// the audio controller never retains itself through them (`[weak audioRef]`).
+    /// The one exception is the headset centre click, see below.
     private func wireRemoteCommands() {
         let store = self.store
         let preferences = self.preferences
@@ -647,21 +652,29 @@ private extension ReaderView {
         let audioRef = self.audio
         let hifzRef = self.hifz
 
+        // The element `offset` steps from the highlighted one on the current
+        // page — what remote next / previous would move to, if anything.
+        let neighbour: (Int) -> (page: BookPage, element: Element)? = { offset in
+            let pages = store.allBookPages
+            let index = pageBinding.wrappedValue
+            guard pages.indices.contains(index) else { return nil }
+            let page = pages[index]
+            guard let active = activeBinding.wrappedValue,
+                  let position = page.elements.firstIndex(where: { $0.id == active }) else { return nil }
+            let target = position + offset
+            guard page.elements.indices.contains(target) else { return nil }
+            return (page, page.elements[target])
+        }
+
         let navigate: (Int) -> Void = { [weak audioRef] offset in
             guard let audioRef else { return }
             if hifzRef.isActive {
                 hifzRef.skip(by: offset)
                 return
             }
-            let pages = store.allBookPages
-            let index = pageBinding.wrappedValue
-            guard pages.indices.contains(index) else { return }
-            let page = pages[index]
-            guard let active = activeBinding.wrappedValue,
-                  let position = page.elements.firstIndex(where: { $0.id == active }) else { return }
-            let target = position + offset
-            guard page.elements.indices.contains(target) else { return }
-            let element = page.elements[target]
+            guard let found = neighbour(offset) else { return }
+            let page = found.page
+            let element = found.element
             // Cancel any in-flight sequence, then select + play the neighbour.
             sequential.active = false
             audioRef.onSegmentComplete = nil
@@ -682,6 +695,13 @@ private extension ReaderView {
 
         audio.onRemoteNext = { navigate(1) }
         audio.onRemotePrev = { navigate(-1) }
+        // A hifz session can always skip (it clamps to its first / last unit
+        // and replays it); otherwise there has to be a neighbour to move to.
+        audio.canRemoteSkip = { offset in hifzRef.isActive || neighbour(offset) != nil }
+        // The headset centre click does exactly what the ▶ button does, hifz
+        // included. It calls into this view, so the controller holds it only
+        // while the reader is on screen — `onDisappear` clears it again.
+        audio.onRemoteTogglePlayPause = { handlePlayPause() }
     }
 
     // MARK: - Per-element prev / next (wired for M4 Stage 2 chrome)
@@ -805,6 +825,8 @@ private extension ReaderView {
             if case .failed = reason, !downloadManager.isReady {
                 alertBinding.wrappedValue = true
             }
+            // Next / previous no longer skip units, so they may have nothing left to reach.
+            audioRef.refreshRemoteTrackCommands()
         }
     }
 

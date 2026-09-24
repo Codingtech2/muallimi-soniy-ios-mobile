@@ -5,9 +5,10 @@ import MediaPlayer
 /// and the remote command centre — the native counterpart of the web
 /// `mediaSession.ts`.
 ///
-/// The reader assigns the four command closures (`onPlay` / `onPause` /
-/// `onNext` / `onPrev`) and calls `update(...)` whenever the active element or
-/// play state changes, then `clear()` on stop.
+/// The owner assigns the command closures (`onPlay` / `onPause` /
+/// `onTogglePlayPause` / `onNext` / `onPrev`) and calls `update(...)` whenever
+/// the active element or play state changes, then `clear()` on stop. Next /
+/// previous start disabled and only turn on through `setTrackCommandsEnabled`.
 @MainActor
 final class NowPlayingController {
 
@@ -15,8 +16,12 @@ final class NowPlayingController {
 
     var onPlay: (() -> Void)?
     var onPause: (() -> Void)?
-    var onNext: (() -> Void)?
-    var onPrev: (() -> Void)?
+    /// The headset / EarPods centre click.
+    var onTogglePlayPause: (() -> Void)?
+    /// Return `true` only if they actually moved somewhere — `false` reports
+    /// "no such content" back to the system instead of a silent success.
+    var onNext: (() -> Bool)?
+    var onPrev: (() -> Bool)?
 
     private var isConfigured = false
 
@@ -48,19 +53,38 @@ final class NowPlayingController {
                 return .success
             }
         }
+        center.togglePlayPauseCommand.addTarget { [weak self] _ -> MPRemoteCommandHandlerStatus in
+            MainActor.assumeIsolated {
+                guard let handler = self?.onTogglePlayPause else { return .noSuchContent }
+                handler()
+                return .success
+            }
+        }
         center.nextTrackCommand.addTarget { [weak self] _ -> MPRemoteCommandHandlerStatus in
             MainActor.assumeIsolated {
-                guard let handler = self?.onNext else { return .noSuchContent }
-                handler()
+                guard let handler = self?.onNext, handler() else { return .noSuchContent }
                 return .success
             }
         }
         center.previousTrackCommand.addTarget { [weak self] _ -> MPRemoteCommandHandlerStatus in
             MainActor.assumeIsolated {
-                guard let handler = self?.onPrev else { return .noSuchContent }
-                handler()
+                guard let handler = self?.onPrev, handler() else { return .noSuchContent }
                 return .success
             }
+        }
+        // Nothing to step through until the owner says so.
+        setTrackCommandsEnabled(next: false, previous: false)
+    }
+
+    /// Greys the lock-screen / Control-Centre next and previous buttons out
+    /// whenever pressing them could not do anything.
+    func setTrackCommandsEnabled(next: Bool, previous: Bool) {
+        let center = MPRemoteCommandCenter.shared()
+        if center.nextTrackCommand.isEnabled != next {
+            center.nextTrackCommand.isEnabled = next
+        }
+        if center.previousTrackCommand.isEnabled != previous {
+            center.previousTrackCommand.isEnabled = previous
         }
     }
 

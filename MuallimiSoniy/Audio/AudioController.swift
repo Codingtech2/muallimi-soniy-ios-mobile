@@ -30,8 +30,16 @@ final class AudioController {
     /// previous track buttons. The reader assigns them while it is on screen and
     /// clears them on exit; the Now Playing controller forwards its remote
     /// `onNext` / `onPrev` here. Never captured strongly by the controller.
-    var onRemoteNext: (() -> Void)?
-    var onRemotePrev: (() -> Void)?
+    var onRemoteNext: (() -> Void)? { didSet { refreshRemoteTrackCommands() } }
+    var onRemotePrev: (() -> Void)? { didSet { refreshRemoteTrackCommands() } }
+    /// Reader-supplied check whether remote next (+1) / previous (-1) would do
+    /// anything right now. Those buttons are only enabled when a handler is
+    /// set and this agrees (no check = the handler alone decides).
+    var canRemoteSkip: ((Int) -> Bool)? { didSet { refreshRemoteTrackCommands() } }
+    /// Reader-supplied play / pause for the headset / EarPods centre click,
+    /// so it does exactly what the reader's own play button does. Without a
+    /// reader on screen the click falls back to `togglePlayPause()`.
+    var onRemoteTogglePlayPause: (() -> Void)?
 
     /// Invoked whenever playback actually starts or resumes, from any path
     /// (in-app button, lock screen, a queue's next item). A playback queue uses
@@ -243,7 +251,11 @@ final class AudioController {
         }
     }
 
-    func togglePlayPause() { engine.togglePlayPause() }
+    /// Pauses if playing, otherwise resumes — through `pause()` / `resume()`,
+    /// so after `stop()` it stays the same no-op a lock-screen PLAY is.
+    func togglePlayPause() {
+        if isPlaying { pause() } else { resume() }
+    }
 
     /// Stops playback, cancels any request still awaiting its file load, clears
     /// segment state and tears down the Now Playing info. Also resets the
@@ -260,7 +272,7 @@ final class AudioController {
         isPaused = false
         engine.invalidatePendingLoads()
         engine.stop()
-        nowPlaying.clear()
+        clearNowPlaying()
         currentTime = 0
         duration = 0
         repeatIndex = 0
@@ -287,6 +299,7 @@ final class AudioController {
     /// button is correct even if the file then fails to load.
     func setNowPlaying(title: String, artist: String, album: String) {
         nowPlaying.update(title: title, artist: artist, album: album, rate: isPlaying ? 1 : 0)
+        refreshRemoteTrackCommands()
     }
 
     /// Wires the remote play/pause to this controller and forwards remote
@@ -295,8 +308,9 @@ final class AudioController {
     private func wireNowPlayingCommands() {
         nowPlaying.onPlay = { [weak self] in self?.resume() }
         nowPlaying.onPause = { [weak self] in self?.pause() }
-        nowPlaying.onNext = { [weak self] in self?.onRemoteNext?() }
-        nowPlaying.onPrev = { [weak self] in self?.onRemotePrev?() }
+        nowPlaying.onTogglePlayPause = { [weak self] in self?.performRemoteTogglePlayPause() }
+        nowPlaying.onNext = { [weak self] in self?.performRemoteSkip(by: 1) ?? false }
+        nowPlaying.onPrev = { [weak self] in self?.performRemoteSkip(by: -1) ?? false }
     }
 
     // MARK: - Session interruptions & route changes
@@ -317,6 +331,36 @@ final class AudioController {
         ) { [weak self] note in
             let raw = (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? UInt) ?? 0
             Task { @MainActor [weak self] in self?.handleRouteChange(reasonRaw: raw) }
+        }
+        center.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.handleMediaServicesReset() }
+        }
+    }
+
+    /// The system's media services restarted (a Bluetooth / AirPods fault, or
+    /// Settings › Developer › Reset Media Services): the session is back to its
+    /// defaults and the loaded player is dead. Re-apply the session on the
+    /// next play and drop the player so it is never reused. Audio that was
+    /// playing or paused becomes a resumable request — the next play / resume
+    /// starts that segment over on a fresh player, instead of doing nothing.
+    private func handleMediaServicesReset() {
+        logger.error("media services were reset, rebuilding the audio session and player")
+        AudioSession.shared.resetAfterMediaServicesReset()
+        if inFlightRequest != nil {
+            // Its file is still loading and it plays in a moment: bring the
+            // session back first, the way `playSegment` / `playFull` began.
+            AudioSession.shared.activate()
+        }
+        guard let unfinished = engine.discardPlayer() else { return }
+        isPaused = false
+        if pendingResumable == nil {
+            if let segment = unfinished.segment {
+                pendingResumable = .segment(url: unfinished.url, start: segment.start, end: segment.end)
+            } else {
+                pendingResumable = .full(url: unfinished.url)
+            }
         }
     }
 
