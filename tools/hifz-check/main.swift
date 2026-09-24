@@ -109,6 +109,26 @@ func runRepeatAndTimingTests() {
     check(HifzTiming.gapSeconds(unitSeconds: 4, playbackRate: 0) == 4, "gapSeconds rate<=0 falls back to rate 1")
 }
 
+func runSleepTimerTests() {
+    let start = Date(timeIntervalSinceReferenceDate: 1_000)
+    check(HifzTiming.sleepDeadline(length: nil, from: start) == nil, "sleepDeadline(nil) = timer off")
+    check(HifzTiming.sleepDeadline(length: 300, from: start) == start + 300, "sleepDeadline(300) = start + 300s")
+    check(HifzTiming.sleepDeadline(length: -5, from: start) == start, "sleepDeadline(negative) runs out at once")
+
+    let deadline = start + 300
+    check(HifzTiming.sleepTimeLeft(until: deadline, now: start + 299) == 1, "sleepTimeLeft 1s before the deadline")
+    check(HifzTiming.sleepTimeLeft(until: deadline, now: deadline) == 0, "sleepTimeLeft = 0 at the deadline")
+    check(HifzTiming.sleepTimeLeft(until: deadline, now: deadline + 60) == 0, "sleepTimeLeft is never negative")
+    check(HifzTiming.sleepMinutesLeft(until: deadline, now: start) == 5, "sleepMinutesLeft full 5 min = 5")
+    check(HifzTiming.sleepMinutesLeft(until: deadline, now: start + 241) == 1, "sleepMinutesLeft 59s rounds up to 1")
+    check(HifzTiming.sleepMinutesLeft(until: deadline, now: start + 239) == 2, "sleepMinutesLeft 61s rounds up to 2")
+    check(HifzTiming.sleepMinutesLeft(until: deadline, now: deadline + 1) == 0, "sleepMinutesLeft past deadline = 0")
+
+    let scopes: [HifzScope] = [.ayah(unitID: "x"), .surah(number: 112), .continuous(fromUnitID: "x")]
+    let timerOffByDefault = scopes.allSatisfy { HifzPlan.defaults(for: $0).sleepAfter == nil }
+    check(timerOffByDefault, "every default plan starts with the sleep timer off")
+}
+
 // MARK: - Section C: HifzCatalog.build fixtures
 
 /// A minimal `Element` fixture — only `audioUrl`/`start`/`end` matter to the
@@ -285,6 +305,7 @@ func runRealDataSection(repoRoot: String) {
 
 runSequenceTests()
 runRepeatAndTimingTests()
+runSleepTimerTests()
 runCatalogBuilderTests()
 
 let repoRoot = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : FileManager.default.currentDirectoryPath

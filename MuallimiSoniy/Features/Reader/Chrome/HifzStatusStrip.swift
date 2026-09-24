@@ -28,6 +28,9 @@ struct HifzStripState {
     /// viewport above it) never changes height mid-session.
     let reservesCountdown: Bool
     let dots: DotsState?
+    /// When the sleep timer ends the session, `nil` while it's off — shown as
+    /// a small countdown at the end of the progress line.
+    let sleepDeadline: Date?
     let isStalled: Bool
     /// What VoiceOver reads for the text lines — the same words, but with
     /// "until stopped" where the screen shows "∞".
@@ -90,6 +93,14 @@ enum HifzLabels {
             parts.append(String(format: store.t(key, locale), "\(cursor.roundIndex + 1)", total))
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// "Uyqu taymeri: 15 daq." — what VoiceOver says for the strip's sleep
+    /// countdown, in whole minutes rounded up.
+    static func sleepTimeLeft(until deadline: Date, store: ContentStore, locale: AppLocale) -> String {
+        let minutes = HifzTiming.sleepMinutesLeft(until: deadline, now: Date())
+        let value = String(format: store.t("hifz_sleep_minutes", locale), "\(minutes)")
+        return "\(store.t("hifz_sleep_timer", locale)): \(value)"
     }
 
     private static func repeatLabel(_ value: HifzRepeat, forever: String) -> String {
@@ -203,6 +214,9 @@ struct HifzStatusStrip: View {
                 if let dots = state.dots {
                     dotsView(dots)
                 }
+                if let deadline = state.sleepDeadline {
+                    sleepCountdown(until: deadline)
+                }
             }
         }
         .accessibilityElement(children: .combine)
@@ -231,6 +245,21 @@ struct HifzStatusStrip: View {
             }
         }
         .accessibilityHidden(true)
+    }
+
+    /// Moon + time left ("14:32"), counting down on its own and stopping at
+    /// 0:00 while the last unit plays out. VoiceOver hears it through the
+    /// caller's `accessibilityLabel` instead.
+    private func sleepCountdown(until deadline: Date) -> some View {
+        HStack(spacing: 3 * layoutMetrics.uiScale) {
+            Image(systemName: "moon.zzz.fill")
+            Text(timerInterval: min(Date(), deadline)...deadline, countsDown: true, showsHours: false)
+                .monospacedDigit()
+        }
+        .font(layoutMetrics.font(.caption, .subheadline))
+        .foregroundStyle(readingTheme.textMuted)
+        .lineLimit(1)
+        .fixedSize()
     }
 
     // MARK: - Gap countdown
@@ -303,6 +332,7 @@ struct HifzStatusStrip: View {
                 isGapRunning: false,
                 reservesCountdown: true,
                 dots: HifzStripState.DotsState(done: 2, total: 5),
+                sleepDeadline: Date(timeIntervalSinceNow: 14 * 60),
                 isStalled: false,
                 accessibilityLabel: "Ixlos · 3-oyat, Faqat shu oyat, Takror 2/5",
                 stopLabel: "Yodlashni toʻxtatish",

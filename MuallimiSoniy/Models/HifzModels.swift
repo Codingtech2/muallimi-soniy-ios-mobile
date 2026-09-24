@@ -142,6 +142,11 @@ nonisolated struct HifzPlan: Sendable, Hashable {
     var eachAyah: HifzRepeat
     var rounds: HifzRepeat
     var pauseToRepeat: Bool
+    /// How long the session may run before the sleep timer ends it (right
+    /// after the unit playing at that moment), or `nil` while the timer is
+    /// off. Session-only, never saved: the sheet sets it, a resume carries
+    /// over the time that was left, and every other way in starts it off.
+    var sleepAfter: TimeInterval?
 
     /// Product defaults from the feature matrix: ayah = 5x/1 round, surah =
     /// 1x-each/3 rounds, continuous = 1x/1 round. Pause-to-repeat always
@@ -232,6 +237,7 @@ nonisolated struct HifzSequence: Sendable, Hashable {
 nonisolated enum HifzTiming: Sendable {
     private static let minGapSeconds: Double = 2
     private static let maxGapSeconds: Double = 10
+    private static let secondsPerMinute: Double = 60
 
     /// How long the "your turn" silence should last after a unit finishes:
     /// roughly the unit's own duration adjusted for playback speed, clamped
@@ -241,5 +247,21 @@ nonisolated enum HifzTiming: Sendable {
         let rate = playbackRate > 0 ? playbackRate : 1
         let raw = unitSeconds / rate
         return min(max(raw, minGapSeconds), maxGapSeconds)
+    }
+
+    /// When a sleep timer of `length` seconds started at `start` runs out, or
+    /// `nil` while the timer is off. A negative length runs out at once.
+    static func sleepDeadline(length: TimeInterval?, from start: Date) -> Date? {
+        length.map { start.addingTimeInterval(max($0, 0)) }
+    }
+
+    /// Seconds the sleep timer has left at `now` — never negative.
+    static func sleepTimeLeft(until deadline: Date, now: Date) -> TimeInterval {
+        max(deadline.timeIntervalSince(now), 0)
+    }
+
+    /// Whole minutes left, rounded up, so it never reads 0 while time is left.
+    static func sleepMinutesLeft(until deadline: Date, now: Date) -> Int {
+        Int((sleepTimeLeft(until: deadline, now: now) / secondsPerMinute).rounded(.up))
     }
 }

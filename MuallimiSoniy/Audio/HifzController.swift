@@ -39,6 +39,11 @@ final class HifzController {
     /// pending to resume — the UI should offer a manual retry instead of
     /// looking permanently stuck.
     private(set) var isStalled = false
+    /// When the sleep timer ends this session, `nil` while it's off. Plain
+    /// wall-clock time, checked only as a unit or gap finishes — so it works
+    /// with the screen locked and the app in the background, where no UI
+    /// timer would fire.
+    private(set) var sleepDeadline: Date?
 
     var isActive: Bool { phase != .idle }
 
@@ -120,6 +125,7 @@ final class HifzController {
         self.savedTapRepeatCount = tapRepeatCount
         self.savedTapLoop = tapLoop
         self.playbackRate = playbackRate
+        sleepDeadline = HifzTiming.sleepDeadline(length: plan.sleepAfter, from: Date())
         pendingCursor = nil
         isStalled = false
 
@@ -295,6 +301,10 @@ final class HifzController {
     /// Wired to `audio.onSegmentComplete` by `start()`.
     private func segmentDidComplete() {
         guard isActive else { return }
+        if sleepTimerHasRunOut {
+            endForSleepTimer()
+            return
+        }
         if phase == .gap {
             guard let next = pendingCursor else {
                 finish(.completed)
@@ -377,8 +387,9 @@ final class HifzController {
         let each = Self.repeatDescription(plan.eachAyah)
         let rounds = Self.repeatDescription(plan.rounds)
         let pause = plan.pauseToRepeat ? 1 : 0
+        let sleep = plan.sleepAfter.map { String(format: "%.0fs", $0) } ?? "off"
         let message = "hifz start scope=\(scopeName) target=\(target) units=\(unitCount) "
-            + "each=\(each) rounds=\(rounds) pause=\(pause)"
+            + "each=\(each) rounds=\(rounds) pause=\(pause) sleep=\(sleep)"
         logger.info("\(message, privacy: .public)")
     }
 
@@ -398,6 +409,28 @@ final class HifzController {
 
     private func logEnd(_ reason: EndReason) {
         logger.info("\(Self.endReasonMessage(reason), privacy: .public)")
+    }
+}
+
+// MARK: - Sleep timer
+
+extension HifzController {
+    /// Whether the sleep timer is on and its time is up. Asked only when a
+    /// unit or gap finishes, so the unit playing when time runs out is always
+    /// heard to its end.
+    private var sleepTimerHasRunOut: Bool {
+        guard let sleepDeadline else { return false }
+        return HifzTiming.sleepTimeLeft(until: sleepDeadline, now: Date()) <= 0
+    }
+
+    /// Time is up: ends the session as a stop, the same way the strip's Stop
+    /// button does — the lock-screen entry goes, a stray PLAY stays a no-op,
+    /// and other apps get the audio session back.
+    private func endForSleepTimer() {
+        let message = "hifz sleep timer ran out after unit=\(currentUnit?.id ?? "-")"
+        logger.info("\(message, privacy: .public)")
+        stop()
+        AudioSession.shared.deactivate()
     }
 }
 

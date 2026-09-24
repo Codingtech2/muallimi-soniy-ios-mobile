@@ -842,7 +842,9 @@ private extension ReaderView {
         }
 
         let title = isGap ? store.t("hifz_your_turn", locale) : unitTitle
-        let spoken = [title, badge, isGap ? unitTitle : spokenProgress].compactMap { $0 }.filter { !$0.isEmpty }
+        let sleepSpoken = hifz.sleepDeadline.map { HifzLabels.sleepTimeLeft(until: $0, store: store, locale: locale) }
+        let spoken = [title, badge, isGap ? unitTitle : spokenProgress, sleepSpoken]
+            .compactMap { $0 }.filter { !$0.isEmpty }
         return HifzStripState(
             title: title,
             detail: isGap ? unitTitle : progress,
@@ -852,6 +854,7 @@ private extension ReaderView {
             isGapRunning: isGap && audio.isPlaying,
             reservesCountdown: plan.pauseToRepeat,
             dots: dots,
+            sleepDeadline: hifz.sleepDeadline,
             isStalled: hifz.isStalled,
             accessibilityLabel: spoken.joined(separator: ", "),
             stopLabel: store.t("hifz_stop", locale),

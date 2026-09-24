@@ -16,7 +16,13 @@ struct HifzResumeOffer: Identifiable {
         guard hifz.isActive, let plan = hifz.plan, let cursor = hifz.cursor, let unit = hifz.currentUnit else {
             return nil
         }
-        self.plan = plan
+        // A resumed session goes on with the sleep time it had left, rather
+        // than starting the timer over.
+        var resumePlan = plan
+        if let deadline = hifz.sleepDeadline {
+            resumePlan.sleepAfter = HifzTiming.sleepTimeLeft(until: deadline, now: Date())
+        }
+        self.plan = resumePlan
         self.cursor = cursor
         self.unit = unit
     }

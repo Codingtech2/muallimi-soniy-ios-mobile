@@ -30,6 +30,9 @@ struct HifzSheet: View {
     @State private var eachAyah: HifzRepeat
     @State private var rounds: HifzRepeat
     @State private var pauseToRepeat = false
+    /// Sleep timer in minutes, `nil` = off. Session-only: starts off on every
+    /// presentation and is never saved.
+    @State private var sleepMinutes: Int?
     /// iPhone detent. Starts at `.large` on every presentation, so the repeat
     /// count, pause and speed are visible before Start.
     @State private var detent: PresentationDetent = .large
@@ -45,6 +48,8 @@ struct HifzSheet: View {
     private static let disabledOpacity: CGFloat = 0.45
     private static let timesOptions: [HifzRepeat] = [.times(1), .times(3), .times(5), .times(10), .forever]
     private static let eachAyahOptions: [HifzRepeat] = [.times(1), .times(2), .times(3), .times(5)]
+    private static let sleepOptions: [Int?] = [nil, 5, 10, 15, 30]
+    private static let secondsPerMinute: TimeInterval = 60
     /// Fill behind a selected option. Deeper than `AppColor.primary` on
     /// purpose: white text on the brand green is only ~3.3:1 (light) and
     /// ~2.3:1 (dark), under the 4.5:1 small text needs, while this green keeps
@@ -95,6 +100,8 @@ struct HifzSheet: View {
                     pauseSection
                     sectionDivider
                     speedSection
+                    sectionDivider
+                    sleepSection
                 }
                 .padding(20 * layoutMetrics.uiScale)
             }
@@ -438,6 +445,43 @@ private extension HifzSheet {
         return "\(number)×"
     }
 
+    // MARK: - Sleep timer
+
+    var sleepSection: some View {
+        VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
+            sectionTitle(tr("hifz_sleep_timer"))
+            chipScroller {
+                ForEach(Self.sleepOptions, id: \.self) { minutes in
+                    sleepChip(minutes)
+                }
+            }
+        }
+    }
+
+    /// Same capsule as a speed chip: "Oʻchiq", then "5 daq." … "30 daq.".
+    func sleepChip(_ minutes: Int?) -> some View {
+        let isSelected = minutes == sleepMinutes
+        let label = minutes.map { String(format: tr("hifz_sleep_minutes"), "\($0)") } ?? tr("hifz_sleep_off")
+        let spokenLabel = "\(tr("hifz_sleep_timer")): \(label)"
+        return Button {
+            sleepMinutes = minutes
+        } label: {
+            Text(label)
+                .font(layoutMetrics.font(
+                    .system(.subheadline, design: .rounded, weight: .semibold),
+                    .system(.title3, design: .rounded, weight: .semibold)
+                ))
+                .foregroundStyle(isSelected ? .white : AppColor.textMain)
+                .padding(.horizontal, 6 * layoutMetrics.uiScale)
+                .frame(minWidth: 64 * layoutMetrics.uiScale, minHeight: Self.chipSide * layoutMetrics.uiScale)
+                .background(Capsule().fill(isSelected ? Self.selectedFill : AppColor.surface))
+                .overlay(Capsule().strokeBorder(isSelected ? Color.clear : AppColor.divider, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(spokenLabel)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
     // MARK: - Start
 
     var startFooter: some View {
@@ -470,18 +514,19 @@ private extension HifzSheet {
     /// with the scope buttons' own disabled states, so this should only be
     /// `nil` transiently — never crashes either way).
     func buildPlan() -> HifzPlan? {
+        let sleepAfter = sleepMinutes.map { TimeInterval($0) * Self.secondsPerMinute }
         switch scopeChoice {
         case .ayah:
             guard let activeElementId, catalog.unit(containing: activeElementId) != nil else { return nil }
             return HifzPlan(
                 scope: .ayah(unitID: activeElementId), eachAyah: eachAyah, rounds: .times(1),
-                pauseToRepeat: pauseToRepeat
+                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter
             )
         case .surah:
             guard catalog.surah(number: selectedSurahNumber) != nil else { return nil }
             return HifzPlan(
                 scope: .surah(number: selectedSurahNumber), eachAyah: eachAyah, rounds: rounds,
-                pauseToRepeat: pauseToRepeat
+                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter
             )
         case .continuous:
             let anchor = activeElementId.flatMap { catalog.unit(containing: $0)?.id }
@@ -490,7 +535,7 @@ private extension HifzSheet {
             // Always one pass: Qur'an order runs to An-Nas and never wraps back.
             return HifzPlan(
                 scope: .continuous(fromUnitID: anchor), eachAyah: eachAyah, rounds: .times(1),
-                pauseToRepeat: pauseToRepeat
+                pauseToRepeat: pauseToRepeat, sleepAfter: sleepAfter
             )
         }
     }

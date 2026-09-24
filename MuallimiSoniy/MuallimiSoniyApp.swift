@@ -76,7 +76,7 @@ struct MuallimiSoniyApp: App {
         //  • -MSReaderPage <globalIndex> opens the full reader at a global page.
         //  • -MSHifz <surah:N|ayah:<id>|continuous:<id>|continuous:start> opens the
         //    reader with a hifz (memorization) session already running, tuned by
-        //    -MSHifzRepeat / -MSHifzEach / -MSHifzPause.
+        //    -MSHifzRepeat / -MSHifzEach / -MSHifzPause / -MSHifzSleepSeconds.
         if let screen = ProcessInfo.processInfo.environmentScreen {
             DebugScreenHost(screen: screen)
         } else if let bookPageNumber = ProcessInfo.processInfo.environmentSinglePage {
@@ -88,7 +88,8 @@ struct MuallimiSoniyApp: App {
                 target: hifzTarget,
                 repeatOverride: ProcessInfo.processInfo.environmentHifzRepeat,
                 eachOverride: ProcessInfo.processInfo.environmentHifzEach,
-                pauseToRepeat: ProcessInfo.processInfo.wantsHifzPause
+                pauseToRepeat: ProcessInfo.processInfo.wantsHifzPause,
+                sleepSeconds: ProcessInfo.processInfo.environmentHifzSleepSeconds
             )
         } else {
             gatedRoot
@@ -191,6 +192,7 @@ private struct DebugHifzHost: View {
     let repeatOverride: HifzRepeat?
     let eachOverride: HifzRepeat?
     let pauseToRepeat: Bool
+    let sleepSeconds: TimeInterval?
 
     var body: some View {
         if let resolved = resolvePlan() {
@@ -204,7 +206,7 @@ private struct DebugHifzHost: View {
 
     /// Parses `target` (`surah:N`, `ayah:<id>`, `continuous:<id>`,
     /// `continuous:start`) against the catalog and applies the repeat/each/
-    /// pause overrides on top of `HifzPlan.defaults(for:)`.
+    /// pause/sleep overrides on top of `HifzPlan.defaults(for:)`.
     private func resolvePlan() -> (plan: HifzPlan, startIndex: Int)? {
         guard let (scope, startIndex) = resolveScope() else { return nil }
         var plan = HifzPlan.defaults(for: scope)
@@ -218,6 +220,7 @@ private struct DebugHifzHost: View {
             plan.eachAyah = eachOverride
         }
         plan.pauseToRepeat = pauseToRepeat
+        plan.sleepAfter = sleepSeconds
         return (plan, startIndex)
     }
 
@@ -302,6 +305,15 @@ private extension ProcessInfo {
     /// Whether `-MSHifzPause` was passed (pause-to-repeat on).
     var wantsHifzPause: Bool {
         arguments.contains("-MSHifzPause") || environment["MSHifzPause"] != nil
+    }
+
+    /// Reads `-MSHifzSleepSeconds <n>` — a sleep timer of `n` seconds, far
+    /// under the sheet's 5-minute minimum, so QA can watch it end a session.
+    var environmentHifzSleepSeconds: TimeInterval? {
+        guard let raw = environment["MSHifzSleepSeconds"] ?? argumentValue(for: "-MSHifzSleepSeconds") else {
+            return nil
+        }
+        return TimeInterval(raw)
     }
 
     private static func parseHifzRepeat(_ raw: String) -> HifzRepeat {
