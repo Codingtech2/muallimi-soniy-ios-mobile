@@ -5,7 +5,9 @@ import SwiftUI
 /// the catalog failed to build (`HifzCatalog.empty`).
 ///
 /// A row on iPhone; a tall tile beside the Continue card on iPad and at
-/// accessibility text sizes, where the title needs the card's full width.
+/// accessibility text sizes, where the title needs the card's full width. The
+/// tile ends in a gilt progress bar — the memorized share of the surahs — so
+/// its height carries information instead of empty glass.
 struct HomeHifzCard: View {
     let store: ContentStore
     let progress: ProgressStore
@@ -22,8 +24,12 @@ struct HomeHifzCard: View {
             "\(store.hifzCatalog.surahs.count)"
         )
     }
+    private var memorizedFraction: Double {
+        let total = store.hifzCatalog.surahs.count
+        return total > 0 ? Double(progress.memorizedCount) / Double(total) : 0
+    }
     private var isTile: Bool { layoutMetrics.isRegular || dynamicTypeSize.isAccessibilitySize }
-    private var badgeSide: CGFloat { layoutMetrics.isRegular ? 76 : 56 }
+    private var badgeSide: CGFloat { layoutMetrics.isRegular ? 96 : 56 }
     private var chevronSide: CGFloat { layoutMetrics.isRegular ? 40 : 32 }
     private var cornerRadius: CGFloat { layoutMetrics.isRegular ? 30 : 24 }
 
@@ -61,6 +67,7 @@ struct HomeHifzCard: View {
             }
             Spacer(minLength: 0)
             labels
+            HomeProgressBar(fraction: memorizedFraction, tint: AppColor.gold, trackOpacity: 0.28)
         }
     }
 

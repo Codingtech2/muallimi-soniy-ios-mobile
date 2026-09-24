@@ -18,6 +18,12 @@ nonisolated enum AppColor {
     static let primaryDark = Color(light: Color(hex: "15803d"), dark: Color(hex: "16a34a"))
     /// `--color-primary-light`.
     static let primaryLight = Color(light: Color(hex: "22c55e"), dark: Color(hex: "4ade80"))
+    /// Solid call-to-action fill under a white label: 5:1 in both themes
+    /// (`primary` in dark mode only reaches 3.3:1 under white text).
+    static let primaryButton = Color(hex: "15803d")
+    /// Tint for system controls and the tab bar: deep enough on light glass
+    /// for AA text (the system green measured 2:1 there), bright on dark glass.
+    static let controlTint = Color(light: Color(hex: "15803d"), dark: Color(hex: "22c55e"))
     /// `--color-primary-glow` — the soft shadow behind an active element.
     static let primaryGlow = Color(
         light: Color(hex: "16a34a").opacity(0.25),

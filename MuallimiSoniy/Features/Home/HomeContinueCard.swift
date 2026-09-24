@@ -90,7 +90,7 @@ struct HomeContinueCard: View {
             .padding(.vertical, 12 * layoutMetrics.uiScale)
             .frame(maxWidth: .infinity, minHeight: layoutMetrics.isRegular ? 64 : 54)
             // The deeper green keeps white text readable in both themes.
-            .background(AppColor.primaryDark, in: shape)
+            .background(AppColor.primaryButton, in: shape)
             .contentShape(shape)
         }
         .buttonStyle(HomeCardButtonStyle())
@@ -108,10 +108,14 @@ struct HomeContinueCard: View {
     }
 }
 
-/// Slim capsule bar in the hero green. Display only — VoiceOver hears the
-/// page count from the summary instead.
-private struct HomeProgressBar: View {
+/// Slim capsule bar, hero green by default (gold on the hifz tile). Display
+/// only — VoiceOver hears the count from the card's summary instead.
+struct HomeProgressBar: View {
     let fraction: Double
+    var tint: Color = AppColor.primary
+    /// The empty track; the gold hifz bar raises it so an all-zero bar still
+    /// reads as a runway rather than a stray line.
+    var trackOpacity: Double = 0.16
 
     @Environment(\.layoutMetrics) private var layoutMetrics
 
@@ -119,11 +123,11 @@ private struct HomeProgressBar: View {
 
     var body: some View {
         Capsule()
-            .fill(AppColor.primary.opacity(0.16))
+            .fill(tint.opacity(trackOpacity))
             .overlay(alignment: .leading) {
                 GeometryReader { proxy in
                     Capsule()
-                        .fill(AppColor.primary)
+                        .fill(tint)
                         .frame(width: fillWidth(in: proxy.size.width))
                 }
             }

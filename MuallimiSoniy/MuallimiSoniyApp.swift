@@ -49,7 +49,7 @@ struct MuallimiSoniyApp: App {
                 .environment(progress)
                 .environment(settings)
                 .adaptiveLayout(baseArabicScale: settings.arabicScale)
-                .tint(.green)
+                .tint(AppColor.controlTint)
                 .preferredColorScheme(settings.preferredColorScheme)
                 .task {
                     // Release builds trigger the download from onboarding, not here.
@@ -68,9 +68,25 @@ struct MuallimiSoniyApp: App {
     @ViewBuilder
     private var root: some View {
         #if DEBUG
+        // -MSCanvas <w>x<h> lays any of the QA hosts below out at that window
+        // size (iPad landscape / Split View panes) on a headless simulator.
+        if let canvas = ProcessInfo.processInfo.environmentCanvasSize {
+            DebugCanvas(size: canvas, baseArabicScale: settings.arabicScale) { debugRoot }
+        } else {
+            debugRoot
+        }
+        #else
+        gatedRoot
+        #endif
+    }
+
+    #if DEBUG
+    @ViewBuilder
+    private var debugRoot: some View {
         // Screenshot/QA shortcuts (off by default → normal app on launch):
-        //  • -MSScreen <home|contents|settings> renders one tab screen directly,
-        //    so auth-free QA can reach Contents / Settings without a tap tool.
+        //  • -MSScreen <home|contents|settings|hifz|tabs> renders one tab screen
+        //    directly (or the whole tab shell), so auth-free QA can reach
+        //    Contents / Settings without a tap tool.
         //  • -MSPageOnly <bookPageNumber> renders exactly one page through the real
         //    dispatcher, bypassing the pager (reliable for any page).
         //  • -MSReaderPage <globalIndex> opens the full reader at a global page.
@@ -94,10 +110,8 @@ struct MuallimiSoniyApp: App {
         } else {
             gatedRoot
         }
-        #else
-        gatedRoot
-        #endif
     }
+    #endif
 
     /// Every cold launch shows the welcome/adab gate first (tahorat reminder);
     /// once dismissed it falls through to first-run onboarding (one-tap audio
@@ -131,6 +145,7 @@ private struct DebugScreenHost: View {
             case "contents": ContentsView()
             case "settings": SettingsView()
             case "hifz": NavigationStack { HifzSurahListView() }
+            case "tabs": RootTabView()
             default:
                 ContentUnavailableView("Unknown screen: \(screen)", systemImage: "questionmark.circle")
             }
@@ -141,12 +156,47 @@ private struct DebugScreenHost: View {
     /// Seeds a mid-book demo state (resume at page 41; every lesson finished
     /// before it marked complete) for the home / contents screenshot hosts.
     private func seedDemoProgressIfNeeded() {
-        guard screen == "home" || screen == "contents" else { return }
+        guard screen == "home" || screen == "contents" || screen == "tabs" else { return }
         let completed = store.outline
             .flatMap(\.lessons)
             .filter { $0.globalEnd <= 40 }   // fully before the 41st global page
             .map(\.id)
         progress.debugSeed(resumeGlobalIndex: 40, completedLessons: completed)
+    }
+}
+#endif
+
+#if DEBUG
+/// QA-only: lays the hosted screen out in a fixed `width × height` canvas —
+/// e.g. `-MSCanvas 1376x1032` (13" iPad landscape) or `-MSCanvas 678x1032`
+/// (one pane of a 50/50 Split View) — scaled down to fit the device screen,
+/// because a headless simulator can neither rotate nor enter Split View.
+/// Widths under iPadOS's regular-width threshold switch the size class to
+/// compact and re-derive `LayoutMetrics`, exactly as a narrowed multitasking
+/// window would.
+private struct DebugCanvas<Content: View>: View {
+    let size: CGSize
+    let baseArabicScale: Double
+    @ViewBuilder let content: Content
+
+    /// iPadOS gives a Split View pane the regular width class from 678 pt up
+    /// (the 50/50 split of a 13" iPad); anything narrower is compact.
+    private var sizeClass: UserInterfaceSizeClass { size.width >= 678 ? .regular : .compact }
+
+    var body: some View {
+        GeometryReader { proxy in
+            let scale = min(1, proxy.size.width / size.width, proxy.size.height / size.height)
+            content
+                .adaptiveLayout(baseArabicScale: baseArabicScale)
+                .environment(\.horizontalSizeClass, sizeClass)
+                .frame(width: size.width, height: size.height)
+                .clipShape(Rectangle())
+                .scaleEffect(scale, anchor: .topLeading)
+                .frame(width: size.width * scale, height: size.height * scale, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .ignoresSafeArea()
+        .background(Color.black.ignoresSafeArea())
     }
 }
 #endif
@@ -268,6 +318,15 @@ private extension ProcessInfo {
     /// Reads the `-MSScreen <name>` launch argument (home / contents / settings).
     var environmentScreen: String? {
         environment["MSScreen"] ?? argumentValue(for: "-MSScreen")
+    }
+
+    /// Reads the `-MSCanvas <width>x<height>` launch argument (points) that
+    /// lays the QA host out at a fixed window size (`DebugCanvas`).
+    var environmentCanvasSize: CGSize? {
+        guard let raw = environment["MSCanvas"] ?? argumentValue(for: "-MSCanvas") else { return nil }
+        let parts = raw.lowercased().split(separator: "x").compactMap { Double($0) }
+        guard parts.count == 2, parts[0] > 0, parts[1] > 0 else { return nil }
+        return CGSize(width: parts[0], height: parts[1])
     }
 
     /// Reads the `-MSLocale <uz-latn|uz-cyrl|ru|en>` launch argument so QA /

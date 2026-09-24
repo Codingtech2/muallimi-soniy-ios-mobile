@@ -18,6 +18,52 @@ enum HomeStyle {
     static let pressAnimation = Animation.spring(duration: 0.2, bounce: 0)
     static let pressedScale: CGFloat = 0.98
     static let pressedOpacity: Double = 0.88
+    /// Narrowest iPad chapter card: five across a full-width 13" iPad (two
+    /// tidy rows of five), four on an iPad mini, three in a Split View pane.
+    static let chapterCardMinWidth: CGFloat = 160
+}
+
+/// Cards side by side at fixed fractions of the row width — the iPad
+/// Continue 3/5 + hifz 2/5 pairing — every card stretched to the tallest
+/// one. A `Layout` rather than a `Grid`, so the split is exact and does not
+/// depend on the cards' ideal sizes.
+struct HomeFractionRow: Layout {
+    let fractions: [CGFloat]
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.replacingUnspecifiedDimensions().width
+        let widths = columnWidths(total: width, count: subviews.count)
+        let height = zip(subviews, widths)
+            .map { subview, columnWidth in
+                subview.sizeThatFits(ProposedViewSize(width: columnWidth, height: nil)).height
+            }
+            .max() ?? 0
+        return CGSize(width: width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let widths = columnWidths(total: bounds.width, count: subviews.count)
+        var x = bounds.minX
+        for (subview, columnWidth) in zip(subviews, widths) {
+            subview.place(
+                at: CGPoint(x: x, y: bounds.minY),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: columnWidth, height: bounds.height)
+            )
+            x += columnWidth + spacing
+        }
+    }
+
+    /// Splits the width left after the gaps by `fractions`; a subview without
+    /// a fraction gets an equal share.
+    private func columnWidths(total: CGFloat, count: Int) -> [CGFloat] {
+        guard count > 0 else { return [] }
+        let available = max(total - spacing * CGFloat(count - 1), 0)
+        let shares = (0..<count).map { fractions.indices.contains($0) ? fractions[$0] : 1 }
+        let sum = shares.reduce(0, +)
+        return shares.map { sum > 0 ? available * $0 / sum : available / CGFloat(count) }
+    }
 }
 
 extension View {

@@ -4,7 +4,9 @@ import SwiftUI
 ///
 /// iPhone: a horizontal shelf that runs to the screen edges (a plain column
 /// at accessibility text sizes, where shelf cards would be too narrow).
-/// iPad: a grid on the same three columns as the cards above it.
+/// iPad: a grid of five columns when five `HomeStyle.chapterCardMinWidth`
+/// cards fit (a 13" iPad, either orientation), otherwise two — both divide
+/// the ten chapters evenly, so no row ever ends in an orphaned card.
 struct HomeChaptersSection: View {
     let store: ContentStore
     let progress: ProgressStore
@@ -15,6 +17,9 @@ struct HomeChaptersSection: View {
     /// Wide enough for every chapter title in all four languages to fit two
     /// lines, and it widens with Dynamic Type so a long word never breaks.
     @ScaledMetric(relativeTo: .subheadline) private var shelfCardWidth: CGFloat = 156
+    /// Measured content width for the iPad column rule. Starts at "wide" so
+    /// the common full-width launch never flashes from two columns to five.
+    @State private var gridWidth: CGFloat = .infinity
 
     private var gap: CGFloat { HomeStyle.cardGap * layoutMetrics.uiScale }
     private var pagePadding: CGFloat { HomeStyle.pagePadding * layoutMetrics.uiScale }
@@ -33,6 +38,7 @@ struct HomeChaptersSection: View {
             HomeSectionLabel(text: chaptersLabel)
             chapters
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { gridWidth = $0 }
     }
 
     @ViewBuilder
@@ -75,8 +81,11 @@ struct HomeChaptersSection: View {
         .padding(.horizontal, -pagePadding)
     }
 
+    /// Five columns need room for five minimum-width cards at the default
+    /// text size; every narrower pane or larger text size takes two.
     private var gridColumns: [GridItem] {
-        let count = dynamicTypeSize.isAccessibilitySize ? 2 : layoutMetrics.chapterGridColumns
+        let fiveAcross = 5 * HomeStyle.chapterCardMinWidth + 4 * gap
+        let count = gridWidth >= fiveAcross && dynamicTypeSize <= .large ? 5 : 2
         return Array(repeating: GridItem(.flexible(), spacing: gap), count: count)
     }
 
@@ -112,7 +121,7 @@ private struct HomeChapterLink: View {
             ? "\(pageWord) \(outline.globalStart)"
             : "\(pageWord) \(outline.globalStart)–\(outline.globalEnd)"
     }
-    private var cornerRadius: CGFloat { layoutMetrics.isRegular ? 24 : 20 }
+    private var cornerRadius: CGFloat { 20 }
     private var chipSide: CGFloat { layoutMetrics.isRegular ? 48 : 36 }
 
     /// SF Symbol per chapter order (1–10), mirroring the web lucide mapping.
@@ -147,20 +156,25 @@ private struct HomeChapterLink: View {
                         .accessibilityHidden(true)
                 }
             }
-            Spacer(minLength: 12 * layoutMetrics.uiScale)
+            Spacer(minLength: 12)
             Text(title)
                 .font(layoutMetrics.font(.subheadline.weight(.semibold), .title3.weight(.semibold)))
                 .foregroundStyle(AppColor.textMain)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+                // A long single word ("Kalimalarning") shrinks a little in a
+                // narrow iPad column rather than breaking mid-word.
+                .minimumScaleFactor(0.9)
             Text(span)
                 .font(layoutMetrics.font(.caption, .subheadline))
                 .fontDesign(.rounded)
                 .monospacedDigit()
                 .foregroundStyle(AppColor.textMuted)
         }
-        .padding(layoutMetrics.isRegular ? 20 : 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(layoutMetrics.isRegular ? 16 : 14)
+        // Every iPad card as tall as a two-line title needs, so the rows stay
+        // even whether a title wraps or not.
+        .frame(maxWidth: .infinity, minHeight: layoutMetrics.isRegular ? 176 : nil, maxHeight: .infinity, alignment: .topLeading)
         .glassCard(cornerRadius: cornerRadius)
         .contentShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }

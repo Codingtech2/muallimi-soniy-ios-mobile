@@ -67,10 +67,6 @@ struct LayoutMetrics: Equatable, Sendable {
     /// so tappable letters / words / verses read comfortably on a 13" screen.
     let arabicScaleMultiplier: CGFloat
 
-    /// Columns for the Home chapter quick-jump grid. `1` keeps today's
-    /// horizontal scroller unchanged.
-    let chapterGridColumns: Int
-
     /// Cap for a centred one-off dialog-style card (the welcome/adab gate) —
     /// deliberately modest even on iPad, since it holds a short message + one
     /// button, not scrolling list content (`WelcomeGateView`).
@@ -97,7 +93,6 @@ struct LayoutMetrics: Equatable, Sendable {
         controlBarPrimaryDiameter: 56,
         controlBarSecondaryDiameter: 44,
         arabicScaleMultiplier: 1.0,
-        chapterGridColumns: 1,
         welcomeCardMaxWidth: 460,
         uiScale: 1.0
     )
@@ -114,7 +109,6 @@ struct LayoutMetrics: Equatable, Sendable {
         controlBarPrimaryDiameter: 72,
         controlBarSecondaryDiameter: 58,
         arabicScaleMultiplier: 1.45,
-        chapterGridColumns: 3,
         welcomeCardMaxWidth: 860,
         uiScale: 1.3
     )

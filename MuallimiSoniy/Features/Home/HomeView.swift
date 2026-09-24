@@ -5,9 +5,10 @@ import SwiftUI
 /// stats, and a chapter quick-jump. Complements the Darslar tab (full
 /// contents) rather than duplicating it.
 ///
-/// iPhone stacks everything in one column. On the widened iPad path the top
-/// cards sit on the same three columns as the chapter grid: Continue spans
-/// two, the hifz tile takes the third, the stats fill the row below.
+/// iPhone stacks everything in one column. On the widened iPad path the
+/// Continue card takes three fifths of the first row and the hifz tile two,
+/// the three stats share one glass strip below them, and the chapters fill
+/// an adaptive grid — five across a 13" iPad, two even rows.
 struct HomeView: View {
     @Environment(ContentStore.self) private var store
     @Environment(ProgressStore.self) private var progress
@@ -50,15 +51,21 @@ struct HomeView: View {
     private var primaryCards: some View {
         HomeGlassGroup {
             if layoutMetrics.isRegular {
-                Grid(horizontalSpacing: gap, verticalSpacing: gap) {
-                    GridRow {
-                        continueCard.gridCellColumns(showsHifz ? 2 : 3)
-                        if showsHifz { hifzCard }
+                VStack(spacing: gap) {
+                    if showsHifz {
+                        HomeFractionRow(fractions: [3, 2], spacing: gap) {
+                            continueCard
+                            hifzCard
+                        }
+                    } else {
+                        continueCard
                     }
-                    GridRow { statTiles(axis: .vertical) }
+                    if dynamicTypeSize.isAccessibilitySize {
+                        VStack(spacing: gap) { statTiles(axis: .horizontal) }
+                    } else {
+                        HomeStatsStrip(store: store, progress: progress, audio: audio, locale: locale)
+                    }
                 }
-                // Each row as tall as its tallest card, every card filling it.
-                .fixedSize(horizontal: false, vertical: true)
             } else {
                 VStack(spacing: gap) {
                     continueCard

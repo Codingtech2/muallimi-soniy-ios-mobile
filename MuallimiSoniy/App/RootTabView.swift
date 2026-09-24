@@ -28,6 +28,6 @@ struct RootTabView: View {
                     Label(store.t("settings", locale), systemImage: "gearshape.fill")
                 }
         }
-        .tint(.green)
+        .tint(AppColor.controlTint)
     }
 }
