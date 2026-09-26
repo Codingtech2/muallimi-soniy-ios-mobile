@@ -246,7 +246,7 @@ final class ContentStore {
         }
 
         for edition in file.translations {
-            guard let choice = TranslationChoice(rawValue: edition.id), choice != .automatic, choice != .off else {
+            guard let choice = TranslationChoice(rawValue: edition.id), choice != .automatic else {
                 logger.error("translations.json: unknown translation id \(edition.id, privacy: .public), skipped")
                 continue
             }

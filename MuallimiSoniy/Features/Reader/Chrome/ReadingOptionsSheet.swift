@@ -20,6 +20,7 @@ struct ReadingOptionsSheet: View {
     /// the presenter's environment, so this reads the same live iPad/iPhone
     /// metrics with no extra plumbing.
     @Environment(\.layoutMetrics) private var layoutMetrics
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var locale: AppLocale { preferences.settings.locale }
     private func tr(_ key: String) -> String { store.t(key, locale) }
@@ -104,20 +105,29 @@ struct ReadingOptionsSheet: View {
 
     // MARK: - Translation of the meanings
 
+    /// Right under the text size, so both are at hand at the sheet's first
+    /// height: an on/off switch, then — while on — which translation.
     private var translationSection: some View {
-        VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
-            sectionTitle(tr("translation"))
-            Picker(tr("translation"), selection: translationBinding) {
-                ForEach(TranslationChoice.pickable, id: \.self) { choice in
-                    Text(choice.languageName ?? tr("translation_off")).tag(choice)
+        VStack(alignment: .leading, spacing: 8 * layoutMetrics.uiScale) {
+            toggleRow(tr("translation_show"), isOn: showTranslationBinding)
+            if preferences.settings.showTranslation {
+                Picker(tr("translation"), selection: translationBinding) {
+                    ForEach(TranslationChoice.pickable, id: \.self) { choice in
+                        Text(choice.languageName ?? "").tag(choice)
+                    }
                 }
+                .pickerStyle(.segmented)
             }
-            .pickerStyle(.segmented)
             Text(translationCaption)
                 .font(layoutMetrics.font(.footnote, .body))
                 .foregroundStyle(AppColor.textMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: preferences.settings.showTranslation)
+    }
+
+    private var showTranslationBinding: Binding<Bool> {
+        Binding(get: { preferences.settings.showTranslation }, set: { preferences.setShowTranslation($0) })
     }
 
     /// Shows the language `automatic` resolves to, so the reader sees what is
@@ -133,7 +143,9 @@ struct ReadingOptionsSheet: View {
     /// what turning it on does.
     private var translationCaption: String {
         let choice = preferences.settings.translation.resolved(for: locale)
-        guard let translatorKey = choice.translatorKey else { return tr("translation_desc") }
+        guard preferences.settings.showTranslation, let translatorKey = choice.translatorKey else {
+            return tr("translation_desc")
+        }
         let source = store.translationEditions.first { $0.id == choice.rawValue }?.source
         return [tr(translatorKey), source].compactMap { $0 }.joined(separator: " · ")
     }

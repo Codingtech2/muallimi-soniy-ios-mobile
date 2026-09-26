@@ -5236,31 +5236,31 @@
         }
       }
     },
-    "translation_off" : {
+    "translation_show" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Off"
+            "value" : "Show translation"
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Выкл."
+            "value" : "Показывать перевод"
           }
         },
         "uz-Cyrl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ўчиқ"
+            "value" : "Таржимани кўрсатиш"
           }
         },
         "uz-UZ" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Oʻchiq"
+            "value" : "Tarjimani koʻrsatish"
           }
         }
       }

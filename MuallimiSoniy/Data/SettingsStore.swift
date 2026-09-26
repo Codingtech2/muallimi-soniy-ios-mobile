@@ -121,6 +121,13 @@ final class SettingsStore {
         persist()
     }
 
+    /// Hides or shows the translation lines; the picked language is kept for
+    /// the next time they are turned on. Persisted across launches.
+    func setShowTranslation(_ isOn: Bool) {
+        settings.showTranslation = isOn
+        persist()
+    }
+
     /// Stores an explicit pick, so the translation no longer follows the app
     /// language after this. Persisted across launches.
     func setTranslation(_ choice: TranslationChoice) {
@@ -242,6 +249,8 @@ final class SettingsStore {
             boldText: stored.boldText ?? base.boldText,
             strongHighlight: stored.strongHighlight ?? base.strongHighlight,
             keepScreenAwake: stored.keepScreenAwake ?? base.keepScreenAwake,
+            // A QA build stored "off" as the translation before the on/off toggle existed.
+            showTranslation: stored.showTranslation ?? (stored.translation == "off" ? false : base.showTranslation),
             translation: stored.translation.flatMap(TranslationChoice.init(rawValue:)) ?? base.translation
         )
     }
@@ -287,6 +296,7 @@ private nonisolated struct StoredSettings: Decodable {
     var boldText: Bool?
     var strongHighlight: Bool?
     var keepScreenAwake: Bool?
+    var showTranslation: Bool?
     var translation: String?
 
     /// Legacy pre-slider field (small/medium/large). Only read by
@@ -297,7 +307,7 @@ private nonisolated struct StoredSettings: Decodable {
     private enum CodingKeys: String, CodingKey {
         case repeatCount, speed, volume, locale, theme, loopMode, sequentialMode
         case textScale, readingBackground, lineSpacingScale, boldText, strongHighlight, keepScreenAwake
-        case translation
+        case showTranslation, translation
         case fontSize
     }
 
@@ -316,6 +326,7 @@ private nonisolated struct StoredSettings: Decodable {
         boldText = Self.field(Bool.self, .boldText, in: container)
         strongHighlight = Self.field(Bool.self, .strongHighlight, in: container)
         keepScreenAwake = Self.field(Bool.self, .keepScreenAwake, in: container)
+        showTranslation = Self.field(Bool.self, .showTranslation, in: container)
         translation = Self.field(String.self, .translation, in: container)
         fontSize = Self.field(String.self, .fontSize, in: container)
     }

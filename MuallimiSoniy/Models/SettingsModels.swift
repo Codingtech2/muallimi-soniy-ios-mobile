@@ -29,7 +29,9 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     var strongHighlight: Bool
     /// Disables the idle timer while the reader is open.
     var keepScreenAwake: Bool
-    /// Translation of the meanings under the ayat on the surah pages.
+    /// Shows the translation of the meanings under the ayat on the surah pages.
+    var showTranslation: Bool
+    /// Which translation shows while `showTranslation` is on.
     var translation: TranslationChoice
 
     /// Factory defaults matching the content package (`settings.json`).
@@ -47,6 +49,7 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
         boldText: false,
         strongHighlight: false,
         keepScreenAwake: false,
+        showTranslation: true,
         translation: .automatic
     )
 }

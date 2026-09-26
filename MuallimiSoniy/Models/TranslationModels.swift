@@ -1,12 +1,12 @@
 import Foundation
 
-/// Which translation of the meanings shows under the ayat on the surah pages.
-/// The raw values of the three languages (`uz` / `ru` / `en`) match the `id`s in
+/// Which translation of the meanings shows under the ayat on the surah pages
+/// (whether it shows at all is `AppSettings.showTranslation`). The raw values of
+/// the three languages (`uz` / `ru` / `en`) match the `id`s in
 /// `Resources/translations.json`.
 nonisolated enum TranslationChoice: String, Codable, CaseIterable, Sendable, Hashable {
     /// Follows the app language — the default until the reader picks one.
     case automatic
-    case off
     /// Sheikh Muhammad Sadiq Muhammad Yusuf, Cyrillic script (QuranEnc.com).
     case uzbek = "uz"
     /// Rowwad Translation Center (QuranEnc.com).
@@ -15,13 +15,13 @@ nonisolated enum TranslationChoice: String, Codable, CaseIterable, Sendable, Has
     case english = "en"
 
     /// The choices the reader can actually pick, in picker order.
-    static let pickable: [TranslationChoice] = [.off, .uzbek, .russian, .english]
+    static let pickable: [TranslationChoice] = [.uzbek, .russian, .english]
 
     /// The language named in its own script — deliberately not localized, so
     /// an Uzbek-Latin reader also sees that the Uzbek text is Cyrillic.
     var languageName: String? {
         switch self {
-        case .automatic, .off: return nil
+        case .automatic: return nil
         case .uzbek: return "Ўзбекча"
         case .russian: return "Русский"
         case .english: return "English"
@@ -31,7 +31,7 @@ nonisolated enum TranslationChoice: String, Codable, CaseIterable, Sendable, Has
     /// Catalog key of the localized "Translated by …" line.
     var translatorKey: String? {
         switch self {
-        case .automatic, .off: return nil
+        case .automatic: return nil
         case .uzbek: return "translation_by_uz"
         case .russian: return "translation_by_ru"
         case .english: return "translation_by_en"

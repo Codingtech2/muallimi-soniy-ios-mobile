@@ -86,6 +86,7 @@ struct ReaderView: View {
 
     /// The translation the surah pages show under each ayah (`nil` = off).
     private var ayahTranslation: AyahTranslationDisplay? {
+        guard preferences.settings.showTranslation else { return nil }
         let choice = preferences.settings.translation.resolved(for: locale)
         guard let lookup = store.ayahTranslations[choice] else { return nil }
         return AyahTranslationDisplay(lookup: lookup, notesLabel: store.t("translation_notes", locale))
