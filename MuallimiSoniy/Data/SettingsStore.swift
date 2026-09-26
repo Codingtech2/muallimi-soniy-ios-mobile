@@ -62,6 +62,7 @@ final class SettingsStore {
         // Session-only: repeatCount never carries across launches — always 1×.
         loaded.repeatCount = Self.repeatRange.lowerBound
         settings = loaded
+        ArabicTypeface.current = loaded.arabicTypeface
     }
 
     // MARK: - Setters (each persists immediately)
@@ -125,6 +126,15 @@ final class SettingsStore {
     /// the next time they are turned on. Persisted across launches.
     func setShowTranslation(_ isOn: Bool) {
         settings.showTranslation = isOn
+        persist()
+    }
+
+    /// Switches the book's Arabic typeface. The global `ArabicTypeface.current`
+    /// changes first, so the views that redraw on this setting already draw with
+    /// the new one. Persisted across launches.
+    func setArabicTypeface(_ typeface: ArabicTypeface) {
+        ArabicTypeface.current = typeface
+        settings.arabicTypeface = typeface
         persist()
     }
 
@@ -251,7 +261,8 @@ final class SettingsStore {
             keepScreenAwake: stored.keepScreenAwake ?? base.keepScreenAwake,
             // A QA build stored "off" as the translation before the on/off toggle existed.
             showTranslation: stored.showTranslation ?? (stored.translation == "off" ? false : base.showTranslation),
-            translation: stored.translation.flatMap(TranslationChoice.init(rawValue:)) ?? base.translation
+            translation: stored.translation.flatMap(TranslationChoice.init(rawValue:)) ?? base.translation,
+            arabicTypeface: stored.arabicTypeface.flatMap(ArabicTypeface.init(rawValue:)) ?? base.arabicTypeface
         )
     }
 
@@ -298,6 +309,7 @@ private nonisolated struct StoredSettings: Decodable {
     var keepScreenAwake: Bool?
     var showTranslation: Bool?
     var translation: String?
+    var arabicTypeface: String?
 
     /// Legacy pre-slider field (small/medium/large). Only read by
     /// `merged(_:over:)` to derive `textScale` when an old persisted JSON has
@@ -307,7 +319,7 @@ private nonisolated struct StoredSettings: Decodable {
     private enum CodingKeys: String, CodingKey {
         case repeatCount, speed, volume, locale, theme, loopMode, sequentialMode
         case textScale, readingBackground, lineSpacingScale, boldText, strongHighlight, keepScreenAwake
-        case showTranslation, translation
+        case showTranslation, translation, arabicTypeface
         case fontSize
     }
 
@@ -328,6 +340,7 @@ private nonisolated struct StoredSettings: Decodable {
         keepScreenAwake = Self.field(Bool.self, .keepScreenAwake, in: container)
         showTranslation = Self.field(Bool.self, .showTranslation, in: container)
         translation = Self.field(String.self, .translation, in: container)
+        arabicTypeface = Self.field(String.self, .arabicTypeface, in: container)
         fontSize = Self.field(String.self, .fontSize, in: container)
     }
 

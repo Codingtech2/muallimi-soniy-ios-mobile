@@ -247,6 +247,8 @@ private struct HifzSurahRow: View {
     let locale: AppLocale
 
     @Environment(\.layoutMetrics) private var layoutMetrics
+    /// Redraws the Arabic surah name when the reader picks another typeface.
+    @Environment(\.arabicTypeface) private var arabicTypeface
     /// Lets the two fixed-diameter circle buttons' glyphs grow a little with
     /// Dynamic Type, capped so they never spill past their own circle — same
     /// technique as `ReaderControlBar`.
@@ -281,7 +283,7 @@ private struct HifzSurahRow: View {
     private var info: some View {
         VStack(alignment: .leading, spacing: 4 * layoutMetrics.uiScale) {
             Text(surah.arabicName)
-                .font(arabicFont(arabicNameSize))
+                .font(arabicFont(arabicNameSize, typeface: arabicTypeface))
                 .foregroundStyle(AppColor.textMain)
                 // One word: shrink a little rather than break it mid-word
                 // when a huge text size meets a narrow card.

@@ -31,6 +31,9 @@ struct PageHostView: View {
     @Environment(\.readingTheme) private var readingTheme
     /// iPad vs iPhone padding scale.
     @Environment(\.layoutMetrics) private var layoutMetrics
+    /// The page views call `arabicFont(_:)`, which reads the picked typeface
+    /// while drawing; rebuilding the page on a change redraws it in the new one.
+    @Environment(\.arabicTypeface) private var arabicTypeface
 
     /// `rounded-[28px]` card radius (matches the app's card language).
     private let cornerRadius: CGFloat = 28
@@ -58,6 +61,7 @@ struct PageHostView: View {
 
     var body: some View {
         PageDispatcher.view(for: page, activeId: activeId, onTap: onTap)
+            .id(arabicTypeface)
             .frame(maxWidth: .infinity, alignment: .top)
             .padding(cardPadding)
             // Applied before `.background`, so the fill / border / shadow grow

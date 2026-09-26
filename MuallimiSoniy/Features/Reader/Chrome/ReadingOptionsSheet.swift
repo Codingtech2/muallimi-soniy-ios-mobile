@@ -34,6 +34,8 @@ struct ReadingOptionsSheet: View {
                     sectionDivider
                     translationSection
                     sectionDivider
+                    typefaceSection
+                    sectionDivider
                     backgroundSection
                     sectionDivider
                     lineSpacingSection
@@ -83,7 +85,11 @@ struct ReadingOptionsSheet: View {
             // number in this sheet gets — independent of `arabicScale`, which
             // is purely the user's slider position.
             Text(Self.textSample)
-                .font(arabicFont(32 * layoutMetrics.uiScale * preferences.arabicScale, weight: .bold))
+                .font(arabicFont(
+                    32 * layoutMetrics.uiScale * preferences.arabicScale,
+                    weight: .bold,
+                    typeface: preferences.settings.arabicTypeface
+                ))
                 .foregroundStyle(AppColor.textMain)
                 .lineLimit(1)
                 .minimumScaleFactor(0.3)
@@ -148,6 +154,17 @@ struct ReadingOptionsSheet: View {
         }
         let source = store.translationEditions.first { $0.id == choice.rawValue }?.source
         return [tr(translatorKey), source].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    // MARK: - Arabic typeface
+
+    private var typefaceSection: some View {
+        VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
+            sectionTitle(tr("arabic_font"))
+            ArabicTypefacePicker(selection: preferences.settings.arabicTypeface) {
+                preferences.setArabicTypeface($0)
+            }
+        }
     }
 
     // MARK: - 2. Background

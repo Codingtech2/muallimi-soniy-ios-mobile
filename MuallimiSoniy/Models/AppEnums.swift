@@ -20,6 +20,23 @@ nonisolated enum AppLocale: String, Codable, CaseIterable, Sendable, Hashable {
     }
 }
 
+/// The typeface the book's Arabic is drawn in (mad pages keep Amiri Quran
+/// either way). Picked in the reading options; `naskh` is the web's font.
+nonisolated enum ArabicTypeface: String, Codable, CaseIterable, Sendable, Hashable {
+    /// Custom Noto Naskh Arabic Muallimi — the default, same as the web.
+    case naskh
+    /// SIL Scheherazade New — larger, rounder letters and marks.
+    case scheherazade
+
+    /// Shown under each sample in the picker — the fonts' own names.
+    var displayName: String {
+        switch self {
+        case .naskh: return "Naskh"
+        case .scheherazade: return "Scheherazade"
+        }
+    }
+}
+
 /// Appearance preference. `system` follows the device setting.
 nonisolated enum AppTheme: String, Codable, CaseIterable, Sendable, Hashable {
     case light

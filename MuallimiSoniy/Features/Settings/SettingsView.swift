@@ -199,6 +199,10 @@ struct SettingsView: View {
                     desc: tr("font_size_desc")
                 )
                 TextScaleSlider(title: tr("text_size"), value: textScaleBinding)
+                Text(tr("arabic_font"))
+                    .font(layoutMetrics.font(.subheadline.weight(.medium), .title3.weight(.medium)))
+                    .foregroundStyle(AppColor.textMain)
+                ArabicTypefacePicker(selection: store.settings.arabicTypeface) { store.setArabicTypeface($0) }
             }
         }
     }

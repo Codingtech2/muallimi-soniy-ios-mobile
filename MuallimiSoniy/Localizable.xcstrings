@@ -297,6 +297,35 @@
     "Arab shrifti: %@" : {
 
     },
+    "arabic_font" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arabic font"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Арабский шрифт"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Араб шрифти"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arab shrifti"
+          }
+        }
+      }
+    },
     "audio" : {
       "extractionState" : "manual",
       "localizations" : {

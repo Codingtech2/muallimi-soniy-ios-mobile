@@ -33,6 +33,8 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     var showTranslation: Bool
     /// Which translation shows while `showTranslation` is on.
     var translation: TranslationChoice
+    /// Typeface of the book's Arabic (mad pages keep Amiri Quran).
+    var arabicTypeface: ArabicTypeface
 
     /// Factory defaults matching the content package (`settings.json`).
     static let `default` = AppSettings(
@@ -50,6 +52,7 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
         strongHighlight: false,
         keepScreenAwake: false,
         showTranslation: true,
-        translation: .automatic
+        translation: .automatic,
+        arabicTypeface: .naskh
     )
 }

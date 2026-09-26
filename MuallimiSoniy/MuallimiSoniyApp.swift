@@ -48,6 +48,7 @@ struct MuallimiSoniyApp: App {
                 .environment(downloadManager)
                 .environment(progress)
                 .environment(settings)
+                .environment(\.arabicTypeface, settings.settings.arabicTypeface)
                 .adaptiveLayout(baseArabicScale: settings.arabicScale)
                 .tint(AppColor.controlTint)
                 .preferredColorScheme(settings.preferredColorScheme)

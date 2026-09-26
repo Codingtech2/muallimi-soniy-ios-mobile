@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 import CoreText
 import OSLog
+import os
 
 /// Canonical family names of the bundled Arabic fonts, as read from each
 /// file's `name` table (name IDs verified with fontTools):
@@ -23,6 +24,12 @@ nonisolated enum AppFontFamily {
     /// Amiri Quran — large, prominent damma (U+064F) for mad pages.
     static let amiriQuran = "Amiri Quran"
     static let amiriQuranPostScript = "AmiriQuran-Regular"
+
+    /// SIL Scheherazade New 4.500 (OFL, files unmodified) — the optional
+    /// `ArabicTypeface.scheherazade`. Static weights, picked by PostScript name.
+    static let scheherazadeRegular = "ScheherazadeNew-Regular"
+    static let scheherazadeSemiBold = "ScheherazadeNew-SemiBold"
+    static let scheherazadeBold = "ScheherazadeNew-Bold"
 }
 
 /// Registers the bundled Arabic fonts with CoreText at launch and resolves the
@@ -40,7 +47,10 @@ nonisolated enum FontRegistrar {
 
     private static let bundledFonts: [(name: String, ext: String)] = [
         ("NotoNaskhArabic-MuallimiSoniy", "ttf"),
-        ("AmiriQuran", "ttf")
+        ("AmiriQuran", "ttf"),
+        ("ScheherazadeNew-Regular", "ttf"),
+        ("ScheherazadeNew-SemiBold", "ttf"),
+        ("ScheherazadeNew-Bold", "ttf")
     ]
 
     /// Registers every bundled font. Call once at app launch, before any view
@@ -114,16 +124,74 @@ nonisolated enum FontRegistrar {
     #endif
 }
 
+// MARK: - Typeface choice
+
+extension ArabicTypeface {
+    /// The typeface `arabicFont(_:weight:)` draws with when a call site doesn't
+    /// name one. `SettingsStore` keeps it in step with the setting; the views
+    /// that must redraw on a change read `\.arabicTypeface` (the reader's page
+    /// cards rebuild their content when it changes).
+    nonisolated static var current: ArabicTypeface {
+        get { currentStorage.withLock { $0 } }
+        set { currentStorage.withLock { $0 = newValue } }
+    }
+
+    private nonisolated static let currentStorage = OSAllocatedUnfairLock(initialState: ArabicTypeface.naskh)
+}
+
+private struct ArabicTypefaceKey: EnvironmentKey {
+    static let defaultValue: ArabicTypeface = .naskh
+}
+
+extension EnvironmentValues {
+    /// The picked Arabic typeface, injected at the app root so views that draw
+    /// Arabic can redraw when it changes.
+    var arabicTypeface: ArabicTypeface {
+        get { self[ArabicTypefaceKey.self] }
+        set { self[ArabicTypefaceKey.self] = newValue }
+    }
+}
+
 // MARK: - Font helpers
 
-/// Universal Arabic text font (custom Noto Naskh Muallimi). Fixed size — the
-/// reader scales via discrete size buckets in the primitives, not Dynamic Type.
-nonisolated func arabicFont(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
-    let name = FontRegistrar.resolvedName(
-        family: AppFontFamily.muallimi,
-        postScriptFallback: AppFontFamily.muallimiPostScript
-    )
-    return Font.custom(name, fixedSize: size).weight(weight)
+/// Universal Arabic text font: custom Noto Naskh Muallimi, or Scheherazade New
+/// when that is picked. Fixed size — the reader scales via discrete size
+/// buckets in the primitives, not Dynamic Type.
+nonisolated func arabicFont(
+    _ size: CGFloat,
+    weight: Font.Weight = .bold,
+    typeface: ArabicTypeface = .current
+) -> Font {
+    switch typeface {
+    case .naskh:
+        let name = FontRegistrar.resolvedName(
+            family: AppFontFamily.muallimi,
+            postScriptFallback: AppFontFamily.muallimiPostScript
+        )
+        return Font.custom(name, fixedSize: size).weight(weight)
+    case .scheherazade:
+        return scheherazadeFont(size, weight: weight)
+    }
+}
+
+/// Scheherazade New at the static weight nearest `weight`.
+///
+/// Its kasra under a shadda sits raised, under the shadda, as in most printed
+/// mushafs — not below the letter like the primer (and the Noto build, which
+/// had that ligature stripped). The font's `cv62=1` would lower it, but SwiftUI
+/// drops OpenType feature settings from a `Font` built from a CTFont/UIFont
+/// (checked: CoreText alone renders the lowered kasra, SwiftUI `Text` does not).
+private nonisolated func scheherazadeFont(_ size: CGFloat, weight: Font.Weight) -> Font {
+    let name: String
+    switch weight {
+    case .ultraLight, .thin, .light, .regular:
+        name = AppFontFamily.scheherazadeRegular
+    case .medium, .semibold, .bold:
+        name = AppFontFamily.scheherazadeSemiBold
+    default:  // .heavy / .black — the "bold text" reading option
+        name = AppFontFamily.scheherazadeBold
+    }
+    return Font.custom(name, fixedSize: size)
 }
 
 /// Mad-page Arabic font (Amiri Quran — large, prominent U+064F damma; also
