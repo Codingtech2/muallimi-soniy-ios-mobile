@@ -31,6 +31,8 @@ struct ReadingOptionsSheet: View {
                 VStack(alignment: .leading, spacing: 24 * layoutMetrics.uiScale) {
                     textSizeSection
                     sectionDivider
+                    translationSection
+                    sectionDivider
                     backgroundSection
                     sectionDivider
                     lineSpacingSection
@@ -98,6 +100,42 @@ struct ReadingOptionsSheet: View {
             get: { preferences.settings.textScale },
             set: { preferences.setTextScale($0) }
         )
+    }
+
+    // MARK: - Translation of the meanings
+
+    private var translationSection: some View {
+        VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
+            sectionTitle(tr("translation"))
+            Picker(tr("translation"), selection: translationBinding) {
+                ForEach(TranslationChoice.pickable, id: \.self) { choice in
+                    Text(choice.languageName ?? tr("translation_off")).tag(choice)
+                }
+            }
+            .pickerStyle(.segmented)
+            Text(translationCaption)
+                .font(layoutMetrics.font(.footnote, .body))
+                .foregroundStyle(AppColor.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    /// Shows the language `automatic` resolves to, so the reader sees what is
+    /// on; picking one stores it explicitly.
+    private var translationBinding: Binding<TranslationChoice> {
+        Binding(
+            get: { preferences.settings.translation.resolved(for: locale) },
+            set: { preferences.setTranslation($0) }
+        )
+    }
+
+    /// Who translated the picked text and where it is from, or — while off —
+    /// what turning it on does.
+    private var translationCaption: String {
+        let choice = preferences.settings.translation.resolved(for: locale)
+        guard let translatorKey = choice.translatorKey else { return tr("translation_desc") }
+        let source = store.translationEditions.first { $0.id == choice.rawValue }?.source
+        return [tr(translatorKey), source].compactMap { $0 }.joined(separator: " · ")
     }
 
     // MARK: - 2. Background

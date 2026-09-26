@@ -29,6 +29,8 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     var strongHighlight: Bool
     /// Disables the idle timer while the reader is open.
     var keepScreenAwake: Bool
+    /// Translation of the meanings under the ayat on the surah pages.
+    var translation: TranslationChoice
 
     /// Factory defaults matching the content package (`settings.json`).
     static let `default` = AppSettings(
@@ -44,6 +46,7 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
         lineSpacingScale: 1.0,
         boldText: false,
         strongHighlight: false,
-        keepScreenAwake: false
+        keepScreenAwake: false,
+        translation: .automatic
     )
 }

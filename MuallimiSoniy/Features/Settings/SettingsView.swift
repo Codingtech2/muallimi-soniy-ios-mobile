@@ -365,9 +365,24 @@ struct SettingsView: View {
 
     /// Localized legal body for `doc`, falling back to Uzbek-Latin then empty.
     private func legalBody(for doc: LegalDoc) -> String {
-        content.legal[locale.rawValue]?[doc.docKey]
+        if doc == .translations { return translationCredits }
+        return content.legal[locale.rawValue]?[doc.docKey]
             ?? content.legal[AppLocale.uzLatn.rawValue]?[doc.docKey]
             ?? ""
+    }
+
+    /// The credits each translation's source asks for (translator, source,
+    /// version, link), between the "meanings, not the Qurʼan itself" note and
+    /// the "shown unchanged" note.
+    private var translationCredits: String {
+        let credits = content.translationEditions.map { edition in
+            let choice = TranslationChoice(rawValue: edition.id)
+            return [choice?.languageName, choice?.translatorKey.map(tr), edition.credit, edition.url]
+                .compactMap { $0 }
+                .joined(separator: "\n")
+        }
+        return ([tr("translation_disclaimer")] + credits + [tr("translation_unchanged")])
+            .joined(separator: "\n\n")
     }
 
     // MARK: - Static option tables
@@ -400,12 +415,14 @@ private struct ThemeOption {
     let labelKey: String
 }
 
-/// The three legal documents in the About section (keys match `legal.json`
-/// doc keys and the localization label keys).
+/// The documents in the About section: the three from `legal.json` (keys match
+/// its doc keys and the localization label keys) plus the translation credits,
+/// which are built from `translations.json` instead.
 private enum LegalDoc: String, Identifiable, CaseIterable {
     case privacyPolicy
     case termsOfUse
     case aboutApp
+    case translations
 
     var id: String { rawValue }
     var docKey: String { rawValue }
@@ -417,7 +434,7 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
         switch self {
         case .privacyPolicy: return URL(string: "https://vipads.uz/en/muallimisoniy/privacy-policy")
         case .termsOfUse:    return URL(string: "https://vipads.uz/en/muallimisoniy/terms-of-service")
-        case .aboutApp:      return nil
+        case .aboutApp, .translations: return nil
         }
     }
 
@@ -426,6 +443,7 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
         case .privacyPolicy: return "privacy_policy"
         case .termsOfUse: return "terms_of_use"
         case .aboutApp: return "about_app"
+        case .translations: return "translation_about"
         }
     }
 
@@ -434,6 +452,7 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
         case .privacyPolicy: return "checkmark.shield"
         case .termsOfUse: return "doc.text"
         case .aboutApp: return "info.circle"
+        case .translations: return "character.book.closed"
         }
     }
 }

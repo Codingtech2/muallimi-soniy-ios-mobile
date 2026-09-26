@@ -110,5 +110,6 @@ struct Page46View: View {
         }
         .frame(maxWidth: .infinity)
         .environment(\.layoutDirection, .rightToLeft)
+        .ayahTranslation(for: [e1?.id, e2?.id].compactMap { $0 })
     }
 }

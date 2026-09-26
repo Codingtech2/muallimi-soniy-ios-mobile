@@ -121,6 +121,13 @@ final class SettingsStore {
         persist()
     }
 
+    /// Stores an explicit pick, so the translation no longer follows the app
+    /// language after this. Persisted across launches.
+    func setTranslation(_ choice: TranslationChoice) {
+        settings.translation = choice
+        persist()
+    }
+
     /// Clamps to 1…10 before storing (session-only — resets to 1 next launch).
     func setRepeatCount(_ count: Int) {
         settings.repeatCount = min(
@@ -234,7 +241,8 @@ final class SettingsStore {
             lineSpacingScale: stored.lineSpacingScale ?? base.lineSpacingScale,
             boldText: stored.boldText ?? base.boldText,
             strongHighlight: stored.strongHighlight ?? base.strongHighlight,
-            keepScreenAwake: stored.keepScreenAwake ?? base.keepScreenAwake
+            keepScreenAwake: stored.keepScreenAwake ?? base.keepScreenAwake,
+            translation: stored.translation.flatMap(TranslationChoice.init(rawValue:)) ?? base.translation
         )
     }
 
@@ -279,6 +287,7 @@ private nonisolated struct StoredSettings: Decodable {
     var boldText: Bool?
     var strongHighlight: Bool?
     var keepScreenAwake: Bool?
+    var translation: String?
 
     /// Legacy pre-slider field (small/medium/large). Only read by
     /// `merged(_:over:)` to derive `textScale` when an old persisted JSON has
@@ -288,6 +297,7 @@ private nonisolated struct StoredSettings: Decodable {
     private enum CodingKeys: String, CodingKey {
         case repeatCount, speed, volume, locale, theme, loopMode, sequentialMode
         case textScale, readingBackground, lineSpacingScale, boldText, strongHighlight, keepScreenAwake
+        case translation
         case fontSize
     }
 
@@ -306,6 +316,7 @@ private nonisolated struct StoredSettings: Decodable {
         boldText = Self.field(Bool.self, .boldText, in: container)
         strongHighlight = Self.field(Bool.self, .strongHighlight, in: container)
         keepScreenAwake = Self.field(Bool.self, .keepScreenAwake, in: container)
+        translation = Self.field(String.self, .translation, in: container)
         fontSize = Self.field(String.self, .fontSize, in: container)
     }
 

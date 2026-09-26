@@ -44,5 +44,6 @@ struct AyahRow: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .ayahTranslation(for: elements.map(\.id))
     }
 }

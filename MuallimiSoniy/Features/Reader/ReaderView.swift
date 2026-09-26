@@ -84,6 +84,13 @@ struct ReaderView: View {
         )
     }
 
+    /// The translation the surah pages show under each ayah (`nil` = off).
+    private var ayahTranslation: AyahTranslationDisplay? {
+        let choice = preferences.settings.translation.resolved(for: locale)
+        guard let lookup = store.ayahTranslations[choice] else { return nil }
+        return AyahTranslationDisplay(lookup: lookup, notesLabel: store.t("translation_notes", locale))
+    }
+
     private var pages: [BookPage] { store.allBookPages }
     private var currentPage: BookPage? {
         pages.indices.contains(currentPageIndex) ? pages[currentPageIndex] : nil
@@ -283,6 +290,7 @@ struct ReaderView: View {
         }
         .environment(\.ayahMenuProvider, ayahMenuProvider)
         .environment(\.hifzHiddenElementIds, hifzHiddenElementIds)
+        .environment(\.ayahTranslation, ayahTranslation)
         .hifzResumeChip(
             offer: $hifzResumeOffer,
             title: store.t("hifz_resume", locale),

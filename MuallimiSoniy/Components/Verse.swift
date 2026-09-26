@@ -84,6 +84,8 @@ struct Verse: View {
     var body: some View {
         core
             .modifier(CenterIf(active: !inRow))
+            // In-row verses share one line, so that row carries their translation.
+            .ayahTranslation(for: inRow ? [] : [element.id])
     }
 
     private var core: some View {

@@ -71,6 +71,12 @@ final class ContentStore {
     /// against `allBookPages`. Empty when the index is missing or unresolvable
     /// — the hifz UI hides itself rather than crashing.
     private(set) var hifzCatalog: HifzCatalog = .empty
+    /// Translations of the meanings, keyed by the surah pages' ayah element
+    /// ids. Empty when `translations.json` is missing or unreadable — the
+    /// reader then just shows no translation.
+    private(set) var ayahTranslations: [TranslationChoice: AyahTranslationLookup] = [:]
+    /// Where each translation comes from, in file order (credits page).
+    private(set) var translationEditions: [TranslationEdition] = []
 
     /// Introduction prose that lives outside the page/element structure.
     var muqaddimaParagraphs: [String] { book?.extras.muqaddimaParagraphs ?? [] }
@@ -100,7 +106,9 @@ final class ContentStore {
         // the absent `volume` key, leaving this stuck on `.default`).
         defaultSettings = SettingsStore.bundledDefaultSettings()
         rebuild()
-        buildHifzCatalog()
+        let surahIndex = decodeBundled("surah-index", as: SurahIndexFile.self)
+        buildHifzCatalog(from: surahIndex)
+        buildAyahTranslations(from: surahIndex)
     }
 
     /// Decodes a bundled `<name>.json` resource, returning `nil` (and logging)
@@ -190,9 +198,7 @@ final class ContentStore {
     /// Resolves `Resources/surah-index.json` against `allBookPages` into
     /// `hifzCatalog`. Never crashes on a missing or malformed index — degrades
     /// to `.empty` and logs every problem, so the hifz UI just hides itself.
-    private func buildHifzCatalog() {
-        let indexFile = decodeBundled("surah-index", as: SurahIndexFile.self)
-
+    private func buildHifzCatalog(from indexFile: SurahIndexFile?) {
         // Pages 25 and 30 each belong to two lessons, so the same element id
         // shows up twice in allBookPages (once per occurrence). Keep the first
         // one — a plain Dictionary(uniqueKeysWithValues:) would trap here.
@@ -212,6 +218,52 @@ final class ContentStore {
         let surahCount = catalog.surahs.count
         let unitCount = catalog.surahs.reduce(0) { $0 + $1.units.count }
         logger.info("hifz catalog: \(surahCount, privacy: .public) surahs, \(unitCount, privacy: .public) units")
+    }
+
+    // MARK: - Translations of the meanings
+
+    /// Bundle format this build reads (`tools/translations` writes it).
+    private static let translationsSchemaVersion = 1
+
+    /// Keys every translation in `Resources/translations.json` by the book's
+    /// ayah element ids — the surah index says which surah and ayah each
+    /// element is. A missing or unreadable file leaves translations empty.
+    private func buildAyahTranslations(from indexFile: SurahIndexFile?) {
+        ayahTranslations = [:]
+        translationEditions = []
+        guard let file = decodeBundled("translations", as: TranslationsFile.self) else { return }
+        guard file.schemaVersion == Self.translationsSchemaVersion else {
+            logger.error("translations.json: schema \(file.schemaVersion, privacy: .public) is not supported")
+            return
+        }
+
+        var ayahByElementId: [String: (key: String, ayah: Int)] = [:]
+        for surah in indexFile?.surahs ?? [] {
+            for item in surah.items where item.role == "ayah" {
+                guard let ayah = item.ayah else { continue }
+                ayahByElementId[item.elementId] = ("\(surah.number):\(ayah)", ayah)
+            }
+        }
+
+        for edition in file.translations {
+            guard let choice = TranslationChoice(rawValue: edition.id), choice != .automatic, choice != .off else {
+                logger.error("translations.json: unknown translation id \(edition.id, privacy: .public), skipped")
+                continue
+            }
+            var lines: [String: AyahTranslationLine] = [:]
+            for (elementId, ref) in ayahByElementId {
+                guard let translated = edition.ayahs[ref.key] else { continue }
+                lines[elementId] = AyahTranslationLine(ayah: ref.ayah, text: translated.text, notes: translated.notes)
+            }
+            let missing = ayahByElementId.count - lines.count
+            if missing > 0 {
+                let name = edition.id
+                logger.error("translations.json: \(name, privacy: .public) lacks \(missing, privacy: .public) ayat")
+            }
+            ayahTranslations[choice] = AyahTranslationLookup(linesByElementId: lines)
+            translationEditions.append(edition)
+        }
+        logger.info("translations: \(self.translationEditions.count, privacy: .public) loaded")
     }
 
     // MARK: - Localization (native String Catalog)
