@@ -1,14 +1,19 @@
 import SwiftUI
 
-/// Bespoke 1:1 renderer for the MUQADDIMA read-along (book page 1) — a tappable
+/// Bespoke renderer for the MUQADDIMA read-along (book page 1) — a tappable
 /// Bismillah at the top, a "MUQADDIMA" heading, then the nine intro prose
-/// paragraphs as static, non-tappable text. Ports the web `Page1`.
+/// paragraphs. Ports the web `Page1`, plus one iOS addition: the narration.
 ///
 /// Web reference: `src/components/lesson/RenderedPage.tsx` → `function Page1`.
 /// The prose lives outside the element structure, so it is read from the shared
 /// `ContentStore.muqaddimaParagraphs` (same environment access as Page3/Page4).
 /// The Bismillah uses the amber `jumla` accent when active (its element type),
 /// so it carries its own button look rather than the green `ArabicElementView`.
+///
+/// Audio (all in `02. Muqaddima.mp3`): the Bismillah element (`p1_000`, 0–5 s)
+/// also covers the spoken heading, so tapping the heading plays it too; the
+/// prose element (`p1_001`) is the narrator reading all nine paragraphs, so a
+/// tap anywhere on the text plays the whole reading.
 struct Page1View: View {
     let page: BookPage
     let activeId: String?
@@ -18,8 +23,10 @@ struct Page1View: View {
 
     var body: some View {
         let c = PageContent(elements: page.elements)
+        let bismillah = c.el("000")
+        let reading = c.el("001")
         VStack(alignment: .leading, spacing: 16) {  // gap-4
-            if let bismillah = c.el("000") {
+            if let bismillah {
                 BismillahButton(element: bismillah, isActive: activeId == bismillah.id) {
                     onTap(bismillah)
                 }
@@ -30,9 +37,57 @@ struct Page1View: View {
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity)  // text-center
                 .padding(.bottom, 8)         // mb-2
+                .contentShape(Rectangle())
+                .onTapGesture { if let bismillah { onTap(bismillah) } }
             ParagraphList(paragraphs: store.muqaddimaParagraphs)
+                .modifier(ReadingTapTarget(element: reading, isActive: activeId == reading?.id, onTap: onTap))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - Narrated prose
+
+/// Makes the prose one big tap target for its narration, with the Bismillah's
+/// amber wash while it plays. The wash is drawn outside the text's frame, so the
+/// paragraphs never move when it appears. For VoiceOver the prose is one element:
+/// it reads the text, and a double-tap plays the narration like any other
+/// element. Without the element (an older content package) the text stays plain.
+private struct ReadingTapTarget: ViewModifier {
+    let element: Element?
+    let isActive: Bool
+    let onTap: (Element) -> Void
+
+    @Environment(\.readingAdjustments) private var adjustments
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var amber: Color { AppColor.elJumla }
+    /// How far the wash reaches past the text on each side.
+    private static let washOutset: CGFloat = 8
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if let element {
+            content
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(isActive ? amber.opacity(0.094) : Color.clear)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .strokeBorder(isActive ? amber.opacity(0.6) : Color.clear, lineWidth: 1.5)
+                        )
+                        .padding(-Self.washOutset)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { onTap(element) }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(isActive ? [.startsMediaSession, .isSelected] : .startsMediaSession)
+                .accessibilityHint(adjustments.playHint)
+                .accessibilityAction { onTap(element) }
+                .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: isActive)
+        } else {
+            content
+        }
     }
 }
 
