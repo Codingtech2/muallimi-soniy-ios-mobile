@@ -55,3 +55,6 @@ review/
 
 # Playwright MCP page snapshots (local only)
 .playwright-mcp/
+
+# === tools/translations — raw QuranEnc / ClearQuran downloads (local only) ===
+tools/translations/.cache/
