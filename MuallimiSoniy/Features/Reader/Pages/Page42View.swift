@@ -29,7 +29,7 @@ struct Page42View: View {
     /// Az-Zalzalah — bismillah + 8 ayat (rows 1+2, 3+4, 5, 6, 7+8).
     @ViewBuilder
     private func zalzalah(_ c: PageContent) -> some View {
-        SectionTitle("سورة الزلزلة", subtitle: "زلزله سوره‌سی")
+        SectionTitle("سورة الزلزلة", subtitle: "زلزله سوره‌سی").surahHeaderFrame()
         bism(c, "zz_bism")
         ayah(c, ["zz_a1", "zz_a2"], .gap1_5)
         ayah(c, ["zz_a3", "zz_a4"], .gap1_5)
@@ -41,7 +41,7 @@ struct Page42View: View {
     /// Al-'Adiyat — bismillah + 11 ayat (rows 1+2+3, 4+5, 6+7, 8+9, 10+11).
     @ViewBuilder
     private func adiyat(_ c: PageContent) -> some View {
-        SectionTitle("سورة العاديات", subtitle: "عادیات سوره‌سی")
+        SectionTitle("سورة العاديات", subtitle: "عادیات سوره‌سی").surahHeaderFrame()
         bism(c, "ad_bism")
         ayah(c, ["ad_a1", "ad_a2", "ad_a3"], .gap1)
         ayah(c, ["ad_a4", "ad_a5"], .gap1_5)

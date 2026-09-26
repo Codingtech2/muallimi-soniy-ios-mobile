@@ -7,6 +7,10 @@ import SwiftUI
 struct SurahTitle: View {
     let text: String
 
+    /// Reader page/text palette — `.paper` (today's exact look) outside the
+    /// reader, so the heading stays readable on every reading background.
+    @Environment(\.readingTheme) private var readingTheme
+
     init(_ text: String) {
         self.text = text
     }
@@ -16,19 +20,20 @@ struct SurahTitle: View {
             ornament
             Text(text)
                 .font(arabicFont(16))  // text-[…,0.98rem]
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(readingTheme.textSecondary)
                 .multilineTextAlignment(.center)
             ornament
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 2)  // my-0.5
         .environment(\.layoutDirection, .rightToLeft)
+        .surahHeaderFrame()
     }
 
     private var ornament: some View {
         Text("❀")
             .font(.system(size: 10))  // text-[0.625rem]
-            .foregroundStyle(AppColor.textMuted)
+            .foregroundStyle(readingTheme.textMuted)
             .opacity(0.6)
     }
 }

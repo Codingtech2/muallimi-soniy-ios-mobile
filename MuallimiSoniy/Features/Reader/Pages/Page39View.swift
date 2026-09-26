@@ -79,18 +79,21 @@ private struct CompactHead: View {
     let text: String
     let sub: String
 
+    @Environment(\.readingTheme) private var readingTheme
+
     var body: some View {
         VStack(spacing: 1) {
             Text(text)
                 .font(arabicFont(16))                     // text-base, bold
-                .foregroundStyle(AppColor.textSecondary)
+                .foregroundStyle(readingTheme.textSecondary)
             Text(sub)
                 .font(arabicFont(10, weight: .regular))   // text-[0.625rem]
-                .foregroundStyle(AppColor.textMuted)
+                .foregroundStyle(readingTheme.textMuted)
                 .environment(\.layoutDirection, .rightToLeft)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 2)                                 // mt-0.5
+        .surahHeaderFrame()
     }
 }
 
