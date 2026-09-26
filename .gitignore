@@ -33,6 +33,8 @@ Media/audio/
 # Fonts va book.json esa bundle qilinadi (kichik) — ular ignore QILINMAYDI.
 !MuallimiSoniy/Resources/Fonts/*.ttf
 !MuallimiSoniy/Resources/Fonts/*.otf
+# Muqaddima audiosi (bismilloh + o'qish) ilova ichida keladi — paketdan emas.
+!MuallimiSoniy/Resources/Audio/*.mp3
 
 # QA screenshots (local only)
 .qa-results/

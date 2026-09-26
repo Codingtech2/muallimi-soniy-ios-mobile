@@ -17,13 +17,27 @@ nonisolated enum MediaLocator {
         applicationSupportDirectory().appending(path: mediaFolderName, directoryHint: .isDirectory)
     }
 
+    /// Paths under this folder ship inside the app (`Resources/Audio`) instead
+    /// of the downloadable pack — the muqaddima bismillah and reading, cut from
+    /// the pack's `02. Muqaddima.mp3`. They play even before the pack is in.
+    static let bundledAudioPrefix = "audio/bundled/"
+
     // MARK: - Path resolution
 
     /// Resolves a relative pack path to its file URL under `mediaDirectory`.
     /// A leading slash is trimmed so `"/audio/x.mp3"` and `"audio/x.mp3"`
     /// resolve identically. Multi-component paths (with `/`) become subfolders.
+    /// `bundledAudioPrefix` paths resolve to the app bundle, where resources sit
+    /// flat, so only the file name is looked up there.
     static func url(forRelativePath relativePath: String) -> URL {
         let trimmed = relativePath.hasPrefix("/") ? String(relativePath.dropFirst()) : relativePath
+        if trimmed.hasPrefix(bundledAudioPrefix) {
+            let fileName = String(trimmed.dropFirst(bundledAudioPrefix.count))
+            // A missing bundled file still gets a URL, so the usual "missing
+            // audio" handling applies instead of a crash.
+            return Bundle.main.url(forResource: fileName, withExtension: nil)
+                ?? Bundle.main.bundleURL.appending(path: fileName)
+        }
         return mediaDirectory.appending(path: trimmed)
     }
 

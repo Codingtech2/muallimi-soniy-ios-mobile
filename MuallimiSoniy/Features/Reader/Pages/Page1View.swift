@@ -10,10 +10,11 @@ import SwiftUI
 /// The Bismillah uses the amber `jumla` accent when active (its element type),
 /// so it carries its own button look rather than the green `ArabicElementView`.
 ///
-/// Audio (all in `02. Muqaddima.mp3`): the Bismillah element (`p1_000`, 0–5 s)
-/// also covers the spoken heading, so tapping the heading plays it too; the
-/// prose element (`p1_001`) is the narrator reading all nine paragraphs, so a
-/// tap anywhere on the text plays the whole reading.
+/// Audio ships in the app (`Resources/Audio`, cut from the pack's
+/// `02. Muqaddima.mp3`): the Bismillah element (`p1_000`) is the bismillah
+/// alone; the reading element (`p1_001`) starts with the spoken "Muqaddima" and
+/// goes on through all nine paragraphs, so a tap on the heading or anywhere on
+/// the text plays the whole reading.
 struct Page1View: View {
     let page: BookPage
     let activeId: String?
@@ -38,7 +39,7 @@ struct Page1View: View {
                 .frame(maxWidth: .infinity)  // text-center
                 .padding(.bottom, 8)         // mb-2
                 .contentShape(Rectangle())
-                .onTapGesture { if let bismillah { onTap(bismillah) } }
+                .onTapGesture { if let reading { onTap(reading) } }
             ParagraphList(paragraphs: store.muqaddimaParagraphs)
                 .modifier(ReadingTapTarget(element: reading, isActive: activeId == reading?.id, onTap: onTap))
         }
