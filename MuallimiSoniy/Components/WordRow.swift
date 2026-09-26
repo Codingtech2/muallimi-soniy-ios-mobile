@@ -66,13 +66,11 @@ struct FlowLayout: Layout {
     }
 
     func updateCache(_ cache: inout SizeCache, subviews: Subviews) {
-        // The active-token highlight is a render transform, not a size change, so
-        // sizes only change when the element set does — re-measure on count change.
-        if cache.intrinsic.count != subviews.count {
-            cache.intrinsic = subviews.map { $0.sizeThatFits(.unspecified) }
-            cache.resolved = cache.intrinsic
-            cache.resolvedWidth = .nan
-        }
+        // Re-measure on every update, not only when the token count changes: the
+        // text-size slider and bold text resize every token while the count stays
+        // the same, and placing tokens at their old, smaller size squeezes the
+        // glyphs into "…". The per-pass memo above still saves the repeat work.
+        cache = makeCache(subviews: subviews)
     }
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout SizeCache) -> CGSize {

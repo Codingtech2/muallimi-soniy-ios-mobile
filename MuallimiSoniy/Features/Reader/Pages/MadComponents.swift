@@ -181,14 +181,34 @@ struct MadColumnGrid: View {
     private var columns: [[[Element]]] { [right, middle, left].filter { !$0.isEmpty } }
 
     var body: some View {
+        // Side by side as in the book. Once the text size makes the three
+        // columns wider than the page, they stack instead of squeezing every
+        // syllable until its marks come apart from its letters.
+        ViewThatFits(in: .horizontal) {
+            sideBySide
+            stacked
+        }
+        .frame(maxWidth: .infinity)
+        .environment(\.layoutDirection, .rightToLeft)   // right column on the right
+    }
+
+    private var sideBySide: some View {
         HStack(alignment: .top, spacing: 4) {
             ForEach(Array(columns.enumerated()), id: \.offset) { index, rows in
                 if index > 0 { columnDivider }
                 MadColumn(rows: rows, size: size, activeId: activeId, onTap: onTap)
             }
         }
-        .frame(maxWidth: .infinity)
-        .environment(\.layoutDirection, .rightToLeft)   // right column on the right
+    }
+
+    /// Right column first, then middle, then left — the book's reading order.
+    private var stacked: some View {
+        VStack(spacing: 8) {
+            ForEach(Array(columns.enumerated()), id: \.offset) { index, rows in
+                if index > 0 { stackDivider }
+                MadColumn(rows: rows, size: size, activeId: activeId, onTap: onTap)
+            }
+        }
     }
 
     private var columnDivider: some View {
@@ -196,6 +216,13 @@ struct MadColumnGrid: View {
             .fill(AppColor.divider)
             .frame(width: 1)
             .frame(maxHeight: .infinity)   // self-stretch to tallest column
+    }
+
+    private var stackDivider: some View {
+        Rectangle()
+            .fill(AppColor.divider)
+            .frame(height: 1)
+            .frame(maxWidth: .infinity)
     }
 }
 
@@ -216,9 +243,10 @@ private struct MadColumn: View {
     }
 }
 
-/// A single centred, non-wrapping RTL row of mad syllables — each cell an
-/// `ArabicElementView(mad: true)`. Unlike `WordRow` this never wraps, matching
-/// the fixed 3-per-row mad grid cells.
+/// A single centred RTL row of mad syllables — each cell an
+/// `ArabicElementView(mad: true)`, matching the fixed 3-per-row mad grid cells.
+/// It stays on one line like the book until the text size makes the cells
+/// wider than the column; only then do the cells wrap onto the next line.
 struct MadSyllableRow: View {
     let elements: [Element]
     var size: ArabicSize = .sm
@@ -227,19 +255,27 @@ struct MadSyllableRow: View {
     let onTap: (Element) -> Void
 
     var body: some View {
-        HStack(spacing: spacing) {
-            ForEach(elements) { element in
-                ArabicElementView(
-                    element: element,
-                    size: size,
-                    mad: true,
-                    isActive: activeId == element.id,
-                    onTap: { onTap(element) }
-                )
-            }
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: spacing) { cells }
+                .environment(\.layoutDirection, .rightToLeft)
+            // FlowLayout already puts the first cell on the right.
+            FlowLayout(spacing: spacing, lineSpacing: spacing) { cells }
+                .environment(\.layoutDirection, .leftToRight)
         }
         .frame(maxWidth: .infinity)   // justify-center within the column
-        .environment(\.layoutDirection, .rightToLeft)
+    }
+
+    @ViewBuilder
+    private var cells: some View {
+        ForEach(elements) { element in
+            ArabicElementView(
+                element: element,
+                size: size,
+                mad: true,
+                isActive: activeId == element.id,
+                onTap: { onTap(element) }
+            )
+        }
     }
 }
 
