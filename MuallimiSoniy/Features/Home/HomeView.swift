@@ -17,6 +17,9 @@ struct HomeView: View {
     @Environment(\.layoutMetrics) private var layoutMetrics
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    /// Whether the "Dastur haqida" sheet (opened from the seal) is up.
+    @State private var aboutOpen = false
+
     private var locale: AppLocale { settings.settings.locale }
     private var gap: CGFloat { HomeStyle.cardGap * layoutMetrics.uiScale }
     private var showsHifz: Bool { !store.hifzCatalog.isEmpty }
@@ -25,7 +28,7 @@ struct HomeView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 28 * layoutMetrics.uiScale) {
-                    GreetingHeader(store: store, locale: locale)
+                    GreetingHeader(store: store, locale: locale, onSealTap: { aboutOpen = true })
                     primaryCards
                     HomeChaptersSection(store: store, progress: progress, locale: locale)
                 }
@@ -43,6 +46,7 @@ struct HomeView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: ReaderEntry.self) { ReaderView(entry: $0) }
             .navigationDestination(for: HifzListRoute.self) { _ in HifzSurahListView() }
+            .sheet(isPresented: $aboutOpen) { AboutView() }
         }
     }
 
@@ -104,10 +108,11 @@ struct HomeView: View {
 // MARK: - Greeting
 
 /// Quiet opener: a time-of-day greeting, the app's one-line subtitle and the
-/// publisher seal on the trailing edge.
+/// publisher seal on the trailing edge. Tapping the seal opens "Dastur haqida".
 private struct GreetingHeader: View {
     let store: ContentStore
     let locale: AppLocale
+    let onSealTap: () -> Void
 
     @Environment(\.layoutMetrics) private var layoutMetrics
 
@@ -131,11 +136,14 @@ private struct GreetingHeader: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Image("LaunchLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(width: sealSide, height: sealSide)
-                .accessibilityHidden(true)
+            Button(action: onSealTap) {
+                Image("LaunchLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: sealSide, height: sealSide)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(store.t("about_app", locale))
         }
     }
 
