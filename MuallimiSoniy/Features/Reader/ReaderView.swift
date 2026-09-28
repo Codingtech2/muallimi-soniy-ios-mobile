@@ -57,10 +57,11 @@ struct ReaderView: View {
     @State private var hifzSheetOpen = false
     /// Loop toggle state, kept in sync with the audio engine.
     @State private var loopMode = false
-    /// Drives the "audio not downloaded" alert. Shared by the tap and
-    /// play/pause handlers so at most one alert is ever on screen — setting
-    /// this to `true` while it is already `true` is a no-op for SwiftUI.
-    @State private var showAudioNotDownloadedAlert = false
+    /// Drives the audio download sheet (offer → live progress → ready/failed).
+    /// Shared by the tap and play/pause handlers so at most one sheet is ever
+    /// on screen — setting this to `true` while it is already `true` is a
+    /// no-op for SwiftUI.
+    @State private var showAudioDownloadSheet = false
 
     /// UI / content locale for titles + labels — follows the user's setting, so
     /// switching language live-updates the header, TOC and page labels.
@@ -135,6 +136,7 @@ struct ReaderView: View {
                             onRetry: { hifz.togglePlayPause() }
                         )
                     }
+                    downloadStrip
                     controlBar
                 }
             }
@@ -225,16 +227,8 @@ struct ReaderView: View {
                 }
             )
         }
-        .alert(
-            store.t("audio_not_downloaded", locale),
-            isPresented: $showAudioNotDownloadedAlert
-        ) {
-            Button(store.t("download_now", locale)) {
-                Task { await downloadManager.ensureReady() }
-            }
-            Button(store.t("cancel", locale), role: .cancel) {}
-        } message: {
-            Text(store.t("audio_not_downloaded_desc", locale))
+        .sheet(isPresented: $showAudioDownloadSheet) {
+            AudioDownloadSheet(onPlay: handlePlayPause)
         }
         .onAppear {
             resolveStartIfNeeded()
@@ -419,14 +413,16 @@ private extension ReaderView {
         MediaLocator.url(for: element) ?? currentPage.flatMap { MediaLocator.url(for: $0.lesson) }
     }
 
-    /// Surfaces the "audio not downloaded" alert when playback would otherwise
-    /// silently fail because the offline pack isn't installed yet. Never fires
-    /// once the pack is marked ready — an individual file missing from an
-    /// already-verified pack shouldn't happen, and there's no useful action to
-    /// offer for it, so that edge case just keeps today's silent behaviour.
+    /// Opens the download sheet when playback would otherwise silently fail
+    /// because the offline pack isn't installed yet. While a download is
+    /// already running, the sheet opens on its live progress rather than
+    /// offering the download again. Never fires once the pack is marked
+    /// ready — an individual file missing from an already-verified pack
+    /// shouldn't happen, and there's no useful action to offer for it, so that
+    /// edge case just keeps today's silent behaviour.
     private func offerDownloadIfMissing() {
         guard !downloadManager.isReady else { return }
-        showAudioNotDownloadedAlert = true
+        showAudioDownloadSheet = true
     }
 
     // MARK: - Page change
@@ -468,7 +464,7 @@ private extension ReaderView {
     /// Central play / pause intent, mirroring the web `onPlayPause`:
     /// pause if playing → resume a paused sequence → replay the active element →
     /// otherwise start sequential playback of the page. Offers the download
-    /// alert instead of playing nothing when the active element's file isn't
+    /// sheet instead of playing nothing when the active element's file isn't
     /// installed yet (see `offerDownloadIfMissing`).
     private func handlePlayPause() {
         if hifz.isActive { hifz.togglePlayPause(); return }
@@ -776,7 +772,7 @@ private extension ReaderView {
         let downloadManager = self.downloadManager
         let activeBinding = $activeElementId
         let pageBinding = $currentPageIndex
-        let alertBinding = $showAudioNotDownloadedAlert
+        let downloadSheetBinding = $showAudioDownloadSheet
         let announced = HifzAnnouncedUnit()
 
         hifz.onUnitStart = { unit, cursor in
@@ -814,7 +810,7 @@ private extension ReaderView {
 
         hifz.onEnd = { reason in
             if case .failed = reason, !downloadManager.isReady {
-                alertBinding.wrappedValue = true
+                downloadSheetBinding.wrappedValue = true
             }
             // Next / previous no longer skip units, so they may have nothing left to reach.
             audioRef.refreshRemoteTrackCommands()
@@ -822,6 +818,34 @@ private extension ReaderView {
     }
 
     // MARK: - Status strip
+
+    /// Keeps a running (or failed) audio download visible above the control
+    /// bar once its sheet is closed; tapping it reopens the sheet. Hidden
+    /// while the sheet itself is up, and once the pack is ready.
+    @ViewBuilder
+    var downloadStrip: some View {
+        if !showAudioDownloadSheet {
+            let reopen = { showAudioDownloadSheet = true }
+            switch AudioDownloadStatus(downloadManager) {
+            case .working(let stageKey, let fraction):
+                AudioDownloadStrip(
+                    title: store.t(stageKey, locale),
+                    fraction: fraction,
+                    openLabel: store.t("download_details_hint", locale),
+                    onTap: reopen
+                )
+            case .failed:
+                AudioDownloadStrip(
+                    title: store.t("download_error", locale),
+                    fraction: nil,
+                    openLabel: store.t("download_details_hint", locale),
+                    onTap: reopen
+                )
+            case .notDownloaded, .ready:
+                EmptyView()
+            }
+        }
+    }
 
     /// Builds the status strip's current snapshot from `hifz`'s live state,
     /// or `nil` while no session is active (the strip itself stays hidden
