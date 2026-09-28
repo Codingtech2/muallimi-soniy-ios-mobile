@@ -1,9 +1,10 @@
 import SwiftUI
 
 /// Bespoke 1:1 renderer for book page 35 — Tamjid kalimasi, the definition of
-/// iman, and Iman-i mujmal / mufassal. Green headings (`GreenHead`) sit above
-/// centred jumla bodies rendered with the shared `Verse` primitive, split into
-/// four sections by dotted `SectionDivider` rules (web `Sep`).
+/// iman, and Iman-i mujmal / mufassal. Kalima names in the surah frame
+/// (`TitleBanner`, same as page 34) sit above centred jumla bodies rendered
+/// with the shared `Verse` primitive, split into four sections by dotted
+/// `SectionDivider` rules (web `Sep`).
 ///
 /// Web reference: `src/components/lesson/RenderedPage.tsx` → `function Page35`
 /// (page-local `Sep` / `Head` / `Body`).
@@ -57,7 +58,7 @@ struct Page35View: View {
     @ViewBuilder
     private func head(_ c: PageContent, _ id: String) -> some View {
         if let h = c.el(id) {
-            GreenHead(element: h, activeId: activeId, onTap: onTap)
+            TitleBanner(element: h, isActive: activeId == h.id, onTap: onTap)
         }
     }
 
@@ -66,36 +67,5 @@ struct Page35View: View {
         if let b = c.el(id) {
             Verse(element: b, size: size, isActive: activeId == b.id, onTap: onTap)
         }
-    }
-}
-
-// MARK: - Page-local sub-views
-
-/// A centred, tappable green section heading (web `Head`) — bold Arabic in
-/// `textSecondary` with the primitive green-pill highlight when active.
-private struct GreenHead: View {
-    let element: Element
-    let activeId: String?
-    let onTap: (Element) -> Void
-
-    private var isActive: Bool { activeId == element.id }
-
-    var body: some View {
-        Button { onTap(element) } label: {
-            Text(element.arabic)
-                .font(arabicFont(15))   // text-[…,0.95rem] bold
-                .foregroundStyle(isActive ? Color.white : AppColor.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 10)   // px-2.5
-                .padding(.vertical, 2)      // py-0.5
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(isActive ? AppColor.primary : Color.clear)
-                )
-                .shadow(color: isActive ? AppColor.primaryGlow : .clear, radius: 10, x: 0, y: 6)
-        }
-        .buttonStyle(.plain)
-        .environment(\.layoutDirection, .rightToLeft)
-        .animation(.spring(response: 0.3, dampingFraction: 0.62), value: isActive)
     }
 }

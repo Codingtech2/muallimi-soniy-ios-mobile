@@ -1,12 +1,12 @@
 import SwiftUI
 
 /// Bespoke 1:1 renderer for book page 34 — Iymon kalimalari (the five kalimas of
-/// faith). A centred title, then five kalima blocks: each is a small green
-/// heading (`Heading`) above one or more RTL body rows (`KalimaBody`) whose
-/// clause parts stack centred and are separated by a decorative `❀` flower
-/// (web `Gul`). Every clause is a tappable jumla rendered via the shared `Verse`
-/// primitive, so the active highlight matches the rest of the reader and no
-/// other element is ever dimmed.
+/// faith). A centred, unframed title, then five kalima blocks: each is the
+/// kalima name in the surah frame (`TitleBanner`) above one or more RTL body
+/// rows (`KalimaBody`) whose clause parts stack centred and are separated by a
+/// decorative `❀` flower (web `Gul`). Every clause is a tappable jumla rendered
+/// via the shared `Verse` primitive, so the active highlight matches the rest
+/// of the reader and no other element is ever dimmed.
 ///
 /// Web reference: `src/components/lesson/RenderedPage.tsx` → `function Page34`
 /// (page-local `Gul` / `KalimaHead` / `KalimaBody`).
@@ -39,13 +39,11 @@ struct Page34View: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// One kalima block — a small green heading (`mt-0.5`) then its body rows.
+    /// One kalima block — the framed kalima name, then its body rows.
     @ViewBuilder
     private func kalima(_ c: PageContent, head: String, bodies: [[String]]) -> some View {
         if let h = c.el(head) {
-            Heading(element: h, size: 15, corner: 6, hPad: 10, vPad: 2,
-                    activeId: activeId, onTap: onTap)
-                .padding(.top, 2)   // mt-0.5
+            TitleBanner(element: h, isActive: activeId == h.id, onTap: onTap)
         }
         ForEach(Array(bodies.enumerated()), id: \.offset) { _, ids in
             KalimaBody(parts: c.els(ids), activeId: activeId, onTap: onTap)
@@ -55,9 +53,9 @@ struct Page34View: View {
 
 // MARK: - Page-local sub-views
 
-/// A centred, tappable green heading (kalima title / head). Bold Arabic in
-/// `textSecondary`; the active state uses the primitive green-pill highlight
-/// (fill + glow), never a dim of siblings.
+/// The centred, tappable green page title (it is not a kalima name, so it has
+/// no frame). Bold Arabic in `textSecondary`; the active state uses the
+/// primitive green-pill highlight (fill + glow), never a dim of siblings.
 private struct Heading: View {
     let element: Element
     let size: CGFloat
