@@ -68,7 +68,7 @@ struct Page29View: View {
     /// Clickable narration title (web page-29 `SectionTitle`: `w-full`,
     /// `text-[clamp(…,0.78rem)]`, muted). Full-width so it centres over the grid.
     private func sectionTitle(_ element: Element?) -> some View {
-        TappableTextLabel(element: element, font: arabicFont(12.5, weight: .regular),
+        TappableTextLabel(element: element, pointSize: 12.5, weight: .regular,
                           inactiveColor: AppColor.textMuted,
                           glowRadius: 10, glowY: 6, horizontalPadding: 8,
                           fullWidth: true, activeId: activeId, onTap: onTap)

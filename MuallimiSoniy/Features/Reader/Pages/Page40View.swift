@@ -11,6 +11,8 @@ struct Page40View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         // Web outer: `flex flex-col items-center gap-0.5` → 2 pt.
@@ -20,6 +22,7 @@ struct Page40View: View {
             qadrSection(c)
         }
         .frame(maxWidth: .infinity)
+        .environment(\.arabicFontScale, verseFontScale)
     }
 
     // MARK: - Sections
@@ -67,12 +70,14 @@ private struct SajdaRow: View {
     let isActive: Bool
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         VStack(spacing: 2) {
             HStack(spacing: 6) {   // gap-1.5
                 AyahPair(element: element, size: .sm, isActive: isActive, onTap: onTap)
                 Text("۩")
-                    .font(arabicFont(19, weight: .regular))   // clamp max 1.2rem
+                    .font(arabicFont(19 * verseFontScale, weight: .regular))   // clamp max 1.2rem
                     .foregroundStyle(AppColor.primary)
                     .opacity(0.85)
             }
@@ -80,7 +85,7 @@ private struct SajdaRow: View {
             .frame(maxWidth: .infinity)                        // justify-center
 
             Text("سجده آیتی")
-                .font(arabicFont(9, weight: .regular))          // text-[0.5625rem]
+                .font(arabicFont(9 * verseFontScale, weight: .regular))          // text-[0.5625rem]
                 .foregroundStyle(AppColor.textMuted)
                 .environment(\.layoutDirection, .rightToLeft)
         }

@@ -151,12 +151,14 @@ private struct AdaptiveLayoutModifier: ViewModifier {
     /// modifier chained onto a view never sees another modifier's own
     /// environment writes on that same view; only genuine descendants do.
     let baseArabicScale: Double
+    let baseVerseScale: Double
 
     func body(content: Content) -> some View {
         let metrics = resolvedMetrics
         content
             .environment(\.layoutMetrics, metrics)
             .environment(\.arabicFontScale, baseArabicScale * metrics.arabicScaleMultiplier)
+            .environment(\.verseFontScale, baseVerseScale * metrics.arabicScaleMultiplier)
     }
 
     /// iPad in a regular-width context only. iPhone (any orientation) and an
@@ -172,10 +174,14 @@ private struct AdaptiveLayoutModifier: ViewModifier {
 
 extension View {
     /// See `AdaptiveLayoutModifier`. `baseArabicScale` is the user's plain
-    /// font-size-derived multiplier (`SettingsStore.arabicScale`); this call
-    /// combines it with the device-derived iPad multiplier and injects both
-    /// `\.layoutMetrics` and the final `\.arabicFontScale` in one shot.
-    func adaptiveLayout(baseArabicScale: Double) -> some View {
-        modifier(AdaptiveLayoutModifier(baseArabicScale: baseArabicScale))
+    /// font-size-derived multiplier (`SettingsStore.arabicScale`); `baseVerseScale`
+    /// is the verse-size-derived multiplier (`SettingsStore.verseScale`). This call
+    /// combines them with the device-derived iPad multiplier and injects
+    /// `\.layoutMetrics`, `\.arabicFontScale`, and `\.verseFontScale` in one shot.
+    func adaptiveLayout(baseArabicScale: Double, baseVerseScale: Double? = nil) -> some View {
+        modifier(AdaptiveLayoutModifier(
+            baseArabicScale: baseArabicScale,
+            baseVerseScale: baseVerseScale ?? baseArabicScale
+        ))
     }
 }

@@ -17,6 +17,8 @@ struct Page32View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         VStack(spacing: 0) {                      // web outer gap-0
@@ -36,7 +38,7 @@ struct Page32View: View {
             let active = activeId == e.id
             Button { onTap(e) } label: {
                 Text(e.arabic)
-                    .font(arabicFont(19, weight: .bold))     // clamp max 1.2rem
+                    .font(arabicFont(19 * arabicFontScale, weight: .bold))     // clamp max 1.2rem
                     .foregroundStyle(active ? .white : AppColor.textSecondary)
                     .padding(.horizontal, 12)                // px-3
                     .padding(.vertical, 4)                   // py-1
@@ -73,7 +75,7 @@ struct Page32View: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {   // gap-1
                 Button { onTap(e) } label: {
                     Text("(\(e.arabic))")
-                        .font(arabicFont(15, weight: .regular))  // clamp max 0.95rem
+                        .font(arabicFont(15 * arabicFontScale, weight: .regular))  // clamp max 0.95rem
                         .foregroundStyle(active ? .white : AppColor.textMain)
                         .lineLimit(1)
                         .minimumScaleFactor(0.6)
@@ -83,10 +85,10 @@ struct Page32View: View {
                 }
                 .buttonStyle(.plain)
                 Text("−")
-                    .font(.system(size: 10))                     // 0.625rem, opacity 60
+                    .font(.system(size: 10 * arabicFontScale))                 // 0.625rem, opacity 60
                     .foregroundStyle(AppColor.textMain.opacity(0.6))
                 Text("(\(ex.merged))")
-                    .font(arabicFont(12, weight: .regular))      // clamp max 0.78rem, opacity 65
+                    .font(arabicFont(12 * arabicFontScale, weight: .regular))  // clamp max 0.78rem, opacity 65
                     .foregroundStyle(AppColor.textMain.opacity(0.65))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)

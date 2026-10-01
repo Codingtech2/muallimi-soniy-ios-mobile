@@ -74,6 +74,8 @@ private struct TanvinRule: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var ruleActive: Bool { rule.map { activeId == $0.id } ?? false }
 
     var body: some View {
@@ -104,7 +106,7 @@ private struct TanvinRule: View {
             Button { onTap(rule) } label: {
                 HStack(spacing: 8) {   // justify-between, LTR: title left, pill right
                     Text(rule.arabic)
-                        .font(arabicFont(16))                 // text-base font-bold
+                        .font(arabicFont(16 * arabicFontScale))                 // text-base font-bold
                         .foregroundStyle(AppColor.textSecondary)
                     Spacer(minLength: 8)
                     MadListenPill()
@@ -120,7 +122,7 @@ private struct TanvinRule: View {
             .buttonStyle(.plain)
         } else {
             Text("تنوينلي حرفلر")
-                .font(arabicFont(16))
+                .font(arabicFont(16 * arabicFontScale))
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity)
         }
@@ -130,9 +132,9 @@ private struct TanvinRule: View {
 
     private var note: some View {
         (Text("اوشبو اوچ تنوین علامتلرینینگ بیری قوییلگان حرفلردن سونگ ")
-            .font(arabicFont(10, weight: .regular))
-         + Text("بیر سکونلی نون").font(arabicFont(10, weight: .semibold))
-         + Text(" اورتیریب اوقیلادی.").font(arabicFont(10, weight: .regular)))
+            .font(arabicFont(10 * arabicFontScale, weight: .regular))
+         + Text("بیر سکونلی نون").font(arabicFont(10 * arabicFontScale, weight: .semibold))
+         + Text(" اورتیریب اوقیلادی.").font(arabicFont(10 * arabicFontScale, weight: .regular)))
             .foregroundStyle(AppColor.textMain.opacity(0.85))
             .lineSpacing(3)                       // leading-relaxed
             .multilineTextAlignment(.center)
@@ -165,13 +167,15 @@ private struct TanvinColumn: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var signActive: Bool { activeId == sign.id }
 
     var body: some View {
         VStack(spacing: 2) {   // gap-0.5
             signButton
             Text(Self.stripParen(sign.uzbek))
-                .font(.system(size: 9))          // text-[0.5625rem]
+                .font(.system(size: 9 * arabicFontScale))          // text-[0.5625rem]
                 .foregroundStyle(AppColor.textMuted)
                 .lineLimit(1)
             if let example {
@@ -183,7 +187,7 @@ private struct TanvinColumn: View {
     private var signButton: some View {
         Button { onTap(sign) } label: {
             Text(sign.arabic)
-                .font(arabicFont(32))            // clamp(1.5rem…2rem)
+                .font(arabicFont(32 * arabicFontScale))            // clamp(1.5rem…2rem)
                 .foregroundStyle(signActive ? .white : AppColor.textMain)
                 .padding(.horizontal, 8)         // px-2
                 .padding(.vertical, 2)           // py-0.5
@@ -202,10 +206,10 @@ private struct TanvinColumn: View {
         let active = activeId == ex.id
         return Button { onTap(ex) } label: {
             HStack(alignment: .firstTextBaseline, spacing: 4) {  // items-baseline gap-1
-                Text(ex.arabic).font(arabicFont(16))             // font-bold text-base
-                Text("=").font(.system(size: 12)).opacity(0.7)   // text-xs
+                Text(ex.arabic).font(arabicFont(16 * arabicFontScale))             // font-bold text-base
+                Text("=").font(.system(size: 12 * arabicFontScale)).opacity(0.7)   // text-xs
                 Text(Self.expand(ex.uzbek))
-                    .font(arabicFont(14, weight: .regular))      // text-sm
+                    .font(arabicFont(14 * arabicFontScale, weight: .regular))      // text-sm
                     .opacity(0.7)
             }
             .foregroundStyle(active ? .white : AppColor.textMain)

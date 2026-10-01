@@ -95,12 +95,14 @@ private struct BlockTitle: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         if let element {
             let isActive = activeId == element.id
             Button { onTap(element) } label: {
                 Text(element.arabic)
-                    .font(arabicFont(13, weight: .bold))     // text-[0.8125rem] font-bold
+                    .font(arabicFont(13 * arabicFontScale, weight: .bold))     // text-[0.8125rem] font-bold
                     .foregroundStyle(isActive ? Color.white : AppColor.textSecondary)
                     .padding(.horizontal, 12)                // px-3 (py-0)
                     .background(
@@ -125,6 +127,8 @@ private struct PairRow: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {   // outer gap clamp max 0.5rem
             ForEach(Array(pairs.enumerated()), id: \.offset) { index, pair in
@@ -141,13 +145,13 @@ private struct PairRow: View {
         HStack(spacing: 4) {                       // inner gap clamp max 0.25rem
             token(a)
             Text("—")
-                .font(.system(size: 12))
+                .font(.system(size: 12 * arabicFontScale))
                 .foregroundStyle(AppColor.textMuted)
                 .opacity(0.7)
             token(b)
             if showComma {
                 Text("،")
-                    .font(.system(size: 10))
+                    .font(arabicFont(10 * arabicFontScale))
                     .foregroundStyle(AppColor.textMuted)
                     .opacity(0.6)
                     .padding(.horizontal, 2)       // mx-0.5

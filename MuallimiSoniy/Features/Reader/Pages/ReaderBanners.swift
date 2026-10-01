@@ -18,6 +18,8 @@ struct NarrationBanner: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var isActive: Bool { rule.map { activeId == $0.id } ?? false }
 
     var body: some View {
@@ -30,7 +32,7 @@ struct NarrationBanner: View {
 
     private func card(_ text: String) -> some View {
         Text(text)
-            .font(arabicFont(fontSize, weight: .regular))
+            .font(arabicFont(fontSize * arabicFontScale, weight: .regular))
             .foregroundStyle(isActive ? Color.white : AppColor.textMain)
             .lineSpacing(2)                       // leading-snug
             .multilineTextAlignment(.center)

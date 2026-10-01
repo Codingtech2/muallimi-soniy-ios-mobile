@@ -18,11 +18,12 @@ struct TitleBanner: View {
     @Environment(\.readingAdjustments) private var adjustments
     /// Settings → Accessibility → Reduce Motion — skips the highlight spring.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.verseFontScale) private var verseFontScale
 
     var body: some View {
         Button { onTap(element) } label: {
             Text(element.arabic)
-                .font(arabicFont(16))  // text-[…,0.98rem] bold
+                .font(arabicFont(16 * verseFontScale))  // text-[…,0.98rem] bold
                 .foregroundStyle(isActive ? Color.white : readingTheme.textSecondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)

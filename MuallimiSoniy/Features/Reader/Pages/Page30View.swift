@@ -54,10 +54,12 @@ struct Page30View: View {
                 activeId: activeId, onTap: onTap)
     }
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     /// Static footnote: بِئْسَ لِسْمُ reading note (`text-text-muted`, mt-1).
     private var footnote: some View {
         Text("(٭) بُو سُوزْ بِئْسَ لِسْمُ دیب اوقیلادی")
-            .font(arabicFont(10, weight: .regular))
+            .font(arabicFont(10 * arabicFontScale, weight: .regular))
             .foregroundStyle(AppColor.textMuted)
             .lineSpacing(2)
             .multilineTextAlignment(.center)
@@ -77,6 +79,8 @@ private struct VaslTitleButton: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         if let title {
             let isActive = activeId == title.id
@@ -89,9 +93,9 @@ private struct VaslTitleButton: View {
     private func label(_ arabic: String, _ isActive: Bool) -> some View {
         VStack(spacing: 2) {                        // mt-0.5 between title/sub
             Text(arabic)
-                .font(arabicFont(16, weight: .bold))    // text-base font-bold
+                .font(arabicFont(16 * arabicFontScale, weight: .bold))    // text-base font-bold
             Text("وصل — قوشیش")
-                .font(arabicFont(9, weight: .regular))  // text-[0.5625rem]
+                .font(arabicFont(9 * arabicFontScale, weight: .regular))  // text-[0.5625rem]
                 .opacity(0.7)
         }
         .foregroundStyle(isActive ? Color.white : AppColor.textSecondary)

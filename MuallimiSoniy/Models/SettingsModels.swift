@@ -19,6 +19,8 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     /// Global Arabic text-size multiplier (range 0.8…2.5). Replaces the old
     /// 3-step `FontSize` enum with a continuous slider.
     var textScale: Double
+    /// Quranic verse text-size multiplier (range 0.8…2.5). Allows scaling verses independently of lessons.
+    var verseTextScale: Double
     /// Reader page/card background tint (paper / sepia / gray / night).
     var readingBackground: ReadingBackground
     /// Extra spacing between reader lines (range 1.0…2.0 multiplier).
@@ -46,6 +48,7 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
         loopMode: false,
         sequentialMode: false,
         textScale: 1.0,
+        verseTextScale: 1.0,
         readingBackground: .paper,
         lineSpacingScale: 1.0,
         boldText: false,

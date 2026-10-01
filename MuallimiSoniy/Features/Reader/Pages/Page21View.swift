@@ -60,6 +60,8 @@ private struct TashdidRuleCard: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var isActive: Bool { rule.map { activeId == $0.id } ?? false }
 
     var body: some View {
@@ -100,10 +102,10 @@ private struct TashdidRuleCard: View {
         HStack(spacing: 4) {
             HStack(spacing: 4) {
                 Text("تشدید قائده‌سی")
-                    .font(arabicFont(11, weight: .semibold))
+                    .font(arabicFont(11 * arabicFontScale, weight: .semibold))
                     .foregroundStyle(AppColor.textMain)
                 Text("(کتابدن)")
-                    .font(arabicFont(11, weight: .regular))
+                    .font(arabicFont(11 * arabicFontScale, weight: .regular))
                     .foregroundStyle(AppColor.textMuted)
             }
             Spacer(minLength: 8)
@@ -127,14 +129,14 @@ private struct TashdidRuleCard: View {
 
     private func demoMark(_ text: String) -> some View {
         Text(text)
-            .font(arabicFont(40))       // text-[2.5rem]
+            .font(arabicFont(40 * arabicFontScale))       // text-[2.5rem]
             .foregroundStyle(AppColor.textMain)
     }
 
     /// Audio narration verbatim (0–9.9 s).
     private var narration: some View {
         Text("تشدیدلی حرفلر اوستیگه اوشبو تشدید علامتلری قوییلگان حرفلر ایککیلنتیریب اوقیلادی.")
-            .font(arabicFont(11, weight: .regular))
+            .font(arabicFont(11 * arabicFontScale, weight: .regular))
             .foregroundStyle(AppColor.textMain)
             .lineSpacing(3)             // leading-relaxed
             .multilineTextAlignment(.leading)
@@ -184,13 +186,15 @@ private struct RabbButton: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {   // items-baseline gap-1.5
-                Text(tash).font(arabicFont(24))                   // font-bold text-2xl
-                Text("-").font(.system(size: 16)).opacity(0.7)    // text-base
+                Text(tash).font(arabicFont(24 * arabicFontScale))                   // font-bold text-2xl
+                Text("-").font(.system(size: 16 * arabicFontScale)).opacity(0.7)    // text-base
                 Text("(\(expand))")
-                    .font(arabicFont(18, weight: .regular))       // text-lg (non-bold)
+                    .font(arabicFont(18 * arabicFontScale, weight: .regular))       // text-lg (non-bold)
                     .opacity(0.7)
             }
             .foregroundStyle(isActive ? Color.white : AppColor.textMain)

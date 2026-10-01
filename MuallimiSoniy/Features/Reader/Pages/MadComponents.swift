@@ -22,6 +22,8 @@ struct MadRule: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var isActive: Bool { rule.map { activeId == $0.id } ?? false }
 
     var body: some View {
@@ -59,10 +61,10 @@ struct MadRule: View {
     private var header: some View {
         HStack(spacing: 4) {
             Text("مد یازیلیشی قائده‌لری")
-                .font(arabicFont(11, weight: .semibold))
+                .font(arabicFont(11 * arabicFontScale, weight: .semibold))
                 .foregroundStyle(AppColor.textMain)
             Text("(کتاب مقدمه‌سیدن)")
-                .font(arabicFont(11, weight: .regular))
+                .font(arabicFont(11 * arabicFontScale, weight: .regular))
                 .foregroundStyle(AppColor.textMuted)
             Spacer(minLength: 8)
             if rule != nil { MadListenPill() }
@@ -84,7 +86,7 @@ struct MadRule: View {
 
     private func paragraph(_ text: String) -> some View {
         Text(text)
-            .font(arabicFont(11, weight: .regular))
+            .font(arabicFont(11 * arabicFontScale, weight: .regular))
             .foregroundStyle(AppColor.textMuted)
             .lineSpacing(3)            // leading-relaxed
             .multilineTextAlignment(.leading)
@@ -96,7 +98,7 @@ struct MadRule: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("•").foregroundStyle(AppColor.primary)
             Text(text)
-                .font(arabicFont(11, weight: .semibold))
+                .font(arabicFont(11 * arabicFontScale, weight: .semibold))
                 .foregroundStyle(AppColor.textMain)
                 .lineSpacing(3)
                 .multilineTextAlignment(.leading)
@@ -108,10 +110,12 @@ struct MadRule: View {
 /// The small "listen" affordance pill (play glyph + "اشیتیش") shown on tappable
 /// mad banners. Forced LTR so the play icon sits before the label.
 struct MadListenPill: View {
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         HStack(spacing: 3) {
-            Image(systemName: "play.fill").font(.system(size: 8))
-            Text("اشیتیش").font(.system(size: 10, weight: .semibold))
+            Image(systemName: "play.fill").font(.system(size: 8 * arabicFontScale))
+            Text("اشیتیش").font(arabicFont(10 * arabicFontScale, weight: .semibold))
         }
         .foregroundStyle(AppColor.primary)
         .padding(.horizontal, 8)
@@ -131,16 +135,18 @@ struct MadTitleBlock: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         if let introTitle {
             let isActive = activeId == introTitle.id
             Button { onTap(introTitle) } label: {
                 VStack(spacing: 2) {
                     Text(introTitle.arabic)
-                        .font(madArabicFont(20))       // mad-arabic-text text-xl
+                        .font(madArabicFont(20 * arabicFontScale))       // mad-arabic-text text-xl
                         .foregroundStyle(AppColor.textSecondary)
                     Text("مدلی حرفلر")
-                        .font(arabicFont(12, weight: .regular))
+                        .font(arabicFont(12 * arabicFontScale, weight: .regular))
                         .foregroundStyle(AppColor.textMuted)
                         .environment(\.layoutDirection, .rightToLeft)
                 }
@@ -284,11 +290,13 @@ struct MadSyllableRow: View {
 struct MadHeaderRow: View {
     var letters: [String] = ["ا", "ي", "و"]
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(letters.enumerated()), id: \.offset) { _, letter in
                 Text(letter)
-                    .font(arabicFont(40))   // clamp max 2.5rem
+                    .font(arabicFont(40 * arabicFontScale))   // clamp max 2.5rem
                     .foregroundStyle(AppColor.textSecondary)
                     .frame(maxWidth: .infinity)   // flex-1 + centre
             }
@@ -303,15 +311,17 @@ struct MadHeaderRow: View {
 /// The "ي ، يـ = ى" banner (dot-less ya reads like ordinary ya). Static —
 /// no tap. Port of the web `YaNuqtasizRule`.
 struct YaNuqtasizRule: View {
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         VStack(spacing: 4) {
             HStack(spacing: 12) {
-                Text("ي ، يـ").font(arabicFont(24)).foregroundStyle(AppColor.textMain)
-                Text("=").font(.system(size: 18)).foregroundStyle(AppColor.textMuted)
-                Text("ى").font(arabicFont(24)).foregroundStyle(AppColor.textMain)
+                Text("ي ، يـ").font(arabicFont(24 * arabicFontScale)).foregroundStyle(AppColor.textMain)
+                Text("=").font(.system(size: 18 * arabicFontScale)).foregroundStyle(AppColor.textMuted)
+                Text("ى").font(arabicFont(24 * arabicFontScale)).foregroundStyle(AppColor.textMain)
             }
             Text("نقطه‌سیز ى هم خودّی عادی ي کبی اوقیلادی.")
-                .font(arabicFont(11, weight: .regular))
+                .font(arabicFont(11 * arabicFontScale, weight: .regular))
                 .foregroundStyle(AppColor.textMuted)
                 .lineSpacing(3)
                 .multilineTextAlignment(.center)

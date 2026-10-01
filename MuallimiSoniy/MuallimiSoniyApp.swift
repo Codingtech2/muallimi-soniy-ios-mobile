@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import TipKit
+import OSLog
 
 @main
 struct MuallimiSoniyApp: App {
@@ -38,6 +40,13 @@ struct MuallimiSoniyApp: App {
         // Register the bundled Arabic fonts with CoreText before any view
         // renders, so `arabicFont(_:)` / `madArabicFont(_:)` resolve.
         FontRegistrar.register()
+        // TipKit backs the one-time "how ▶ plays a surah" tip on surah pages.
+        do {
+            try Tips.configure()
+        } catch {
+            Logger(subsystem: Bundle.main.bundleIdentifier ?? "MuallimiSoniy", category: "Tips")
+                .error("TipKit configure failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     var body: some Scene {
@@ -49,7 +58,7 @@ struct MuallimiSoniyApp: App {
                 .environment(progress)
                 .environment(settings)
                 .environment(\.arabicTypeface, settings.settings.arabicTypeface)
-                .adaptiveLayout(baseArabicScale: settings.arabicScale)
+                .adaptiveLayout(baseArabicScale: settings.arabicScale, baseVerseScale: settings.verseScale)
                 .tint(AppColor.controlTint)
                 .preferredColorScheme(settings.preferredColorScheme)
                 .task {

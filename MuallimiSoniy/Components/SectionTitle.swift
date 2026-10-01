@@ -18,8 +18,12 @@ struct SectionTitle: View {
     /// System-wide Settings → Accessibility → Bold Text — treated the same as
     /// the app's own `boldText` reading option.
     @Environment(\.legibilityWeight) private var legibilityWeight
+    @Environment(\.arabicFontScale) private var arabicFontScale
 
     private var effectiveBold: Bool { adjustments.boldText || legibilityWeight == .bold }
+    private var isArabicSubtitle: Bool {
+        subtitle?.unicodeScalars.contains { (0x0600...0x06FF).contains($0.value) } ?? false
+    }
 
     init(_ text: String, subtitle: String? = nil) {
         self.text = text
@@ -29,15 +33,20 @@ struct SectionTitle: View {
     var body: some View {
         VStack(spacing: 2) {  // mt-0.5 between title and subtitle
             Text(text)
-                .font(arabicFont(20, weight: arabicWeight(bold: effectiveBold)))  // text-xl
+                .font(arabicFont(20 * arabicFontScale, weight: arabicWeight(bold: effectiveBold)))  // text-xl
                 .foregroundStyle(readingTheme.textSecondary)
                 .multilineTextAlignment(.center)
 
             if let subtitle {
                 Text(subtitle)
-                    .font(.system(size: 12))  // text-xs
+                    .font(
+                        isArabicSubtitle
+                            ? arabicFont(12 * arabicFontScale, weight: .regular)
+                            : .system(size: 12 * arabicFontScale)
+                    )
                     .foregroundStyle(readingTheme.textMuted)
                     .multilineTextAlignment(.center)
+                    .environment(\.layoutDirection, isArabicSubtitle ? .rightToLeft : .leftToRight)
             }
         }
         .frame(maxWidth: .infinity)

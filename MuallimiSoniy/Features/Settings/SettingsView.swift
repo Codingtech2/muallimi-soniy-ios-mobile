@@ -198,7 +198,8 @@ struct SettingsView: View {
                     title: tr("font_size"),
                     desc: tr("font_size_desc")
                 )
-                TextScaleSlider(title: tr("text_size"), value: textScaleBinding)
+                TextScaleSlider(title: tr("lesson_text_size"), value: textScaleBinding)
+                TextScaleSlider(title: tr("verse_size"), value: verseScaleBinding)
                 Text(tr("arabic_font"))
                     .font(layoutMetrics.font(.subheadline.weight(.medium), .title3.weight(.medium)))
                     .foregroundStyle(AppColor.textMain)
@@ -213,6 +214,13 @@ struct SettingsView: View {
         Binding(
             get: { store.settings.textScale },
             set: { store.setTextScale($0) }
+        )
+    }
+
+    private var verseScaleBinding: Binding<Double> {
+        Binding(
+            get: { store.settings.verseTextScale },
+            set: { store.setVerseTextScale($0) }
         )
     }
 

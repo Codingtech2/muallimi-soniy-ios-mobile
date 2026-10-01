@@ -12,6 +12,8 @@ struct Page38View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         // Web outer: `flex flex-col items-center gap-0.5` → 2 pt.
@@ -21,6 +23,7 @@ struct Page38View: View {
             duha(c)
         }
         .frame(maxWidth: .infinity)
+        .environment(\.arabicFontScale, verseFontScale)
     }
 
     // MARK: - Sections

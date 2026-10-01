@@ -68,7 +68,7 @@ struct Page48View: View {
         let els = c.els(suffixes)
         if els.count == 1, let only = els.first {
             TappableTextLabel(
-                element: only, font: arabicFont(18),
+                element: only, pointSize: 18, weight: .bold,
                 inactiveColor: AppColor.textMain, horizontalPadding: 6,
                 activeId: activeId, onTap: onTap
             )

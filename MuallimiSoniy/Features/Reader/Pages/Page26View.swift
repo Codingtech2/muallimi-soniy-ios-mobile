@@ -69,12 +69,14 @@ private struct P26NumberedRow: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         HStack(spacing: 4) {                       // gap-1 between marker and row
             Text(num.map { "\($0))" } ?? "")
-                .font(arabicFont(10, weight: .regular))  // text-[0.625rem]
+                .font(arabicFont(10 * arabicFontScale, weight: .regular))  // text-[0.625rem]
                 .foregroundStyle(AppColor.textMuted)
-                .frame(width: 14)
+                .frame(minWidth: 14 * arabicFontScale)
                 .multilineTextAlignment(.center)
             spread                                 // flex-1 justify-around
         }

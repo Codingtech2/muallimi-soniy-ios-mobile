@@ -33,8 +33,8 @@ struct Verse: View {
     let isActive: Bool
     let onTap: (Element) -> Void
 
-    /// Global Arabic scale from the user's font-size preference (injected at root).
-    @Environment(\.arabicFontScale) private var arabicFontScale
+    /// Global verse scale from the user's font-size preference (injected at root).
+    @Environment(\.verseFontScale) private var verseFontScale
     /// Reader page/text palette — defaults to `.paper` (today's exact look)
     /// outside the reader; `ReaderView` injects the live value.
     @Environment(\.readingTheme) private var readingTheme
@@ -86,6 +86,7 @@ struct Verse: View {
             .modifier(CenterIf(active: !inRow))
             // In-row verses share one line, so that row carries their translation.
             .ayahTranslation(for: inRow ? [] : [element.id])
+            .environment(\.arabicFontScale, verseFontScale)
     }
 
     private var core: some View {
@@ -114,7 +115,7 @@ struct Verse: View {
             .id(element.id)
 
             if ayah != nil {
-                AyahSeparator(pointSize: size.pointSize * arabicFontScale)
+                AyahSeparator(pointSize: size.pointSize * verseFontScale)
             }
         }
         .environment(\.layoutDirection, .rightToLeft)
@@ -125,11 +126,11 @@ struct Verse: View {
     private var verseText: Text {
         let base = isActive ? Color.white : readingTheme.textMain
         var text = Text(element.arabic)
-            .font(arabicFont(size.pointSize * arabicFontScale, weight: arabicWeight(bold: effectiveBold)))
+            .font(arabicFont(size.pointSize * verseFontScale, weight: arabicWeight(bold: effectiveBold)))
             .foregroundStyle(base)
         if let ayah {
             text = text + Text("  ﴿\(arabicIndicDigits(ayah))﴾")
-                .font(arabicFont(size.pointSize * 0.78 * arabicFontScale, weight: .regular))
+                .font(arabicFont(size.pointSize * 0.78 * verseFontScale, weight: .regular))
                 .foregroundStyle(base.opacity(0.7))
         }
         return text

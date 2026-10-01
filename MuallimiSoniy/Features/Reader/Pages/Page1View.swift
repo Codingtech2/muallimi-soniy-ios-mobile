@@ -21,6 +21,7 @@ struct Page1View: View {
     let onTap: (Element) -> Void
 
     @Environment(ContentStore.self) private var store
+    @Environment(\.arabicFontScale) private var arabicFontScale
 
     var body: some View {
         let c = PageContent(elements: page.elements)
@@ -34,7 +35,7 @@ struct Page1View: View {
                 .frame(maxWidth: .infinity)  // mx-auto
             }
             Text("MUQADDIMA")
-                .font(.system(size: 18, weight: .bold))  // text-lg
+                .font(.system(size: 18 * arabicFontScale, weight: .bold))  // text-lg
                 .foregroundStyle(AppColor.textSecondary)
                 .frame(maxWidth: .infinity)  // text-center
                 .padding(.bottom, 8)         // mb-2
@@ -102,15 +103,17 @@ private struct BismillahButton: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var amber: Color { AppColor.elJumla }
 
     var body: some View {
         Button(action: onTap) {
             Text(element.arabic)
-                .font(arabicFont(24))  // text-2xl
+                .font(arabicFont(24 * arabicFontScale))  // text-2xl
                 .foregroundStyle(isActive ? amber : AppColor.textMain)
                 .multilineTextAlignment(.center)
-                .lineSpacing(6)  // leading-relaxed
+                .lineSpacing(6 * arabicFontScale)  // leading-relaxed
                 .padding(.horizontal, 16)  // px-4
                 .padding(.vertical, 8)     // py-2
                 .background(
@@ -137,13 +140,15 @@ private struct BismillahButton: View {
 private struct ParagraphList: View {
     let paragraphs: [String]
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {  // gap-4
             ForEach(Array(paragraphs.enumerated()), id: \.offset) { _, text in
                 Text(text)
-                    .font(.system(size: 14))  // text-sm
+                    .font(.system(size: 14 * arabicFontScale))  // text-sm
                     .foregroundStyle(AppColor.textMain)
-                    .lineSpacing(6)           // leading-relaxed
+                    .lineSpacing(6 * arabicFontScale)           // leading-relaxed
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

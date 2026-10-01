@@ -112,10 +112,12 @@ private struct ClickableTitle: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Button(action: onTap) {
             Text(element.arabic)
-                .font(arabicFont(14))   // text-sm, font-bold
+                .font(arabicFont(14 * arabicFontScale))   // text-sm, font-bold
                 .foregroundStyle(isActive ? Color.white : AppColor.textSecondary)
                 .padding(.horizontal, 8)   // px-2
                 .background(
@@ -135,7 +137,9 @@ private struct ClickableTitle: View {
 /// The visual-only `ـًّ ـٍّ ـٌّ` header sitting on a 55%-wide muted underline. Port
 /// of the web page-25 `SignsHeader`. Non-tappable; RTL (fatha → kasra → damma).
 private struct SignsHeader: View {
-    private let signPoint: CGFloat = 20
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
+    private var signPoint: CGFloat { 20 * arabicFontScale }
 
     var body: some View {
         GeometryReader { geo in
@@ -176,13 +180,15 @@ private struct RabbCell: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Button(action: onTap) {
             HStack(alignment: .firstTextBaseline, spacing: 2) {   // items-baseline gap-0.5
-                Text(element.arabic).font(arabicFont(18))         // clamp max 1.1rem, bold
-                Text("−").font(.system(size: 10)).opacity(0.6)    // text-[0.625rem] opacity-60
+                Text(element.arabic).font(arabicFont(18 * arabicFontScale))         // clamp max 1.1rem, bold
+                Text("−").font(.system(size: 10 * arabicFontScale)).opacity(0.6)    // text-[0.625rem] opacity-60
                 Text("(\(expand))")
-                    .font(arabicFont(13, weight: .regular))       // clamp max 0.85rem
+                    .font(arabicFont(13 * arabicFontScale, weight: .regular))       // clamp max 0.85rem
                     .opacity(0.6)
             }
             .foregroundStyle(isActive ? Color.white : AppColor.textMain)
@@ -218,6 +224,8 @@ private struct AlifHamzaIntro: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         VStack(spacing: 0) {   // gap-0
             if let title {
@@ -238,7 +246,7 @@ private struct AlifHamzaIntro: View {
         let isActive = activeId == element.id
         return Button { onTap(element) } label: {
             Text(element.arabic)
-                .font(arabicFont(10, weight: .regular))   // text-[0.625rem]
+                .font(arabicFont(10 * arabicFontScale, weight: .regular))   // text-[0.625rem]
                 .foregroundStyle(isActive ? Color.white : AppColor.textMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 8)   // px-2
@@ -287,7 +295,7 @@ private struct AlifHamzaIntro: View {
 
     private func numberLabel(_ text: String) -> some View {
         Text(text)
-            .font(arabicFont(10, weight: .regular))   // text-[0.625rem]
+            .font(arabicFont(10 * arabicFontScale, weight: .regular))   // text-[0.625rem]
             .foregroundStyle(AppColor.textMuted)
             .frame(width: 16)   // w-[16px] shrink-0
             .multilineTextAlignment(.center)
@@ -301,10 +309,12 @@ private struct FormCell: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Button(action: onTap) {
             Text(element.arabic)
-                .font(arabicFont(18))   // clamp max 1.15rem, bold
+                .font(arabicFont(18 * arabicFontScale))   // clamp max 1.15rem, bold
                 .foregroundStyle(isActive ? Color.white : AppColor.textMain)
                 .padding(.horizontal, 4)   // px-1
                 .background(

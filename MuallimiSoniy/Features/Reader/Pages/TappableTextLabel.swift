@@ -14,7 +14,9 @@ import SwiftUI
 /// nil (an unported suffix), mirroring the web `if (!el) return null`.
 struct TappableTextLabel: View {
     let element: Element?
-    let font: Font
+    var pointSize: CGFloat = 14
+    var weight: Font.Weight = .regular
+    var customFont: Font? = nil
     var inactiveColor: Color = AppColor.textMuted
     /// Web `box-shadow` blur ≈ 2× this radius; only shown while active.
     var glowRadius: CGFloat = 10
@@ -26,17 +28,73 @@ struct TappableTextLabel: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    /// Global Arabic scale from the user's font-size preference (injected at root).
+    @Environment(\.arabicFontScale) private var arabicFontScale
     /// Line spacing / bold / highlight / VoiceOver strings from the "Aa" sheet.
     @Environment(\.readingAdjustments) private var adjustments
     /// Settings → Accessibility → Reduce Motion — skips the highlight spring.
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    init(
+        element: Element?,
+        pointSize: CGFloat = 14,
+        weight: Font.Weight = .regular,
+        inactiveColor: Color = AppColor.textMuted,
+        glowRadius: CGFloat = 10,
+        glowY: CGFloat = 6,
+        horizontalPadding: CGFloat = 8,
+        fullWidth: Bool = false,
+        activeId: String?,
+        onTap: @escaping (Element) -> Void
+    ) {
+        self.element = element
+        self.pointSize = pointSize
+        self.weight = weight
+        self.customFont = nil
+        self.inactiveColor = inactiveColor
+        self.glowRadius = glowRadius
+        self.glowY = glowY
+        self.horizontalPadding = horizontalPadding
+        self.fullWidth = fullWidth
+        self.activeId = activeId
+        self.onTap = onTap
+    }
+
+    init(
+        element: Element?,
+        font: Font,
+        inactiveColor: Color = AppColor.textMuted,
+        glowRadius: CGFloat = 10,
+        glowY: CGFloat = 6,
+        horizontalPadding: CGFloat = 8,
+        fullWidth: Bool = false,
+        activeId: String?,
+        onTap: @escaping (Element) -> Void
+    ) {
+        self.element = element
+        self.pointSize = 14
+        self.weight = .regular
+        self.customFont = font
+        self.inactiveColor = inactiveColor
+        self.glowRadius = glowRadius
+        self.glowY = glowY
+        self.horizontalPadding = horizontalPadding
+        self.fullWidth = fullWidth
+        self.activeId = activeId
+        self.onTap = onTap
+    }
+
+    private var resolvedFont: Font {
+        if let customFont { return customFont }
+        return arabicFont(pointSize * arabicFontScale, weight: weight)
+    }
 
     var body: some View {
         if let element {
             let isActive = activeId == element.id
             Button { onTap(element) } label: {
                 Text(element.arabic)
-                    .font(font)
+                    .font(resolvedFont)
                     .foregroundStyle(isActive ? Color.white : inactiveColor)
                     .multilineTextAlignment(.center)   // text-center
                     .lineSpacing(1 * adjustments.lineSpacingScale)  // leading-tight

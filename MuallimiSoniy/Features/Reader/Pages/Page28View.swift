@@ -68,7 +68,7 @@ struct Page28View: View {
 
     /// Clickable block title (web `BlockTitle`: `text-sm font-bold`, `px-3`).
     private func blockTitle(_ element: Element?) -> some View {
-        TappableTextLabel(element: element, font: arabicFont(14),
+        TappableTextLabel(element: element, pointSize: 14, weight: .bold,
                           inactiveColor: AppColor.textSecondary,
                           glowRadius: 10, glowY: 6, horizontalPadding: 12,
                           activeId: activeId, onTap: onTap)
@@ -76,7 +76,7 @@ struct Page28View: View {
 
     /// Clickable chig'atoy subtitle (web `ClickableSubText`: `text-[0.59rem]`, `px-2`).
     private func subLabel(_ element: Element?) -> some View {
-        TappableTextLabel(element: element, font: arabicFont(9.5, weight: .regular),
+        TappableTextLabel(element: element, pointSize: 9.5, weight: .regular,
                           inactiveColor: AppColor.textMuted,
                           glowRadius: 7, glowY: 4, horizontalPadding: 8,
                           activeId: activeId, onTap: onTap)

@@ -30,7 +30,9 @@ struct ReadingOptionsSheet: View {
             header
             ScrollView {
                 VStack(alignment: .leading, spacing: 24 * layoutMetrics.uiScale) {
-                    textSizeSection
+                    lessonTextSizeSection
+                    sectionDivider
+                    verseSizeSection
                     sectionDivider
                     translationSection
                     sectionDivider
@@ -73,17 +75,14 @@ struct ReadingOptionsSheet: View {
         .background(.ultraThinMaterial)
     }
 
-    // MARK: - 1. Text size
+    // MARK: - 1. Lesson & Rules Text size
 
-    private var textSizeSection: some View {
+    private var lessonTextSizeSection: some View {
         VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
-            sectionTitle(tr("text_size"))
+            sectionTitle(tr("lesson_text_size"))
             // Live sample: the first four letters of the Arabic alphabet — the
             // same "abjad" order this primer teaches — scaled by the slider so
-            // the effect is felt immediately, before opening any page. The
-            // `uiScale` factor is the same iPad chrome boost every other
-            // number in this sheet gets — independent of `arabicScale`, which
-            // is purely the user's slider position.
+            // the effect is felt immediately, before opening any page.
             Text(Self.textSample)
                 .font(arabicFont(
                     32 * layoutMetrics.uiScale * preferences.arabicScale,
@@ -96,7 +95,7 @@ struct ReadingOptionsSheet: View {
                 .frame(maxWidth: .infinity, minHeight: 64 * layoutMetrics.uiScale)
                 .environment(\.layoutDirection, .rightToLeft)
                 .accessibilityHidden(true)
-            TextScaleSlider(title: tr("text_size"), value: textScaleBinding)
+            TextScaleSlider(title: tr("lesson_text_size"), value: textScaleBinding)
         }
     }
 
@@ -106,6 +105,38 @@ struct ReadingOptionsSheet: View {
         Binding(
             get: { preferences.settings.textScale },
             set: { preferences.setTextScale($0) }
+        )
+    }
+
+    // MARK: - 2. Quranic Verse size
+
+    private var verseSizeSection: some View {
+        VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
+            sectionTitle(tr("verse_size"))
+            // Live sample: Surah Al-Kawthar v.1 with ayah ornament — scaled
+            // by the verse slider.
+            Text(Self.verseSample)
+                .font(arabicFont(
+                    26 * layoutMetrics.uiScale * preferences.verseScale,
+                    weight: .bold,
+                    typeface: preferences.settings.arabicTypeface
+                ))
+                .foregroundStyle(AppColor.textMain)
+                .lineLimit(1)
+                .minimumScaleFactor(0.3)
+                .frame(maxWidth: .infinity, minHeight: 56 * layoutMetrics.uiScale)
+                .environment(\.layoutDirection, .rightToLeft)
+                .accessibilityHidden(true)
+            TextScaleSlider(title: tr("verse_size"), value: verseScaleBinding)
+        }
+    }
+
+    private static let verseSample = "إِنَّا أَعْطَيْنَاكَ الْكَوْثَرَ ﴿١﴾"
+
+    private var verseScaleBinding: Binding<Double> {
+        Binding(
+            get: { preferences.settings.verseTextScale },
+            set: { preferences.setVerseTextScale($0) }
         )
     }
 

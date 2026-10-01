@@ -19,9 +19,16 @@ extension FontSize {
 
 /// Environment value carrying the current Arabic font-size multiplier. Injected
 /// once at the app root from `SettingsStore.arabicScale`; read by
-/// `ArabicElementView` and `Verse` to scale their point sizes. Default `1.0`
+/// `ArabicElementView` and lesson components to scale their point sizes. Default `1.0`
 /// keeps previews and any non-injected context at the medium size.
 private struct ArabicFontScaleKey: EnvironmentKey {
+    static let defaultValue: CGFloat = 1.0
+}
+
+/// Environment value carrying the Qur'anic verse font-size multiplier. Injected
+/// once at the app root from `SettingsStore.verseScale`; read by
+/// `Verse`, `AyahRow` and surah components to scale their point sizes. Default `1.0`.
+private struct VerseFontScaleKey: EnvironmentKey {
     static let defaultValue: CGFloat = 1.0
 }
 
@@ -29,5 +36,10 @@ extension EnvironmentValues {
     var arabicFontScale: CGFloat {
         get { self[ArabicFontScaleKey.self] }
         set { self[ArabicFontScaleKey.self] = newValue }
+    }
+
+    var verseFontScale: CGFloat {
+        get { self[VerseFontScaleKey.self] }
+        set { self[VerseFontScaleKey.self] = newValue }
     }
 }

@@ -44,7 +44,7 @@ private struct QunutTitle: View {
             HStack(spacing: 12) {   // gap-3
                 Ornament()
                 TappableTextLabel(
-                    element: title, font: arabicFont(22),
+                    element: title, pointSize: 22, weight: .bold,
                     inactiveColor: AppColor.textSecondary, horizontalPadding: 12,
                     activeId: activeId, onTap: onTap
                 )
@@ -66,7 +66,7 @@ private struct QunutParagraph: View {
         QunutFlow(hSpacing: 2, lineSpacing: 10) {
             ForEach(Array(phrases.enumerated()), id: \.element.id) { index, phrase in
                 TappableTextLabel(
-                    element: phrase, font: arabicFont(17),
+                    element: phrase, pointSize: 17, weight: .bold,
                     inactiveColor: AppColor.textMain, horizontalPadding: 6,
                     activeId: activeId, onTap: onTap
                 )
@@ -80,9 +80,11 @@ private struct QunutParagraph: View {
 
 /// A small muted `❀` title ornament (web `text-xs opacity-60`).
 private struct Ornament: View {
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Text("❀")
-            .font(.system(size: 12))
+            .font(.system(size: 12 * arabicFontScale))
             .foregroundStyle(AppColor.textMuted)
             .opacity(0.6)
     }
@@ -90,9 +92,11 @@ private struct Ornament: View {
 
 /// The `·` between two clauses (web muted dot, `opacity-50`).
 private struct Separator: View {
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Text("·")
-            .font(arabicFont(17, weight: .regular))
+            .font(arabicFont(17 * arabicFontScale, weight: .regular))
             .foregroundStyle(AppColor.textMuted)
             .opacity(0.5)
     }

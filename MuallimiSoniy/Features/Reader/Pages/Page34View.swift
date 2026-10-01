@@ -65,12 +65,14 @@ private struct Heading: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     private var isActive: Bool { activeId == element.id }
 
     var body: some View {
         Button { onTap(element) } label: {
             Text(element.arabic)
-                .font(arabicFont(size))
+                .font(arabicFont(size * arabicFontScale))
                 .foregroundStyle(isActive ? Color.white : AppColor.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, hPad)
@@ -109,9 +111,11 @@ private struct KalimaBody: View {
 
 /// The small green flower (web `Gul`) separating kalima clause parts.
 private struct Gul: View {
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         Text("❀")
-            .font(.system(size: 10))       // text-[0.625rem]
+            .font(.system(size: 10 * verseFontScale))       // text-[0.625rem]
             .foregroundStyle(AppColor.primary)
             .opacity(0.55)
     }

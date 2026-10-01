@@ -20,6 +20,7 @@ struct TappableSurahTitle: View {
     let onTap: (Element) -> Void
 
     @Environment(\.readingTheme) private var readingTheme
+    @Environment(\.verseFontScale) private var verseFontScale
 
     var body: some View {
         HStack(spacing: 12) {  // gap-3
@@ -35,11 +36,12 @@ struct TappableSurahTitle: View {
         .frame(maxWidth: .infinity)
         .environment(\.layoutDirection, .rightToLeft)
         .surahHeaderFrame()
+        .environment(\.arabicFontScale, verseFontScale)
     }
 
     private var ornament: some View {
         Text("❀")
-            .font(.system(size: 12))  // text-xs
+            .font(.system(size: 12 * verseFontScale))  // text-xs
             .foregroundStyle(readingTheme.textMuted)
     }
 }

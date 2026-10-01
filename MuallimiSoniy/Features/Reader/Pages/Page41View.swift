@@ -9,6 +9,8 @@ struct Page41View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     /// One ayah per row, in book order.
     private static let ayahIds = ["a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8"]
 
@@ -23,5 +25,6 @@ struct Page41View: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .environment(\.arabicFontScale, verseFontScale)
     }
 }

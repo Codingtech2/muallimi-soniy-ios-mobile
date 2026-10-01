@@ -10,6 +10,7 @@ struct SurahTitle: View {
     /// Reader page/text palette — `.paper` (today's exact look) outside the
     /// reader, so the heading stays readable on every reading background.
     @Environment(\.readingTheme) private var readingTheme
+    @Environment(\.verseFontScale) private var verseFontScale
 
     init(_ text: String) {
         self.text = text
@@ -19,7 +20,7 @@ struct SurahTitle: View {
         HStack(spacing: 8) {  // gap-2
             ornament
             Text(text)
-                .font(arabicFont(16))  // text-[…,0.98rem]
+                .font(arabicFont(16 * verseFontScale))  // text-[…,0.98rem]
                 .foregroundStyle(readingTheme.textSecondary)
                 .multilineTextAlignment(.center)
             ornament
@@ -32,7 +33,7 @@ struct SurahTitle: View {
 
     private var ornament: some View {
         Text("❀")
-            .font(.system(size: 10))  // text-[0.625rem]
+            .font(.system(size: 10 * verseFontScale))  // text-[0.625rem]
             .foregroundStyle(readingTheme.textMuted)
             .opacity(0.6)
     }

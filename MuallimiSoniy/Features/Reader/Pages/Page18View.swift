@@ -12,6 +12,8 @@ struct Page18View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         // Web outer: `flex flex-col items-center gap-1` → 4 pt.
@@ -42,7 +44,7 @@ struct Page18View: View {
             )
         } else {
             Text(Self.outroFallback)
-                .font(arabicFont(11, weight: .regular))
+                .font(arabicFont(11 * arabicFontScale, weight: .regular))
                 .foregroundStyle(AppColor.textMuted)
                 .lineSpacing(3)
                 .multilineTextAlignment(.center)
@@ -89,11 +91,13 @@ private struct MadOutroButton: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 4) {
                 Text(element.arabic)   // same advice text, baked into book.json
-                    .font(arabicFont(11, weight: .regular))
+                    .font(arabicFont(11 * arabicFontScale, weight: .regular))
                     .foregroundStyle(AppColor.textMuted)
                     .lineSpacing(3)
                     .multilineTextAlignment(.center)

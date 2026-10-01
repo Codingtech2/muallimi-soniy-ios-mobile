@@ -14,6 +14,8 @@ struct Page33View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         VStack(spacing: 2) {                          // web outer gap-0.5
@@ -51,11 +53,11 @@ struct Page33View: View {
             Button { onTap(e) } label: {
                 VStack(spacing: 2) {                  // mt-0.5 between glyph and name
                     Text(e.arabic)
-                        .font(arabicFont(16, weight: .bold))     // clamp max 1.05rem
+                        .font(arabicFont(16 * arabicFontScale, weight: .bold))     // clamp max 1.05rem
                         .foregroundStyle(active ? .white : AppColor.textMain)
                     if let name = Self.names[suffix] {
                         Text(name)
-                            .font(arabicFont(10, weight: .regular))  // clamp max 0.65rem
+                            .font(arabicFont(10 * arabicFontScale, weight: .regular))  // clamp max 0.65rem
                             .foregroundStyle((active ? Color.white : AppColor.textMain).opacity(0.8))
                     }
                 }
@@ -100,7 +102,7 @@ struct Page33View: View {
         let active = activeId == e.id
         return Button { onTap(e) } label: {
             Text(e.arabic)
-                .font(arabicFont(19, weight: .bold))  // clamp max 1.2rem
+                .font(arabicFont(19 * arabicFontScale, weight: .bold))  // clamp max 1.2rem
                 .foregroundStyle(active ? .white : AppColor.textMain)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -122,7 +124,7 @@ struct Page33View: View {
             let active = activeId == e.id
             Button { onTap(e) } label: {
                 Text(e.arabic)
-                    .font(arabicFont(size, weight: weight))
+                    .font(arabicFont(size * arabicFontScale, weight: weight))
                     .foregroundStyle(active ? .white : color)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 8)          // px-2

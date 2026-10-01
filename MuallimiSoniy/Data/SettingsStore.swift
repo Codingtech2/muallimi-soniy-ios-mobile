@@ -31,6 +31,10 @@ final class SettingsStore {
     /// continuous slider that replaced the old 3-step `FontSize` enum.
     var arabicScale: CGFloat { CGFloat(settings.textScale) }
 
+    /// Quranic verse type multiplier for the verse-size preference.
+    /// Fed to `\.verseFontScale`. Mirrors `settings.verseTextScale` (0.8…2.5).
+    var verseScale: CGFloat { CGFloat(settings.verseTextScale) }
+
     private let userDefaults: UserDefaults
     private let logger = Logger(
         subsystem: Bundle.main.bundleIdentifier ?? "MuallimiSoniy",
@@ -87,6 +91,15 @@ final class SettingsStore {
     /// Clamps to 0.8…2.5 before storing. Persisted across launches.
     func setTextScale(_ scale: Double) {
         settings.textScale = min(
+            Self.textScaleRange.upperBound,
+            max(Self.textScaleRange.lowerBound, scale)
+        )
+        persist()
+    }
+
+    /// Clamps to 0.8…2.5 before storing. Persisted across launches.
+    func setVerseTextScale(_ scale: Double) {
+        settings.verseTextScale = min(
             Self.textScaleRange.upperBound,
             max(Self.textScaleRange.lowerBound, scale)
         )
@@ -253,6 +266,7 @@ final class SettingsStore {
             loopMode: stored.loopMode ?? base.loopMode,
             sequentialMode: stored.sequentialMode ?? base.sequentialMode,
             textScale: stored.textScale ?? legacyTextScale(from: stored.fontSize) ?? base.textScale,
+            verseTextScale: stored.verseTextScale ?? stored.textScale ?? legacyTextScale(from: stored.fontSize) ?? base.verseTextScale,
             readingBackground: stored.readingBackground.flatMap(ReadingBackground.init(rawValue:))
                 ?? base.readingBackground,
             lineSpacingScale: stored.lineSpacingScale ?? base.lineSpacingScale,
@@ -302,6 +316,7 @@ private nonisolated struct StoredSettings: Decodable {
     var sequentialMode: Bool?
 
     var textScale: Double?
+    var verseTextScale: Double?
     var readingBackground: String?
     var lineSpacingScale: Double?
     var boldText: Bool?
@@ -318,7 +333,7 @@ private nonisolated struct StoredSettings: Decodable {
 
     private enum CodingKeys: String, CodingKey {
         case repeatCount, speed, volume, locale, theme, loopMode, sequentialMode
-        case textScale, readingBackground, lineSpacingScale, boldText, strongHighlight, keepScreenAwake
+        case textScale, verseTextScale, readingBackground, lineSpacingScale, boldText, strongHighlight, keepScreenAwake
         case showTranslation, translation, arabicTypeface
         case fontSize
     }
@@ -333,6 +348,7 @@ private nonisolated struct StoredSettings: Decodable {
         loopMode = Self.field(Bool.self, .loopMode, in: container)
         sequentialMode = Self.field(Bool.self, .sequentialMode, in: container)
         textScale = Self.field(Double.self, .textScale, in: container)
+        verseTextScale = Self.field(Double.self, .verseTextScale, in: container)
         readingBackground = Self.field(String.self, .readingBackground, in: container)
         lineSpacingScale = Self.field(Double.self, .lineSpacingScale, in: container)
         boldText = Self.field(Bool.self, .boldText, in: container)

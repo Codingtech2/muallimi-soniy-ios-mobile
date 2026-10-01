@@ -13,10 +13,12 @@ struct AyahPair: View {
     let isActive: Bool
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         HStack(spacing: 4) {  // gap-[clamp(…,0.25rem)]
             ArabicElementView(element: element, size: size, isActive: isActive) { onTap(element) }
-            AyahSeparator()   // ❀ (shared, defined in Verse.swift)
+            AyahSeparator(pointSize: size.pointSize * verseFontScale)   // ❀ (shared, defined in Verse.swift)
         }
         .environment(\.layoutDirection, .rightToLeft)
     }
@@ -37,6 +39,8 @@ struct AyahRow: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         FlowLayout(spacing: spacing.value, lineSpacing: spacing.value) {
             ForEach(elements) { element in
@@ -45,5 +49,6 @@ struct AyahRow: View {
         }
         .frame(maxWidth: .infinity)
         .ayahTranslation(for: elements.map(\.id))
+        .environment(\.arabicFontScale, verseFontScale)
     }
 }

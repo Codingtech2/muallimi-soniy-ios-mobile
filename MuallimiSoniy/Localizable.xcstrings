@@ -47,26 +47,6 @@
         }
       }
     },
-    "%@ %@ / %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@ / %3$@"
-          }
-        }
-      }
-    },
-    "%@–%@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@–%2$@"
-          }
-        }
-      }
-    },
     "•" : {
 
     },
@@ -5523,6 +5503,35 @@
         }
       }
     },
+    "surah_play_tip" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap ▶ to hear the surah from beginning to end — it stops when the surah is over. To hear a single verse, tap that verse."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Нажмите ▶ — сура прозвучит от начала до конца и остановится. Чтобы послушать один аят, нажмите на него."
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "▶ тугмасини босинг — сура бошидан охиригача ўқилади ва тугагач тўхтайди. Битта оятни тинглаш учун ўша оятни босинг."
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "▶ tugmasini bosing — sura boshidan oxirigacha oʻqiladi va tugagach toʻxtaydi. Bitta oyatni tinglash uchun oʻsha oyatni bosing."
+          }
+        }
+      }
+    },
     "system" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5609,6 +5618,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Matn oʻlchami"
+          }
+        }
+      }
+    },
+    "lesson_text_size" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesson & Rules Size"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер уроков и правил"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дарслик ва қоидалар ўлчами"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darslik va qoidalar oʻlchami"
+          }
+        }
+      }
+    },
+    "verse_size" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quranic Verses Size"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Размер аятов Корана"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Қуръон оятлари ўлчами"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Qurʼon oyatlari oʻlchami"
           }
         }
       }

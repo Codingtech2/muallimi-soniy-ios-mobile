@@ -13,6 +13,8 @@ struct Page0View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         VStack(spacing: 24) {  // gap-6
@@ -43,11 +45,11 @@ struct Page0View: View {
     private var author: some View {
         VStack(spacing: 8) {  // mt-2
             Text("مؤلف")
-                .font(arabicFont(14, weight: .regular))  // text-sm
+                .font(arabicFont(14 * arabicFontScale, weight: .regular))  // text-sm
                 .foregroundStyle(AppColor.textMuted)
                 .environment(\.layoutDirection, .rightToLeft)
             Text("أحمد هادي مقصودي")
-                .font(arabicFont(20, weight: .regular))  // text-xl
+                .font(arabicFont(20 * arabicFontScale, weight: .regular))  // text-xl
                 .foregroundStyle(AppColor.elJumla)
                 .environment(\.layoutDirection, .rightToLeft)
         }
@@ -55,9 +57,9 @@ struct Page0View: View {
 
     private var reader: some View {
         HStack(spacing: 8) {
-            Text("🎧").font(.system(size: 14))
+            Text("🎧").font(.system(size: 14 * arabicFontScale))
             Text("اوقیدی: جهانگیر قاری نعمتاو")
-                .font(arabicFont(14, weight: .regular))
+                .font(arabicFont(14 * arabicFontScale, weight: .regular))
                 .environment(\.layoutDirection, .rightToLeft)
         }
         .foregroundStyle(AppColor.textMuted)
@@ -91,10 +93,12 @@ private struct CoverTitle: View {
     let isActive: Bool
     let onTap: () -> Void
 
+    @Environment(\.arabicFontScale) private var arabicFontScale
+
     var body: some View {
         Button(action: onTap) {
             Text(element.arabic)
-                .font(arabicFont(fontSize, weight: style.weight))
+                .font(arabicFont(fontSize * arabicFontScale, weight: style.weight))
                 .foregroundStyle(isActive ? Color.white : style.inactiveColor)
                 .shadow(color: isActive ? Color.black.opacity(0.3) : .clear, radius: 1, x: 0, y: 1)
                 .padding(.horizontal, style.hPadding)

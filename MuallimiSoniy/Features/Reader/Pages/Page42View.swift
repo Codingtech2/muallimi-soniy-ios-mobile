@@ -14,6 +14,8 @@ struct Page42View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         VStack(spacing: 2) {  // outer flex-col gap-0.5
@@ -22,6 +24,7 @@ struct Page42View: View {
             adiyat(c)
         }
         .frame(maxWidth: .infinity)
+        .environment(\.arabicFontScale, verseFontScale)
     }
 
     // MARK: - Surahs

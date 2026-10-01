@@ -16,6 +16,8 @@ struct Page39View: View {
     let activeId: String?
     let onTap: (Element) -> Void
 
+    @Environment(\.verseFontScale) private var verseFontScale
+
     var body: some View {
         let c = PageContent(elements: page.elements)
         // Web outer: `flex flex-col items-center gap-0` → 0 pt.
@@ -30,6 +32,7 @@ struct Page39View: View {
             bism(c, "alaq_bism")
         }
         .frame(maxWidth: .infinity)
+        .environment(\.arabicFontScale, verseFontScale)
     }
 
     // MARK: - Sections
@@ -80,14 +83,15 @@ private struct CompactHead: View {
     let sub: String
 
     @Environment(\.readingTheme) private var readingTheme
+    @Environment(\.verseFontScale) private var verseFontScale
 
     var body: some View {
         VStack(spacing: 1) {
             Text(text)
-                .font(arabicFont(16))                     // text-base, bold
+                .font(arabicFont(16 * verseFontScale))                     // text-base, bold
                 .foregroundStyle(readingTheme.textSecondary)
             Text(sub)
-                .font(arabicFont(10, weight: .regular))   // text-[0.625rem]
+                .font(arabicFont(10 * verseFontScale, weight: .regular))   // text-[0.625rem]
                 .foregroundStyle(readingTheme.textMuted)
                 .environment(\.layoutDirection, .rightToLeft)
         }
