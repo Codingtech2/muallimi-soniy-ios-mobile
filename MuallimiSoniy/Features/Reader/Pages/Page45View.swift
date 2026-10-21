@@ -3,8 +3,8 @@ import SwiftUI
 /// Bespoke 1:1 renderer for book page 45 — three complete surahs (Quraysh,
 /// al-Ma'un, al-Kawthar) plus the title + bismillah of al-Kafirun (whose ayat
 /// continue on page 46). Every line is a tappable `Verse` (ayah number `﴿N﴾`
-/// plus a trailing `❀`) under a static `SurahTitle`, split by dotted
-/// `SectionDivider`s.
+/// plus a trailing `❀`) under a `SurahTitle` banner (a tap in the reader reads
+/// the whole surah), split by dotted `SectionDivider`s.
 ///
 /// al-Ma'un ayat 4+5 share one audio clip, so they render as a linked in-row
 /// pair — tapping either highlights both (web `linkedIds` group).
@@ -36,7 +36,7 @@ struct Page45View: View {
     /// سُورَةُ قُرَيْشٍ — bismillah + ayat 1–4.
     @ViewBuilder
     private func quraysh(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ قُرَيْشٍ")
+        SurahTitle("سُورَةُ قُرَيْشٍ", surah: 106, carriesHint: true)
         verse(c, "qu_bism")
         verse(c, "qu_a1", ayah: 1)
         verse(c, "qu_a2", ayah: 2)
@@ -47,7 +47,7 @@ struct Page45View: View {
     /// سُورَةُ الْمَاعُونِ — bismillah + ayat 1–7 (4+5 a linked in-row pair).
     @ViewBuilder
     private func maun(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْمَاعُونِ")
+        SurahTitle("سُورَةُ الْمَاعُونِ", surah: 107)
         verse(c, "ma_bism")
         verse(c, "ma_a1", ayah: 1)
         verse(c, "ma_a2", ayah: 2)
@@ -60,7 +60,7 @@ struct Page45View: View {
     /// سُورَةُ الْكَوْثَرِ — bismillah + ayat 1–3.
     @ViewBuilder
     private func kawthar(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْكَوْثَرِ")
+        SurahTitle("سُورَةُ الْكَوْثَرِ", surah: 108)
         verse(c, "ka_bism")
         verse(c, "ka_a1", ayah: 1)
         verse(c, "ka_a2", ayah: 2)
@@ -70,7 +70,7 @@ struct Page45View: View {
     /// سُورَةُ الْكَافِرُونَ — title + bismillah only (ayat begin on page 46).
     @ViewBuilder
     private func kafirunHeader(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْكَافِرُونَ")
+        SurahTitle("سُورَةُ الْكَافِرُونَ", surah: 109)
         verse(c, "kf_bism")
     }
 

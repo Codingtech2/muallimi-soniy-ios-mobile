@@ -3,8 +3,8 @@ import SwiftUI
 /// Bespoke 1:1 renderer for book page 36 — the isti'adha, Surah al-Fatiha
 /// (bismillah + 7 ayahs) and the opening of Surah al-Baqarah (bismillah + 5
 /// ayahs). Every line is a tappable `Verse` (ayah number appended as `﴿N﴾` plus a
-/// trailing `❀`), grouped under static `SurahTitle` headings and split by a
-/// dotted `SectionDivider`.
+/// trailing `❀`), grouped under `SurahTitle` banners (a tap in the reader reads
+/// the whole surah) and split by a dotted `SectionDivider`.
 ///
 /// Web reference: `src/components/lesson/RenderedPage.tsx` → `function Page36`.
 struct Page36View: View {
@@ -30,7 +30,7 @@ struct Page36View: View {
     /// the bismillah (web `fa_bismi num="١"`).
     @ViewBuilder
     private func fatiha(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْفَاتِحَة")
+        SurahTitle("سُورَةُ الْفَاتِحَة", surah: 1, carriesHint: true)
         verse(c, "fa_bismi", size: .md, ayah: 1)
         verse(c, "fa_v2", size: .sm, ayah: 2)
         verse(c, "fa_v3", size: .sm, ayah: 3)
@@ -44,7 +44,7 @@ struct Page36View: View {
     /// (ayah 1 md, 2–5 sm).
     @ViewBuilder
     private func baqarah(_ c: PageContent) -> some View {
-        SurahTitle("اَوَّلُ سُورَةِ الْبَقَرَة")
+        SurahTitle("اَوَّلُ سُورَةِ الْبَقَرَة", surah: 2)
         verse(c, "bq_bismi", size: .md)
         verse(c, "bq_v1", size: .md, ayah: 1)
         verse(c, "bq_v2", size: .sm, ayah: 2)

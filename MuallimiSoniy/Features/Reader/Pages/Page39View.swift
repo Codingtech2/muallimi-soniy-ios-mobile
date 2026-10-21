@@ -28,7 +28,7 @@ struct Page39View: View {
             CompactSep()
             tinSection(c)
             CompactSep()
-            CompactHead(text: "سورة العلق", sub: "علق سوره‌سی")   // header only, body p40
+            CompactHead(text: "سورة العلق", sub: "علق سوره‌سی", surah: 96)   // header only, body p40
             bism(c, "alaq_bism")
         }
         .frame(maxWidth: .infinity)
@@ -40,7 +40,7 @@ struct Page39View: View {
     /// Surah Ash-Sharh — bismillah + 8 ayat (rows 1+2 / 3+4 / 5+6+7 / 8).
     @ViewBuilder
     private func sharhSection(_ c: PageContent) -> some View {
-        CompactHead(text: "سورة الشرح", sub: "شرح سوره‌سی")
+        CompactHead(text: "سورة الشرح", sub: "شرح سوره‌سی", surah: 94, carriesHint: true)
         bism(c, "sharh_bism")
         ayah(c, ["sharh_v1", "sharh_v2"], .gap1)
         ayah(c, ["sharh_v3", "sharh_v4"], .gap1)
@@ -51,7 +51,7 @@ struct Page39View: View {
     /// Surah At-Tin — bismillah + 8 ayat (rows 1+2 / 3+4 / 5 / 6 / 7+8).
     @ViewBuilder
     private func tinSection(_ c: PageContent) -> some View {
-        CompactHead(text: "سورة التين", sub: "تین سوره‌سی")
+        CompactHead(text: "سورة التين", sub: "تین سوره‌سی", surah: 95)
         bism(c, "tin_bism")
         ayah(c, ["tin_v1", "tin_v2"], .gap1)
         ayah(c, ["tin_v3", "tin_v4"], .gap1)
@@ -77,27 +77,33 @@ struct Page39View: View {
 
 /// Compact surah heading — smaller than `SectionTitle` so three headings fit one
 /// screen (web `Head`: `text-base` bold title + `0.625rem` muted Arabic sub,
-/// tight leading).
+/// tight leading). Inside the reader the framed heading reads the whole surah
+/// (`SurahBannerFrame`), its text turning white while that surah plays.
 private struct CompactHead: View {
     let text: String
     let sub: String
+    /// The surah this heading opens.
+    let surah: Int
+    /// The page's first surah heading: the one-time hint shows under it.
+    var carriesHint = false
 
     @Environment(\.readingTheme) private var readingTheme
     @Environment(\.verseFontScale) private var verseFontScale
 
     var body: some View {
-        VStack(spacing: 1) {
-            Text(text)
-                .font(arabicFont(16 * verseFontScale))                     // text-base, bold
-                .foregroundStyle(readingTheme.textSecondary)
-            Text(sub)
-                .font(arabicFont(10 * verseFontScale, weight: .regular))   // text-[0.625rem]
-                .foregroundStyle(readingTheme.textMuted)
-                .environment(\.layoutDirection, .rightToLeft)
+        SurahBannerFrame(surah: surah, name: text, carriesHint: carriesHint) { isPlaying in
+            VStack(spacing: 1) {
+                Text(text)
+                    .font(arabicFont(16 * verseFontScale))                     // text-base, bold
+                    .foregroundStyle(isPlaying ? Color.white : readingTheme.textSecondary)
+                Text(sub)
+                    .font(arabicFont(10 * verseFontScale, weight: .regular))   // text-[0.625rem]
+                    .foregroundStyle(isPlaying ? Color.white.opacity(0.85) : readingTheme.textMuted)
+                    .environment(\.layoutDirection, .rightToLeft)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.top, 2)                                 // mt-0.5
         }
-        .frame(maxWidth: .infinity)
-        .padding(.top, 2)                                 // mt-0.5
-        .surahHeaderFrame()
     }
 }
 

@@ -44,7 +44,7 @@ struct Page44View: View {
     /// 8+9).
     @ViewBuilder
     private func humazah(_ c: PageContent) -> some View {
-        flowerTitle(c, "hu_title")
+        flowerTitle(c, "hu_title", surah: 104, carriesHint: true)   // Asr above has no heading
         bism(c, "hu_bism")
         ayah(c, ["hu_a1"], .gap2)
         ayah(c, ["hu_a2", "hu_a3"], .gap1_5)
@@ -56,7 +56,7 @@ struct Page44View: View {
     /// Al-Fil — tappable title + bismillah + 5 ayat (rows 1, 2+3, 4+5).
     @ViewBuilder
     private func fil(_ c: PageContent) -> some View {
-        flowerTitle(c, "fi_title")
+        flowerTitle(c, "fi_title", surah: 105)
         bism(c, "fi_bism")
         ayah(c, ["fi_a1"], .gap2)
         ayah(c, ["fi_a2", "fi_a3"], .gap1_5)
@@ -66,12 +66,15 @@ struct Page44View: View {
     // MARK: - Row helpers
 
     /// Tappable surah heading flanked by `❀` ornaments (shared
-    /// `TappableSurahTitle`, `size="md"`). Renders nothing if the element is
-    /// absent.
+    /// `TappableSurahTitle`, `size="md"`); in the reader it reads `surah` in
+    /// full. Renders nothing if the element is absent.
     @ViewBuilder
-    private func flowerTitle(_ c: PageContent, _ id: String) -> some View {
+    private func flowerTitle(_ c: PageContent, _ id: String, surah: Int, carriesHint: Bool = false) -> some View {
         if let title = c.el(id) {
-            TappableSurahTitle(element: title, activeId: activeId, onTap: onTap)
+            TappableSurahTitle(
+                element: title, surah: surah, carriesHint: carriesHint,
+                activeId: activeId, onTap: onTap
+            )
         }
     }
 

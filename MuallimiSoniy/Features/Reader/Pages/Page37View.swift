@@ -31,7 +31,7 @@ struct Page37View: View {
     /// سُورَةُ الشَّمْس — bismillah then ayahs 1–15 grouped 3/2/3/3/2/1/1 per line.
     @ViewBuilder
     private func shams(_ c: PageContent) -> some View {
-        title(c, "sh_title")
+        title(c, "sh_title", surah: 91, carriesHint: true)
         bismillah(c, "sh_bismillah")
         ayah(c, ["sh_a1", "sh_a2", "sh_a3"])
         ayah(c, ["sh_a4", "sh_a5"])
@@ -45,7 +45,7 @@ struct Page37View: View {
     /// سُورَةُ اللَّيْل (boshi) — bismillah then ayahs 1–7 grouped 3/2/2 per line.
     @ViewBuilder
     private func layl(_ c: PageContent) -> some View {
-        title(c, "ll_title")
+        title(c, "ll_title", surah: 92)
         bismillah(c, "ll_bismillah")
         ayah(c, ["ll_a1", "ll_a2", "ll_a3"])
         ayah(c, ["ll_a4", "ll_a5"])
@@ -55,9 +55,12 @@ struct Page37View: View {
     // MARK: - Row builders (web `ArabicEl` title / `Row` / `AyahRow`, size sm, gap-2)
 
     @ViewBuilder
-    private func title(_ c: PageContent, _ suffix: String) -> some View {
+    private func title(_ c: PageContent, _ suffix: String, surah: Int, carriesHint: Bool = false) -> some View {
         if let element = c.el(suffix) {
-            TappableSurahTitle(element: element, size: .md, activeId: activeId, onTap: onTap)
+            TappableSurahTitle(
+                element: element, size: .md, surah: surah, carriesHint: carriesHint,
+                activeId: activeId, onTap: onTap
+            )
         }
     }
 

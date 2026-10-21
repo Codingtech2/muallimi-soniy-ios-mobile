@@ -166,6 +166,12 @@ nonisolated struct HifzPlan: Sendable, Hashable {
             HifzPlan(scope: scope, eachAyah: .times(1), rounds: .times(1), pauseToRepeat: false)
         }
     }
+
+    /// One plain pass through a surah — every ayah once, then stop. What the
+    /// reader's ▶ plays on a surah page.
+    static func listen(surah number: Int) -> HifzPlan {
+        HifzPlan(scope: .surah(number: number), eachAyah: .times(1), rounds: .times(1), pauseToRepeat: false)
+    }
 }
 
 /// Value passed through a `NavigationLink` to open the reader already running

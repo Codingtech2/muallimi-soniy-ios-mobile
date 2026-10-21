@@ -77,6 +77,11 @@ final class ContentStore {
     private(set) var ayahTranslations: [TranslationChoice: AyahTranslationLookup] = [:]
     /// Where each translation comes from, in file order (credits page).
     private(set) var translationEditions: [TranslationEdition] = []
+    /// Surah + ayah of every surah-page element (titles excluded), keyed by
+    /// element id — what the Mushaf view of pages 36–47 groups a page by.
+    /// Empty when `surah-index.json` is missing; the reader then keeps the
+    /// ayah-by-ayah pages instead of an empty Mushaf.
+    private(set) var mushafVerses: [String: MushafVerseRef] = [:]
 
     /// Introduction prose that lives outside the page/element structure.
     var muqaddimaParagraphs: [String] { book?.extras.muqaddimaParagraphs ?? [] }
@@ -109,6 +114,7 @@ final class ContentStore {
         let surahIndex = decodeBundled("surah-index", as: SurahIndexFile.self)
         buildHifzCatalog(from: surahIndex)
         buildAyahTranslations(from: surahIndex)
+        buildMushafVerses(from: surahIndex)
     }
 
     /// Decodes a bundled `<name>.json` resource, returning `nil` (and logging)
@@ -218,6 +224,19 @@ final class ContentStore {
         let surahCount = catalog.surahs.count
         let unitCount = catalog.surahs.reduce(0) { $0 + $1.units.count }
         logger.info("hifz catalog: \(surahCount, privacy: .public) surahs, \(unitCount, privacy: .public) units")
+    }
+
+    // MARK: - Mushaf verse map
+
+    /// Fills `mushafVerses` from the same decoded index the hifz catalog uses.
+    /// Unreadable items are skipped and logged, never fatal.
+    private func buildMushafVerses(from indexFile: SurahIndexFile?) {
+        let (verses, problems) = MushafVerseRef.index(from: indexFile)
+        for problem in problems {
+            logger.error("\(problem, privacy: .public)")
+        }
+        mushafVerses = verses
+        logger.info("mushaf verses: \(verses.count, privacy: .public) elements")
     }
 
     // MARK: - Translations of the meanings

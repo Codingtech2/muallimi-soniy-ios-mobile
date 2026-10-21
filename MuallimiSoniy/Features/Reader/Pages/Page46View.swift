@@ -4,7 +4,8 @@ import SwiftUI
 /// (ayat 1–6; its title + bismillah are on page 45), then Surah an-Nasr,
 /// Surah al-Masad, and the opening of Surah al-Ikhlas (bismillah + ayat 1–2 +
 /// the 3+4 linked pair). Every line is a tappable `Verse` (`﴿N﴾` + trailing
-/// `❀`) under a static `SurahTitle`, split by dotted `SectionDivider`s.
+/// `❀`) under a `SurahTitle` banner (a tap in the reader reads the whole surah),
+/// split by dotted `SectionDivider`s.
 ///
 /// al-Ikhlas ayat 3+4 share one audio clip (reciter joined them), so they
 /// render as a linked in-row pair — tapping either highlights both.
@@ -46,7 +47,7 @@ struct Page46View: View {
     /// سُورَةُ النَّصْرِ — bismillah + ayat 1–3.
     @ViewBuilder
     private func nasr(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ النَّصْرِ")
+        SurahTitle("سُورَةُ النَّصْرِ", surah: 110, carriesHint: true)   // Kafirun above has no heading
         verse(c, "ns_bism")
         verse(c, "ns_a1", ayah: 1)
         verse(c, "ns_a2", ayah: 2)
@@ -56,7 +57,7 @@ struct Page46View: View {
     /// سُورَةُ الْمَسَدِ — bismillah + ayat 1–5.
     @ViewBuilder
     private func masad(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْمَسَدِ")
+        SurahTitle("سُورَةُ الْمَسَدِ", surah: 111)
         verse(c, "ms_bism")
         verse(c, "ms_a1", ayah: 1)
         verse(c, "ms_a2", ayah: 2)
@@ -69,7 +70,7 @@ struct Page46View: View {
     /// begin here; ayah 4's tail continues on page 47).
     @ViewBuilder
     private func ikhlas(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْإِخْلَاصِ")
+        SurahTitle("سُورَةُ الْإِخْلَاصِ", surah: 112)
         verse(c, "ix_bism")
         verse(c, "ix_a1", ayah: 1)
         verse(c, "ix_a2", ayah: 2)

@@ -18,7 +18,7 @@ struct Page41View: View {
         let c = PageContent(elements: page.elements)
         // Web outer: `flex flex-col items-center gap-0.5` → 2 pt.
         VStack(spacing: 2) {
-            SectionTitle("سورة البينة", subtitle: "بیّنه سوره‌سی").surahHeaderFrame()
+            SurahSectionTitle("سورة البينة", subtitle: "بیّنه سوره‌سی", surah: 98, carriesHint: true)
             WordRow(elements: c.els(["bism"]), size: .sm, spacing: .gap2, activeId: activeId, onTap: onTap)
             ForEach(Self.ayahIds, id: \.self) { id in
                 AyahRow(elements: c.els([id]), size: .sm, spacing: .gap2, activeId: activeId, onTap: onTap)

@@ -49,6 +49,41 @@ enum PageDispatcher {
         case 33: Page33View(page: page, activeId: activeId, onTap: onTap)
         case 34: Page34View(page: page, activeId: activeId, onTap: onTap)
         case 35: Page35View(page: page, activeId: activeId, onTap: onTap)
+        case 36...47: SurahPageModeSwitch(page: page, activeId: activeId, onTap: onTap)
+        case 48: Page48View(page: page, activeId: activeId, onTap: onTap)
+        case 49: Page49View(page: page, activeId: activeId, onTap: onTap)
+        case 50: Page50View(page: page, activeId: activeId, onTap: onTap)
+        default:
+            GenericPageView(page: page, activeId: activeId, onTap: onTap)
+        }
+    }
+}
+
+/// Book pages 36–47 (the surahs) in the reader's two modes, like the web
+/// `RenderedPage`: translations off → the printed-mushaf view, every surah's
+/// ayat flowing as one paragraph (`MushafPageView`); translations on → the
+/// ayah-by-ayah page with each translation under its ayah (`PageNView`,
+/// unchanged). The same page keeps the ayah-by-ayah layout if the verse map
+/// failed to load, rather than showing an empty Mushaf.
+private struct SurahPageModeSwitch: View {
+    let page: BookPage
+    let activeId: String?
+    let onTap: (Element) -> Void
+
+    @Environment(\.ayahTranslation) private var ayahTranslation
+    @Environment(ContentStore.self) private var store
+
+    var body: some View {
+        if ayahTranslation == nil, !store.mushafVerses.isEmpty {
+            MushafPageView(page: page, activeId: activeId, onTap: onTap)
+        } else {
+            ayahByAyahPage
+        }
+    }
+
+    @ViewBuilder
+    private var ayahByAyahPage: some View {
+        switch page.pageNumber {
         case 36: Page36View(page: page, activeId: activeId, onTap: onTap)
         case 37: Page37View(page: page, activeId: activeId, onTap: onTap)
         case 38: Page38View(page: page, activeId: activeId, onTap: onTap)
@@ -61,11 +96,7 @@ enum PageDispatcher {
         case 45: Page45View(page: page, activeId: activeId, onTap: onTap)
         case 46: Page46View(page: page, activeId: activeId, onTap: onTap)
         case 47: Page47View(page: page, activeId: activeId, onTap: onTap)
-        case 48: Page48View(page: page, activeId: activeId, onTap: onTap)
-        case 49: Page49View(page: page, activeId: activeId, onTap: onTap)
-        case 50: Page50View(page: page, activeId: activeId, onTap: onTap)
-        default:
-            GenericPageView(page: page, activeId: activeId, onTap: onTap)
+        default: GenericPageView(page: page, activeId: activeId, onTap: onTap)
         }
     }
 }

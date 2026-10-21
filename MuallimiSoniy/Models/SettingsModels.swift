@@ -32,6 +32,8 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
     /// Disables the idle timer while the reader is open.
     var keepScreenAwake: Bool
     /// Shows the translation of the meanings under the ayat on the surah pages.
+    /// Off (the default) shows the surahs as running mushaf text instead, like
+    /// the web, where translation mode starts off too.
     var showTranslation: Bool
     /// Which translation shows while `showTranslation` is on.
     var translation: TranslationChoice
@@ -54,7 +56,7 @@ nonisolated struct AppSettings: Codable, Sendable, Equatable {
         boldText: false,
         strongHighlight: false,
         keepScreenAwake: false,
-        showTranslation: true,
+        showTranslation: false,
         translation: .automatic,
         arabicTypeface: .naskh
     )

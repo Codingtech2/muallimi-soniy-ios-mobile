@@ -67,6 +67,15 @@ struct MuallimiSoniyApp: App {
                     if let locale = ProcessInfo.processInfo.environmentLocale {
                         settings.setLocale(locale)
                     }
+                    if let showTranslation = ProcessInfo.processInfo.environmentShowTranslation {
+                        settings.setShowTranslation(showTranslation)
+                    }
+                    if let typeface = ProcessInfo.processInfo.environmentTypeface {
+                        settings.setArabicTypeface(typeface)
+                    }
+                    if let background = ProcessInfo.processInfo.environmentReadingBackground {
+                        settings.setReadingBackground(background)
+                    }
                     if ProcessInfo.processInfo.wantsAudioDownload {
                         await downloadManager.ensureReady()
                     }
@@ -344,6 +353,30 @@ private extension ProcessInfo {
     var environmentLocale: AppLocale? {
         guard let raw = environment["MSLocale"] ?? argumentValue(for: "-MSLocale") else { return nil }
         return AppLocale(rawValue: raw)
+    }
+
+    /// Reads `-MSTranslation <on|off>` so QA can open the surah pages in the
+    /// translation layout or in the mushaf layout.
+    var environmentShowTranslation: Bool? {
+        switch environment["MSTranslation"] ?? argumentValue(for: "-MSTranslation") {
+        case "on": return true
+        case "off": return false
+        default: return nil
+        }
+    }
+
+    /// Reads `-MSTypeface <naskh|scheherazade>` (the "Arabic font" setting).
+    var environmentTypeface: ArabicTypeface? {
+        guard let raw = environment["MSTypeface"] ?? argumentValue(for: "-MSTypeface") else { return nil }
+        return ArabicTypeface(rawValue: raw)
+    }
+
+    /// Reads `-MSReadingBackground <paper|sepia|gray|night>`.
+    var environmentReadingBackground: ReadingBackground? {
+        guard let raw = environment["MSReadingBackground"] ?? argumentValue(for: "-MSReadingBackground") else {
+            return nil
+        }
+        return ReadingBackground(rawValue: raw)
     }
 
     /// Whether `-MSDownloadAudio` was passed, so headless QA can install the

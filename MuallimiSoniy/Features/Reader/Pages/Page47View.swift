@@ -3,8 +3,9 @@ import SwiftUI
 /// Bespoke 1:1 renderer for book page 47 — Surah al-Falaq (bismillah + 5 ayat)
 /// and Surah an-Nas (bismillah + 6 ayat). (al-Ikhlas finished on page 46, so
 /// this page opens straight into al-Falaq.) Every line is a tappable `Verse`
-/// (ayah number `﴿N﴾` + trailing `❀`) under a static `SurahTitle`, the two
-/// surahs split by a dotted `SectionDivider`.
+/// (ayah number `﴿N﴾` + trailing `❀`) under a `SurahTitle` banner (a tap in the
+/// reader reads the whole surah), the two surahs split by a dotted
+/// `SectionDivider`.
 ///
 /// Web reference: `src/components/lesson/RenderedPage.tsx` → `function Page47`.
 struct Page47View: View {
@@ -28,7 +29,7 @@ struct Page47View: View {
     /// سُورَةُ الْفَلَقِ — bismillah + ayat 1–5.
     @ViewBuilder
     private func falaq(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ الْفَلَقِ")
+        SurahTitle("سُورَةُ الْفَلَقِ", surah: 113, carriesHint: true)
         verse(c, "fq_bism")
         verse(c, "fq_a1", ayah: 1)
         verse(c, "fq_a2", ayah: 2)
@@ -40,7 +41,7 @@ struct Page47View: View {
     /// سُورَةُ النَّاسِ — bismillah + ayat 1–6.
     @ViewBuilder
     private func nas(_ c: PageContent) -> some View {
-        SurahTitle("سُورَةُ النَّاسِ")
+        SurahTitle("سُورَةُ النَّاسِ", surah: 114)
         verse(c, "ns_bism")
         verse(c, "ns_a1", ayah: 1)
         verse(c, "ns_a2", ayah: 2)

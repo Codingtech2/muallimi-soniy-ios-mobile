@@ -46,7 +46,7 @@ struct Page40View: View {
     /// Al-Qadr — bismillah + 5 ayat (rows 1 / 2+3 / 4 / 5).
     @ViewBuilder
     private func qadrSection(_ c: PageContent) -> some View {
-        SectionTitle("سورة القدر", subtitle: "قدر سوره‌سی").surahHeaderFrame()
+        SurahSectionTitle("سورة القدر", subtitle: "قدر سوره‌سی", surah: 97, carriesHint: true)
         WordRow(elements: c.els(["q_bism"]), size: .sm, spacing: .gap2, activeId: activeId, onTap: onTap)
         ayah(c, ["q01"], .gap2)
         ayah(c, ["q02", "q03"], .gap1_5)

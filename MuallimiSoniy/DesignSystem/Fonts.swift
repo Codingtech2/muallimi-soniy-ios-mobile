@@ -11,9 +11,11 @@ import os
 /// |--------------------------------------|-------------------------------|-----------------------------------|
 /// | NotoNaskhArabic-MuallimiSoniy.ttf    | Noto Naskh Arabic Muallimi    | NotoNaskhArabicMuallimi-Variable  |
 /// | AmiriQuran.ttf                       | Amiri Quran                   | AmiriQuran-Regular                |
+/// | UthmanicHafs.otf                     | KFGQPC Uthmanic Script HAFS   | KFGQPCUthmanicScriptHAFS          |
 ///
-/// (Amiri-Regular / stock Noto Naskh / UthmanicHafs were bundled early on but
-/// never referenced by any view — removed to keep the app bundle small.)
+/// (Amiri-Regular / stock Noto Naskh were bundled early on but never referenced
+/// by any view — removed to keep the app bundle small. UthmanicHafs was removed
+/// with them, then came back for the Mushaf view of book pages 36–47.)
 nonisolated enum AppFontFamily {
     /// THE universal Arabic body font — custom Noto Naskh with the
     /// shadda+kasra / shadda+kasratan ligatures stripped (mirrors web
@@ -30,6 +32,13 @@ nonisolated enum AppFontFamily {
     static let scheherazadeRegular = "ScheherazadeNew-Regular"
     static let scheherazadeSemiBold = "ScheherazadeNew-SemiBold"
     static let scheherazadeBold = "ScheherazadeNew-Bold"
+
+    /// KFGQPC Uthmanic Script HAFS (King Fahd Complex, shipped unmodified — its
+    /// license forbids changing the file). The Mushaf view's Qur'an text, same
+    /// as the web `.quran-scope`. Its Arabic-Indic digits (U+0660–0669) draw as
+    /// the ornate ayah-end medallion; 2–3 digit numbers are one `liga` ligature.
+    static let uthmanicHafs = "KFGQPC Uthmanic Script HAFS"
+    static let uthmanicHafsPostScript = "KFGQPCUthmanicScriptHAFS"
 }
 
 /// Registers the bundled Arabic fonts with CoreText at launch and resolves the
@@ -50,7 +59,8 @@ nonisolated enum FontRegistrar {
         ("AmiriQuran", "ttf"),
         ("ScheherazadeNew-Regular", "ttf"),
         ("ScheherazadeNew-SemiBold", "ttf"),
-        ("ScheherazadeNew-Bold", "ttf")
+        ("ScheherazadeNew-Bold", "ttf"),
+        ("UthmanicHafs", "otf")
     ]
 
     /// Registers every bundled font. Call once at app launch, before any view
@@ -60,9 +70,23 @@ nonisolated enum FontRegistrar {
         for font in bundledFonts {
             registerOne(name: font.name, ext: font.ext)
         }
+        verifyMushafFont()
         #if DEBUG
         logAvailableFamilies()
         #endif
+    }
+
+    /// The Mushaf view builds its fonts straight from PostScript names, and
+    /// CoreText answers an unknown name with a stand-in font instead of an
+    /// error — the ayah medallions would then come out as plain digits. Say
+    /// so in the log, so a broken font file can't hide.
+    private static func verifyMushafFont() {
+        let expected = AppFontFamily.uthmanicHafsPostScript
+        let font = CTFontCreateWithName(expected as CFString, 12, nil)
+        let resolved = CTFontCopyPostScriptName(font) as String
+        if resolved != expected {
+            logger.error("Mushaf font \(expected, privacy: .public) resolved to \(resolved, privacy: .public)")
+        }
     }
 
     private static func registerOne(name: String, ext: String) {
@@ -212,4 +236,36 @@ nonisolated func madArabicFont(_ size: CGFloat) -> Font {
 /// system-wide Bold Text accessibility setting) is on.
 nonisolated func arabicWeight(bold: Bool) -> Font.Weight {
     bold ? .heavy : .bold
+}
+
+// MARK: - Mushaf fonts (CoreText)
+
+/// Qur'an text font of the Mushaf view (book pages 36–47 with translations
+/// off), as a `CTFont` because that view lays its text out word by word with
+/// CoreText. Mirrors the web `.quran-scope` font choice: UthmanicHafs for the
+/// default typeface, Scheherazade New when that one is picked.
+///
+/// `bold` only switches Scheherazade to its Bold face. UthmanicHafs has a
+/// single weight, so the Mushaf canvas makes it heavier itself by filling each
+/// glyph again at a few tiny offsets — not a CoreText stroke, which ignores the
+/// context colour and comes out black (see `MushafTextCanvas`).
+nonisolated func mushafBodyCTFont(
+    size: CGFloat,
+    typeface: ArabicTypeface = .current,
+    bold: Bool = false
+) -> CTFont {
+    switch typeface {
+    case .naskh:
+        return mushafNumberCTFont(size: size)
+    case .scheherazade:
+        let name = bold ? AppFontFamily.scheherazadeBold : AppFontFamily.scheherazadeRegular
+        return CTFontCreateWithName(name as CFString, size, nil)
+    }
+}
+
+/// Font of the ayah-number medallions — always UthmanicHafs, whichever
+/// typeface is picked: its digits ARE the medallion, any other font would
+/// print plain digits (web `.mushaf-num`).
+nonisolated func mushafNumberCTFont(size: CGFloat) -> CTFont {
+    CTFontCreateWithName(AppFontFamily.uthmanicHafsPostScript as CFString, size, nil)
 }

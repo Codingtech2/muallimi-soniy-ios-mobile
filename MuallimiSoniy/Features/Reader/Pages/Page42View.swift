@@ -3,7 +3,8 @@ import SwiftUI
 /// Bespoke 1:1 renderer for book page 42 — Surah Az-Zalzalah (bismillah + 8
 /// ayat) then Surah Al-'Adiyat (bismillah + 11 ayat), split by a dotted divider.
 ///
-/// Titles are static (`SectionTitle`, web `Title`); bismillah lines are plain
+/// Titles are `SurahSectionTitle` banners (web `Title` in the surah frame; a tap
+/// in the reader reads the whole surah); bismillah lines are plain
 /// wrapping rows (`WordRow`, web `Row`); ayat lines trail each token with a `❀`
 /// (`AyahRow`, web `AyahRow`). Every glyph's Unicode comes straight from
 /// `element.arabic`.
@@ -32,7 +33,7 @@ struct Page42View: View {
     /// Az-Zalzalah — bismillah + 8 ayat (rows 1+2, 3+4, 5, 6, 7+8).
     @ViewBuilder
     private func zalzalah(_ c: PageContent) -> some View {
-        SectionTitle("سورة الزلزلة", subtitle: "زلزله سوره‌سی").surahHeaderFrame()
+        SurahSectionTitle("سورة الزلزلة", subtitle: "زلزله سوره‌سی", surah: 99, carriesHint: true)
         bism(c, "zz_bism")
         ayah(c, ["zz_a1", "zz_a2"], .gap1_5)
         ayah(c, ["zz_a3", "zz_a4"], .gap1_5)
@@ -44,7 +45,7 @@ struct Page42View: View {
     /// Al-'Adiyat — bismillah + 11 ayat (rows 1+2+3, 4+5, 6+7, 8+9, 10+11).
     @ViewBuilder
     private func adiyat(_ c: PageContent) -> some View {
-        SectionTitle("سورة العاديات", subtitle: "عادیات سوره‌سی").surahHeaderFrame()
+        SurahSectionTitle("سورة العاديات", subtitle: "عادیات سوره‌سی", surah: 100)
         bism(c, "ad_bism")
         ayah(c, ["ad_a1", "ad_a2", "ad_a3"], .gap1)
         ayah(c, ["ad_a4", "ad_a5"], .gap1_5)

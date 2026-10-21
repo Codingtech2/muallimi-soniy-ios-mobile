@@ -78,7 +78,9 @@ private struct SurahHeaderFrame: ViewModifier {
     }
 }
 
-private enum SurahHeaderLayout {
+/// Internal (not private) so `SurahBannerFrame` can tuck its note and hint up
+/// into the band's bottom margin.
+enum SurahHeaderLayout {
     static let cornerRadius: CGFloat = 12
     /// Space between the outer and inner rules.
     static let ruleGap: CGFloat = 3

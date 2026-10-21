@@ -9,6 +9,9 @@ import SwiftUI
 struct SectionTitle: View {
     let text: String
     var subtitle: String?
+    /// Set on a lit (playing) surah band (`SurahSectionTitle`): the text turns
+    /// white so it stays readable on the green.
+    var onActiveBand = false
 
     /// Reader page/text palette — defaults to `.paper` (today's exact look)
     /// outside the reader; `ReaderView` injects the live value.
@@ -25,16 +28,17 @@ struct SectionTitle: View {
         subtitle?.unicodeScalars.contains { (0x0600...0x06FF).contains($0.value) } ?? false
     }
 
-    init(_ text: String, subtitle: String? = nil) {
+    init(_ text: String, subtitle: String? = nil, onActiveBand: Bool = false) {
         self.text = text
         self.subtitle = subtitle
+        self.onActiveBand = onActiveBand
     }
 
     var body: some View {
         VStack(spacing: 2) {  // mt-0.5 between title and subtitle
             Text(text)
                 .font(arabicFont(20 * arabicFontScale, weight: arabicWeight(bold: effectiveBold)))  // text-xl
-                .foregroundStyle(readingTheme.textSecondary)
+                .foregroundStyle(onActiveBand ? Color.white : readingTheme.textSecondary)
                 .multilineTextAlignment(.center)
 
             if let subtitle {
@@ -44,7 +48,7 @@ struct SectionTitle: View {
                             ? arabicFont(12 * arabicFontScale, weight: .regular)
                             : .system(size: 12 * arabicFontScale)
                     )
-                    .foregroundStyle(readingTheme.textMuted)
+                    .foregroundStyle(onActiveBand ? Color.white.opacity(0.85) : readingTheme.textMuted)
                     .multilineTextAlignment(.center)
                     .environment(\.layoutDirection, isArabicSubtitle ? .rightToLeft : .leftToRight)
             }

@@ -43,7 +43,7 @@ struct Page38View: View {
     /// سُورَةُ الضُّحٰى — title + bismillah then ayahs 1–10 grouped 3/2/2/1/2 per line.
     @ViewBuilder
     private func duha(_ c: PageContent) -> some View {
-        title(c, "du_title")
+        title(c, "du_title", surah: 93, carriesHint: true)   // Layl above has no heading
         bismillah(c, "du_bism")
         ayah(c, ["du_a1", "du_a2", "du_a3"])
         ayah(c, ["du_a4", "du_a5"])
@@ -55,9 +55,12 @@ struct Page38View: View {
     // MARK: - Row builders (web `ArabicEl` title / `Row` gap-2 / `AyahRow` gap-1.5)
 
     @ViewBuilder
-    private func title(_ c: PageContent, _ suffix: String) -> some View {
+    private func title(_ c: PageContent, _ suffix: String, surah: Int, carriesHint: Bool = false) -> some View {
         if let element = c.el(suffix) {
-            TappableSurahTitle(element: element, size: .md, activeId: activeId, onTap: onTap)
+            TappableSurahTitle(
+                element: element, size: .md, surah: surah, carriesHint: carriesHint,
+                activeId: activeId, onTap: onTap
+            )
         }
     }
 

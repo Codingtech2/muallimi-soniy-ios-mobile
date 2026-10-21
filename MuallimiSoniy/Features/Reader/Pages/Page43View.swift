@@ -5,7 +5,8 @@ import SwiftUI
 /// title + bismillah (its ayat continue on page 44). Sections are split by
 /// dotted dividers.
 ///
-/// Titles are static (`SectionTitle`); bismillah lines use `WordRow`; ayat lines
+/// Titles are `SurahSectionTitle` banners (a tap in the reader reads the whole
+/// surah); bismillah lines use `WordRow`; ayat lines
 /// use the shared `AyahRow` (each token trailed by `❀`). Glyph Unicode comes
 /// from `element.arabic`.
 ///
@@ -35,7 +36,7 @@ struct Page43View: View {
     /// Al-Qari'ah — bismillah + 11 ayat (rows 1+2+3, 4, 5, 6+7, 8+9, 10+11).
     @ViewBuilder
     private func qariah(_ c: PageContent) -> some View {
-        SectionTitle("سورة القارعة", subtitle: "قارعه سوره‌سی").surahHeaderFrame()
+        SurahSectionTitle("سورة القارعة", subtitle: "قارعه سوره‌سی", surah: 101, carriesHint: true)
         bism(c, "qr_bism")
         ayah(c, ["qr_a1", "qr_a2", "qr_a3"], .gap1)
         ayah(c, ["qr_a4"], .gap2)
@@ -48,7 +49,7 @@ struct Page43View: View {
     /// At-Takathur — bismillah + 8 ayat (rows 1+2+3, 4+5, 6+7, 8).
     @ViewBuilder
     private func takathur(_ c: PageContent) -> some View {
-        SectionTitle("سورة التكاثر", subtitle: "تکاثر سوره‌سی").surahHeaderFrame()
+        SurahSectionTitle("سورة التكاثر", subtitle: "تکاثر سوره‌سی", surah: 102)
         bism(c, "tk_bism")
         ayah(c, ["tk_a1", "tk_a2", "tk_a3"], .gap1)
         ayah(c, ["tk_a4", "tk_a5"], .gap1_5)
@@ -59,7 +60,7 @@ struct Page43View: View {
     /// Al-'Asr — title + bismillah only (the three ayat render on page 44).
     @ViewBuilder
     private func asrHeader(_ c: PageContent) -> some View {
-        SectionTitle("سورة العصر", subtitle: "عصر سوره‌سی").surahHeaderFrame()
+        SurahSectionTitle("سورة العصر", subtitle: "عصر سوره‌سی", surah: 103)
         bism(c, "as_bism")
     }
 

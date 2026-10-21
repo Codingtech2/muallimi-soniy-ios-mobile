@@ -2,6 +2,7 @@ import SwiftUI
 import Foundation
 import UIKit
 import OSLog
+import TipKit
 
 /// Where the reader should open. Mirrors the web lesson-page entry contract: a
 /// lesson id + 0-based `lessonPageIndex` (the `?page=` query param), or a direct
@@ -23,6 +24,7 @@ struct ReaderView: View {
     @Environment(AudioDownloadManager.self) private var downloadManager
     @Environment(ProgressStore.self) private var progress
     @Environment(SettingsStore.self) private var preferences
+    @Environment(\.layoutMetrics) private var layoutMetrics
 
     /// Where to open. Resolved to `currentPageIndex` on first appear.
     let entry: ReaderEntry
@@ -62,6 +64,10 @@ struct ReaderView: View {
     /// on screen — setting this to `true` while it is already `true` is a
     /// no-op for SwiftUI.
     @State private var showAudioDownloadSheet = false
+    /// One-time "tap the surah name to hear the whole surah" hint under the
+    /// first surah banner. Once closed (or a banner tapped) it never returns —
+    /// mirrors the web `localStorage["muallimi-surah-hint-seen"]`.
+    @AppStorage("ms.surahHintSeen") private var surahHintSeen = false
 
     /// UI / content locale for titles + labels — follows the user's setting, so
     /// switching language live-updates the header, TOC and page labels.
@@ -125,6 +131,17 @@ struct ReaderView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !pages.isEmpty {
                 VStack(spacing: 0) {
+                    if let surahPlayTip {
+                        // The generic `TipView<Tip>` init is the one iOS 17 has;
+                        // the `any Tip` ones are iOS 18 / 26 only. When the tip is
+                        // done, TipView draws nothing and the row takes no space.
+                        TipView<SurahPlayTip>(surahPlayTip)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: layoutMetrics.contentMaxWidth)
+                            .frame(maxWidth: .infinity)
+                            .background(readingTheme.pageFill)
+                    }
                     if let hifzStripState {
                         HifzStatusStrip(
                             state: hifzStripState,
@@ -286,6 +303,7 @@ struct ReaderView: View {
         .environment(\.ayahMenuProvider, ayahMenuProvider)
         .environment(\.hifzHiddenElementIds, hifzHiddenElementIds)
         .environment(\.ayahTranslation, ayahTranslation)
+        .environment(\.surahPlayback, surahPlayback)
         .hifzResumeChip(
             offer: $hifzResumeOffer,
             title: store.t("hifz_resume", locale),
@@ -319,6 +337,18 @@ struct ReaderView: View {
             onToggleLoop: toggleLoop
         )
         .dynamicTypeSize(...DynamicTypeSize.accessibility3)
+    }
+
+    /// Tells a learner who opened a surah how ▶ plays it. Not while a hifz
+    /// session runs, or is about to (the surah list's play button starts one),
+    /// and not while the banner hint is still up — one hint at a time.
+    private var surahPlayTip: SurahPlayTip? {
+        guard hifzAutoStart == nil, !hifz.isActive, surahHintSeen,
+              store.hifzCatalog.hasUnits(onGlobalPage: currentPageIndex) else { return nil }
+        return SurahPlayTip(
+            titleText: store.t("hifz_listen_surah", locale),
+            messageText: store.t("surah_play_tip", locale)
+        )
     }
 }
 
@@ -463,7 +493,8 @@ private extension ReaderView {
 
     /// Central play / pause intent, mirroring the web `onPlayPause`:
     /// pause if playing → resume a paused sequence → replay the active element →
-    /// otherwise start sequential playback of the page. Offers the download
+    /// otherwise start sequential playback of the page — except on a surah
+    /// page, where it plays one surah (see `surahForPlay`). Offers the download
     /// sheet instead of playing nothing when the active element's file isn't
     /// installed yet (see `offerDownloadIfMissing`).
     private func handlePlayPause() {
@@ -488,7 +519,23 @@ private extension ReaderView {
             Task { await audio.playSegment(url: url, start: element.start, end: element.end) }
             return
         }
+        // A surah page holds several surahs (Fatiha and Baqara share one), so
+        // playing the whole page ran on into the next surah. Here ▶ plays one
+        // surah start to end — onto the next page if it continues there — and stops.
+        if let surah = surahForPlay(onGlobalPage: currentPageIndex) {
+            SurahPlayTip.markUsed()
+            startHifz(.listen(surah: surah.number), clearsHighlightWhenDone: true)
+            return
+        }
         startSequentialPlay()
+    }
+
+    /// The surah ▶ plays on a surah page: the first one that starts on it
+    /// (its title is there), else the one the page continues. `nil` off the
+    /// surah pages.
+    private func surahForPlay(onGlobalPage index: Int) -> HifzSurah? {
+        let surahs = store.hifzCatalog.surahs(onGlobalPage: index)
+        return surahs.first { $0.startGlobalIndex == index } ?? surahs.first
     }
 
     /// Toggles loop mode, pushes it to the audio engine, and persists it —
@@ -723,7 +770,14 @@ private extension ReaderView {
     /// while something else is already playing — sequential playback and any
     /// running hifz session are stopped first. `resumeCursor` (the resume
     /// chip) starts from that listen instead of the top.
-    func startHifz(_ plan: HifzPlan, resumingAt resumeCursor: HifzCursor? = nil) {
+    /// `clearsHighlightWhenDone` drops the last ayah's highlight when the run
+    /// completes, like the page's own sequential playback does — so the next
+    /// ▶ plays the surah again instead of replaying only its last ayah.
+    func startHifz(
+        _ plan: HifzPlan,
+        resumingAt resumeCursor: HifzCursor? = nil,
+        clearsHighlightWhenDone: Bool = false
+    ) {
         hifzResumeOffer = nil
         var plan = plan
         // Qur'an order is one pass to An-Nas from any entry point — it never loops.
@@ -741,7 +795,10 @@ private extension ReaderView {
 
         cancelSequential()
         hifz.stop()
-        assignHifzHooks(plan: plan)
+        // A plain listen (banner / ▶) always drops its last highlight when it
+        // finishes — also when it comes back through the resume chip.
+        let clearsHighlight = clearsHighlightWhenDone || Self.plainListenSurah(of: plan) != nil
+        assignHifzHooks(plan: plan, clearsHighlightWhenDone: clearsHighlight)
         hifz.start(
             plan: plan,
             session: session,
@@ -765,7 +822,7 @@ private extension ReaderView {
     /// time. Captures only stores/bindings extracted into local `let`s, never
     /// `self`, so the closures stored on `hifz` never keep this view struct
     /// alive — `hifz.finish()` clears all three when the session ends.
-    private func assignHifzHooks(plan: HifzPlan) {
+    private func assignHifzHooks(plan: HifzPlan, clearsHighlightWhenDone: Bool) {
         let store = self.store
         let preferences = self.preferences
         let audioRef = self.audio
@@ -811,6 +868,9 @@ private extension ReaderView {
         hifz.onEnd = { reason in
             if case .failed = reason, !downloadManager.isReady {
                 downloadSheetBinding.wrappedValue = true
+            }
+            if clearsHighlightWhenDone, case .completed = reason {
+                activeBinding.wrappedValue = nil
             }
             // Next / previous no longer skip units, so they may have nothing left to reach.
             audioRef.refreshRemoteTrackCommands()
@@ -967,6 +1027,68 @@ private extension ReaderView {
     /// menu never opens the sheet, it plays immediately.
     private func startHifzFromMenu(_ scope: HifzScope) {
         startHifz(HifzPlan.defaults(for: scope))
+    }
+
+    // MARK: - Surah banners
+
+    /// What the surah banners on book pages 36–47 need: which surah is being
+    /// read start to end, how to start or stop one, and the one-time hint.
+    /// Mirrors the web `SurahPlayContext` value built on the lesson page.
+    var surahPlayback: SurahPlaybackContext {
+        SurahPlaybackContext(
+            playingSurah: playingSurah,
+            showsHint: !surahHintSeen,
+            hintText: store.t("surah_hint", locale),
+            hintDismissText: store.t("surah_hint_ok", locale),
+            playLabel: store.t("hifz_listen_surah", locale),
+            stopLabel: store.t("hifz_stop", locale),
+            surahName: { store.hifzCatalog.surah(number: $0)?.name.text(locale) },
+            togglePlay: { toggleSurahPlay($0) },
+            dismissHint: { surahHintSeen = true }
+        )
+    }
+
+    /// The surah being read in one plain pass right now (a banner tap or ▶),
+    /// so its banner glows. Other hifz sessions (repeats, rounds) don't count.
+    private var playingSurah: Int? {
+        hifz.isActive ? Self.plainListenSurah(of: hifz.plan) : nil
+    }
+
+    /// The surah `plan` reads once from start to end (`HifzPlan.listen`), or
+    /// `nil` for every other kind of session.
+    static func plainListenSurah(of plan: HifzPlan?) -> Int? {
+        guard let plan, case .surah(let number) = plan.scope, plan == .listen(surah: number) else { return nil }
+        return number
+    }
+
+    /// Banner tap, mirroring the web `handlePlaySurah`: reads the surah from
+    /// its bismillah to the end — onto the next page when it continues there —
+    /// or stops it when it is the one already playing. Either way the hint (and
+    /// the ▶ tip, which teaches the same thing) has done its job.
+    private func toggleSurahPlay(_ number: Int) {
+        surahHintSeen = true
+        SurahPlayTip.markUsed()
+        if playingSurah == number {
+            hifz.stop()
+            activeElementId = nil
+            // The user ended the listening, so other apps' audio may resume.
+            AudioSession.shared.deactivate()
+            return
+        }
+        // A memorizing session (repeats, rounds) gets the resume chip, the way
+        // an ayah tap would give it; switching banners doesn't (web parity).
+        let interrupted = playingSurah == nil ? HifzResumeOffer(interrupting: hifz) : nil
+        // The web starts at the bismillah: the isti'adha before Fatiha is a
+        // round-one-only unit of the hifz session, not part of the surah.
+        let firstRoundOnly = store.hifzCatalog.session(for: .surah(number: number))?.sequence.firstRoundOnlyCount ?? 0
+        startHifz(
+            .listen(surah: number),
+            resumingAt: firstRoundOnly > 0 ? HifzCursor(unitIndex: firstRoundOnly, playIndex: 0, roundIndex: 0) : nil,
+            clearsHighlightWhenDone: true
+        )
+        if let interrupted, hifz.isActive {
+            hifzResumeOffer = interrupted
+        }
     }
 }
 
