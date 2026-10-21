@@ -26,6 +26,9 @@ struct MuallimiSoniyApp: App {
     /// User preferences (theme / locale / font size / repeat count), mirroring
     /// the web `SettingsProvider`. Drives app-wide appearance + Arabic scale.
     @State private var settings = SettingsStore()
+    /// The mosques map (an optional tab, off by default). Loads its dataset
+    /// only when the tab first appears. iOS-only, no web counterpart yet.
+    @State private var mosques = MosqueStore()
 
     /// One-shot first-run flag. While false, onboarding is shown; its download /
     /// skip / start actions flip it true (persisted), so later launches skip it.
@@ -47,6 +50,17 @@ struct MuallimiSoniyApp: App {
             Logger(subsystem: Bundle.main.bundleIdentifier ?? "MuallimiSoniy", category: "Tips")
                 .error("TipKit configure failed: \(error.localizedDescription, privacy: .public)")
         }
+        #if DEBUG
+        // Mosques QA: -MSMosquesTab <on|off> flips the Settings toggle; the
+        // -MSMosqueLocation / -MSMosqueSelect / -MSMosqueSelfTest / -MSMosqueOpen
+        // overrides reach the store before any view can load it.
+        if let showMosquesTab = ProcessInfo.processInfo.environmentMosquesTab {
+            UserDefaults.standard.set(showMosquesTab, forKey: "ms.showMosquesTab")
+        }
+        let mosqueStore = MosqueStore()
+        mosqueStore.debugOverrides = ProcessInfo.processInfo.mosqueDebugOverrides
+        _mosques = State(initialValue: mosqueStore)
+        #endif
     }
 
     var body: some Scene {
@@ -57,6 +71,7 @@ struct MuallimiSoniyApp: App {
                 .environment(downloadManager)
                 .environment(progress)
                 .environment(settings)
+                .environment(mosques)
                 .environment(\.arabicTypeface, settings.settings.arabicTypeface)
                 .adaptiveLayout(baseArabicScale: settings.arabicScale, baseVerseScale: settings.verseScale)
                 .tint(AppColor.controlTint)
@@ -165,6 +180,7 @@ private struct DebugScreenHost: View {
             case "settings": SettingsView()
             case "hifz": NavigationStack { HifzSurahListView() }
             case "tabs": RootTabView()
+            case "mosques": MosquesView()
             default:
                 ContentUnavailableView("Unknown screen: \(screen)", systemImage: "questionmark.circle")
             }
@@ -420,6 +436,39 @@ private extension ProcessInfo {
 
     private static func parseHifzRepeat(_ raw: String) -> HifzRepeat {
         raw.lowercased() == "inf" ? .forever : .count(Int(raw) ?? 1)
+    }
+
+    /// Reads `-MSMosquesTab <on|off>` — shows / hides the Masjidlar tab by
+    /// writing `ms.showMosquesTab` (the Settings toggle).
+    var environmentMosquesTab: Bool? {
+        switch environment["MSMosquesTab"] ?? argumentValue(for: "-MSMosquesTab") {
+        case "on": return true
+        case "off": return false
+        default: return nil
+        }
+    }
+
+    /// The mosques store's QA overrides: `-MSMosqueLocation <lat,lon>` (a fixed
+    /// user location instead of CoreLocation), `-MSMosqueSelect <id|nearest>`,
+    /// `-MSMosqueSelfTest` (logs nearest / search / route under OSLog
+    /// "Mosques") and `-MSMosqueOpen <yandexMaps|googleMaps|yandexGo|appleMaps>`.
+    var mosqueDebugOverrides: MosqueDebugOverrides {
+        var overrides = MosqueDebugOverrides()
+        overrides.location = environmentMosqueLocation
+        overrides.selectID = environment["MSMosqueSelect"] ?? argumentValue(for: "-MSMosqueSelect")
+        overrides.selfTest = arguments.contains("-MSMosqueSelfTest") || environment["MSMosqueSelfTest"] != nil
+        let app = environment["MSMosqueOpen"] ?? argumentValue(for: "-MSMosqueOpen")
+        overrides.openApp = app.flatMap(MapApp.init(rawValue:))
+        return overrides
+    }
+
+    /// Reads `-MSMosqueLocation <lat,lon>`, e.g. `41.3111,69.2797` (Tashkent).
+    private var environmentMosqueLocation: GeoPoint? {
+        guard let raw = environment["MSMosqueLocation"] ?? argumentValue(for: "-MSMosqueLocation") else { return nil }
+        let parts = raw.split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count == 2 else { return nil }
+        let point = GeoPoint(latitude: parts[0], longitude: parts[1])
+        return point.isValid ? point : nil
     }
 
     private func argumentValue(for flag: String) -> String? {

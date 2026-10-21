@@ -15,7 +15,14 @@ struct SettingsView: View {
     @Environment(ContentStore.self) private var content
     @Environment(SettingsStore.self) private var store
     @Environment(AudioController.self) private var audio
+    @Environment(MosqueStore.self) private var mosques
     @Environment(\.layoutMetrics) private var layoutMetrics
+
+    /// Shows the optional Masjidlar tab (read by `RootTabView`). iOS-only, so
+    /// it is kept out of `AppSettings`, which mirrors the web settings.
+    @AppStorage("ms.showMosquesTab") private var showMosquesTab = false
+    /// The mosque dataset's snapshot date, read for the map-data credits.
+    @State private var mosqueSnapshot: String?
 
     /// App version — matches the web `APP_VERSION`.
     private let appVersion = "1.0.0"
@@ -34,6 +41,7 @@ struct SettingsView: View {
                         appearanceSection
                         languageSection
                         fontSizeSection
+                        mosquesSection
                         aboutSection
                     }
 
@@ -53,11 +61,13 @@ struct SettingsView: View {
             .sensoryFeedback(.selection, trigger: store.settings.textScale)
             .sensoryFeedback(.selection, trigger: store.settings.repeatCount)
             .sensoryFeedback(.selection, trigger: store.settings.speed)
+            .sensoryFeedback(.selection, trigger: showMosquesTab)
             // The screen owns a large title, so hide the nav bar here; only the
             // pushed legal detail shows one.
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: LegalDoc.self) { doc in
-                LegalDetail(doc: doc, title: tr(doc.labelKey), text: legalBody(for: doc))
+                LegalDetail(doc: doc, title: tr(doc.labelKey), text: legalBody(for: doc), link: doc.detailLink)
+                    .task { if doc == .mapData { await readMosqueSnapshot() } }
             }
         }
     }
@@ -378,6 +388,7 @@ struct SettingsView: View {
     /// Localized legal body for `doc`, falling back to Uzbek-Latin then empty.
     private func legalBody(for doc: LegalDoc) -> String {
         if doc == .translations { return translationCredits }
+        if doc == .mapData { return mapDataCredits }
         return content.legal[locale.rawValue]?[doc.docKey]
             ?? content.legal[AppLocale.uzLatn.rawValue]?[doc.docKey]
             ?? ""
@@ -413,6 +424,60 @@ struct SettingsView: View {
     ]
 }
 
+// MARK: - Mosques map (iOS only)
+
+/// The Masjidlar tab switch and the map-data credits, kept out of the main
+/// body so it stays within the type-length limit.
+private extension SettingsView {
+    /// Shows or hides the Masjidlar tab — off until the user turns it on.
+    var mosquesSection: some View {
+        GlassSection {
+            VStack(alignment: .leading, spacing: 12 * layoutMetrics.uiScale) {
+                SettingsSectionHeader(
+                    icon: "moon.stars.fill",
+                    title: tr("mosques_section"),
+                    desc: tr("mosques_show_tab_desc")
+                )
+                Toggle(isOn: $showMosquesTab) {
+                    Text(tr("mosques_show_tab"))
+                        .font(layoutMetrics.isRegular ? .title3.weight(.medium) : .subheadline.weight(.medium))
+                        .foregroundStyle(AppColor.textMain)
+                }
+                .tint(AppColor.primary)
+            }
+        }
+    }
+
+    /// Where the mosques on the map come from (OpenStreetMap, ODbL) and the
+    /// date the bundled snapshot was taken. The copyright page is the link
+    /// row under the text.
+    var mapDataCredits: String {
+        let snapshot = snapshotDate.map { String(format: tr("mosques_credits_snapshot"), $0) }
+        return [tr("mosques_credits_body"), snapshot]
+            .compactMap { $0 }
+            .joined(separator: "\n\n")
+    }
+
+    /// The dataset's "2026-10-21T09:10:18Z" as a date in the app's language.
+    var snapshotDate: String? {
+        guard let raw = mosques.datasetDate ?? mosqueSnapshot,
+              let date = ISO8601DateFormatter().date(from: raw) else { return nil }
+        return date.formatted(
+            Date.FormatStyle(date: .long, time: .omitted)
+                .locale(Locale(identifier: locale.appleLanguageCode))
+        )
+    }
+
+    /// Reads the snapshot date off the main actor — straight from the file,
+    /// not through the store, whose load would also start the location flow.
+    func readMosqueSnapshot() async {
+        guard mosques.datasetDate == nil, mosqueSnapshot == nil else { return }
+        mosqueSnapshot = await Task.detached(priority: .utility) {
+            MosqueAttribution.bundledSnapshotDate()
+        }.value
+    }
+}
+
 // MARK: - Option value types
 
 private struct LanguageOption {
@@ -429,12 +494,14 @@ private struct ThemeOption {
 
 /// The documents in the About section: the three from `legal.json` (keys match
 /// its doc keys and the localization label keys) plus the translation credits,
-/// which are built from `translations.json` instead.
+/// which are built from `translations.json` instead, and the map-data credits
+/// (OpenStreetMap), built in code.
 private enum LegalDoc: String, Identifiable, CaseIterable {
     case privacyPolicy
     case termsOfUse
     case aboutApp
     case translations
+    case mapData
 
     var id: String { rawValue }
     var docKey: String { rawValue }
@@ -446,8 +513,14 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
         switch self {
         case .privacyPolicy: return URL(string: "https://vipads.uz/en/muallimisoniy/privacy-policy")
         case .termsOfUse:    return URL(string: "https://vipads.uz/en/muallimisoniy/terms-of-service")
-        case .aboutApp, .translations: return nil
+        case .aboutApp, .translations, .mapData: return nil
         }
+    }
+
+    /// A link shown under the in-app text: the OpenStreetMap copyright page
+    /// for the map-data credits.
+    var detailLink: URL? {
+        self == .mapData ? MosqueAttribution.copyrightURL : nil
     }
 
     var labelKey: String {
@@ -456,6 +529,7 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
         case .termsOfUse: return "terms_of_use"
         case .aboutApp: return "about_app"
         case .translations: return "translation_about"
+        case .mapData: return "mosques_credits"
         }
     }
 
@@ -465,6 +539,7 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
         case .termsOfUse: return "doc.text"
         case .aboutApp: return "info.circle"
         case .translations: return "character.book.closed"
+        case .mapData: return "map"
         }
     }
 }
@@ -580,6 +655,8 @@ private struct LegalDetail: View {
     let doc: LegalDoc
     let title: String
     let text: String
+    /// Optional web page opened from a row under the text (map-data credits).
+    var link: URL?
 
     var body: some View {
         ScrollView {
@@ -602,6 +679,10 @@ private struct LegalDetail: View {
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .textSelection(.enabled)
+
+                if let link {
+                    linkRow(link)
+                }
             }
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -611,6 +692,31 @@ private struct LegalDetail: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
     }
+
+    /// The host and path ("openstreetmap.org/copyright") with an outward
+    /// arrow, like the About rows that open the browser. Opens in an in-app
+    /// browser sheet.
+    private func linkRow(_ url: URL) -> some View {
+        let host = (url.host() ?? url.absoluteString).replacingOccurrences(of: "www.", with: "")
+        return Link(destination: url) {
+            HStack(spacing: 12) {
+                Text(host + url.path())
+                    .font(.callout.weight(.semibold))
+                    // The darker text green: 4.5:1 on the light background.
+                    .foregroundStyle(AppColor.textSecondary)
+                Spacer(minLength: 8)
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(AppColor.textMuted)
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
+            .background(AppColor.surface.opacity(0.5), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .opensWebLinksInApp()
+    }
 }
 
 #Preview {
@@ -619,4 +725,5 @@ private struct LegalDetail: View {
         .environment(SettingsStore())
         .environment(AudioController())
         .environment(AudioDownloadManager())
+        .environment(MosqueStore())
 }

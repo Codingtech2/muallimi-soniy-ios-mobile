@@ -1,0 +1,66 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NearestMosque" : {
+      "comment" : "Precise-location prompt (Info.plist NSLocationTemporaryUsageDescriptionDictionary → NearestMosque). CoreLocation looks this purpose key up in InfoPlist.strings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used on your device to find the nearest mosque. It is never sent anywhere."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используется на вашем устройстве, чтобы найти ближайшую мечеть. Никуда не передаётся."
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Энг яқин масжидни топиш учун қурилмангизда ишлатилади. Ҳеч қаерга юборилмайди."
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eng yaqin masjidni topish uchun qurilmangizda ishlatiladi. Hech qayerga yuborilmaydi."
+          }
+        }
+      }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "comment" : "Location permission prompt (Masjidlar tab, nearest mosque).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used on your device to find the nearest mosque. It is never sent anywhere."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Используется на вашем устройстве, чтобы найти ближайшую мечеть. Никуда не передаётся."
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Энг яқин масжидни топиш учун қурилмангизда ишлатилади. Ҳеч қаерга юборилмайди."
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eng yaqin masjidni topish uchun qurilmangizda ishlatiladi. Hech qayerga yuborilmaydi."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
