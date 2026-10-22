@@ -55,6 +55,9 @@ final class LocationProvider {
     /// Without this purpose string iOS drops the permission request silently.
     private static let usageDescriptionKey = "NSLocationWhenInUseUsageDescription"
     /// Info.plist dictionary holding the "precise location" purpose strings.
+    /// The source Info.plist spells it MS_LOCATION_TEMPORARY_USAGE_KEY and
+    /// INFOPLIST_PREPROCESS swaps in the real name at build time: with the real
+    /// name in the file, Xcode 27.1 crashes when the target settings are opened.
     private static let temporaryUsageKey = "NSLocationTemporaryUsageDescriptionDictionary"
     /// Our entry in that dictionary (localized in InfoPlist.xcstrings).
     private static let fullAccuracyPurposeKey = "NearestMosque"

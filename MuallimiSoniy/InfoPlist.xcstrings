@@ -1,6 +1,30 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "CFBundleDisplayName" : {
+      "comment" : "Bundle display name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Muallimi Soniy"
+          }
+        }
+      }
+    },
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "MuallimiSoniy"
+          }
+        }
+      }
+    },
     "NearestMosque" : {
       "comment" : "Precise-location prompt (Info.plist NSLocationTemporaryUsageDescriptionDictionary → NearestMosque). CoreLocation looks this purpose key up in InfoPlist.strings.",
       "extractionState" : "manual",
