@@ -2,7 +2,8 @@ import SwiftUI
 
 /// "Eng yaqin masjidlar": the closest mosques (five, three on short
 /// screens) with distance and an estimated walk. Tapping a row chooses that
-/// mosque (the map follows).
+/// mosque (the map follows); the × hides the list (a small button brings it
+/// back).
 struct MosqueNearbyList: View {
     let locale: AppLocale
     var limit = MosqueLayout.nearbyCount
@@ -54,6 +55,9 @@ struct MosqueNearbyList: View {
             }
             .buttonStyle(MosqueRowButtonStyle())
             .accessibilityLabel(content.t("mosques_refresh_location", locale))
+            MosqueCloseButton(label: content.t("close", locale)) {
+                mosques.hidePanel()
+            }
         }
     }
 

@@ -1,9 +1,10 @@
 import SwiftUI
 import Accessibility
 
-/// The chosen mosque: its names, how far it is and — once drawn — the
-/// route's distance and time. Its buttons are `MosqueSelectedActions`, which
-/// the panel keeps in view below it.
+/// The chosen mosque: its names, how far it is, a reminder that the data
+/// can't tell whether it is open, and — once drawn — the route's distance
+/// and time. Its buttons are `MosqueSelectedActions`, which the panel keeps
+/// in view below it.
 struct MosqueSelectedCard: View {
     let mosque: Mosque
     /// The drawn route, when it leads to this mosque.
@@ -22,6 +23,7 @@ struct MosqueSelectedCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14 * scale) {
             header
+            hoursNote
             if let route {
                 routeSummary(route)
             }
@@ -61,27 +63,30 @@ struct MosqueSelectedCard: View {
             }
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            closeButton
+            MosqueCloseButton(label: tr("close")) { mosques.select(nil) }
+                // Pull the 44 pt hit area into the corner so the circle lines up with the title.
+                .padding(.top, -6)
+                .padding(.trailing, -6)
         }
     }
 
-    private var closeButton: some View {
-        Button {
-            mosques.select(nil)
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: 13 * scale, weight: .bold))
-                .foregroundStyle(AppColor.textMuted)
-                .frame(width: 32 * scale, height: 32 * scale)
-                .background(AppColor.surface, in: Circle())
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(Rectangle())
+    // MARK: - Opening hours
+
+    /// The OpenStreetMap data has no opening hours: check in a real map app
+    /// whether the mosque is open — the app can't answer for it.
+    private var hoursNote: some View {
+        Label {
+            Text(tr("mosques_hours_note"))
+        } icon: {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(AppColor.gold)
         }
-        .buttonStyle(MosqueRowButtonStyle())
-        // Pull the 44 pt hit area into the corner so the circle lines up with the title.
-        .padding(.top, -6)
-        .padding(.trailing, -6)
-        .accessibilityLabel(tr("close"))
+        .font(layoutMetrics.font(.footnote, .subheadline))
+        .foregroundStyle(AppColor.textMain)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(10 * scale)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColor.gold.opacity(0.12), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // MARK: - Route
@@ -123,7 +128,7 @@ struct MosqueSelectedCard: View {
             note(tr("mosques_route_needs_location"), icon: "location.slash")
         case .failed:
             note(tr("mosques_location_failed"), icon: "location.magnifyingglass")
-        case .notDetermined, .locating, .located:
+        case .notDetermined, .allowed, .locating, .located:
             EmptyView()
         }
     }
@@ -208,7 +213,7 @@ struct MosqueSelectedActions: View {
         case .restricted:
             // Nothing the user can change here; the menu beside it still works.
             EmptyView()
-        case .notDetermined, .locating, .located, .failed:
+        case .notDetermined, .allowed, .locating, .located, .failed:
             routeButton(style: style, stretch: stretch)
         }
     }

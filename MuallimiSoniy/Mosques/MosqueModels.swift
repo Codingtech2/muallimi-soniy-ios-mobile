@@ -75,6 +75,9 @@ nonisolated struct MosqueRoute: Hashable, Sendable {
 nonisolated enum MosqueLocationState: Equatable, Sendable {
     /// Never asked yet.
     case notDetermined
+    /// Allowed, but nobody has asked for a fix yet: the tab never locates on
+    /// its own.
+    case allowed
     case locating
     case located
     case denied

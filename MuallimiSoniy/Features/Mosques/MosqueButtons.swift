@@ -152,6 +152,66 @@ struct MosqueEqualWidthRow: Layout {
     }
 }
 
+/// The panel's round ×: closes the chosen mosque, or hides the nearest list
+/// or a location message. A 32 pt circle inside a 44 pt hit area.
+struct MosqueCloseButton: View {
+    let label: String
+    let action: () -> Void
+
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
+    var body: some View {
+        let scale = layoutMetrics.uiScale
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 13 * scale, weight: .bold))
+                .foregroundStyle(AppColor.textMuted)
+                .frame(width: 32 * scale, height: 32 * scale)
+                .background(AppColor.surface, in: Circle())
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(MosqueRowButtonStyle())
+        .accessibilityLabel(label)
+    }
+}
+
+/// What stays of the hidden panel: one small glass capsule in its corner
+/// ("Eng yaqin masjidlar ⌃") that brings it back. Same glass and height as
+/// the search field, so the two read as one family.
+struct MosquePanelReopenButton: View {
+    let title: String
+    let action: () -> Void
+
+    @Environment(\.layoutMetrics) private var layoutMetrics
+
+    var body: some View {
+        let scale = layoutMetrics.uiScale
+        Button(action: action) {
+            HStack(spacing: 8 * scale) {
+                Image(systemName: "location.fill")
+                    .foregroundStyle(AppColor.primary)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .foregroundStyle(AppColor.textMain)
+                    .multilineTextAlignment(.leading)
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 12 * scale, weight: .bold))
+                    .foregroundStyle(AppColor.textMuted)
+                    .accessibilityHidden(true)
+            }
+            .font(layoutMetrics.font(.subheadline.weight(.semibold), .body.weight(.semibold)))
+            .padding(.horizontal, 16 * scale)
+            .padding(.vertical, 8 * scale)
+            .frame(minHeight: 50 * scale)
+            .glassCard(cornerRadius: 25 * scale)
+            .contentShape(Capsule())
+        }
+        .buttonStyle(MosqueRowButtonStyle())
+        .accessibilityLabel(title)
+    }
+}
+
 /// Plain rows (nearest list, search results): dim while pressed.
 struct MosqueRowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {

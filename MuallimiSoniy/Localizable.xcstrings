@@ -4166,6 +4166,35 @@
         }
       }
     },
+    "mosques_hours_note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open the mosque in another maps app to check whether it’s open right now. We aren’t responsible for this."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Открыта ли мечеть сейчас, проверьте, открыв её в другом приложении карт. Мы за это не отвечаем."
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Масжид ҳозир очиқ ёки ёпиқлигини бошқа харита иловасида очиб, аниқлаштириб олинг. Бунга биз жавобгар эмасмиз."
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Masjid hozir ochiq yoki yopiqligini boshqa xarita ilovasida ochib, aniqlashtirib oling. Bunga biz javobgar emasmiz."
+          }
+        }
+      }
+    },
     "mosques_locating" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4452,35 +4481,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Sozlamalarni ochish"
-          }
-        }
-      }
-    },
-    "mosques_permission_desc" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your location is used only on this device to find mosques near you and is never sent anywhere. When you open a mosque in another maps app, only that mosque's location is passed to it."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Геопозиция используется только на этом устройстве, чтобы найти мечети рядом, и никуда не отправляется. Если открыть мечеть в другом приложении карт, ему передаётся только расположение этой мечети."
-          }
-        },
-        "uz-Cyrl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Жойлашувингиз фақат шу қурилмада яқин атрофдаги масжидларни топиш учун ишлатилади ва ҳеч қаерга юборилмайди. Масжидни бошқа харита иловасида очсангиз, унга фақат ўша масжиднинг жойлашуви узатилади."
-          }
-        },
-        "uz-UZ" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Joylashuvingiz faqat shu qurilmada yaqin atrofdagi masjidlarni topish uchun ishlatiladi va hech qayerga yuborilmaydi. Masjidni boshqa xarita ilovasida ochsangiz, unga faqat oʻsha masjidning joylashuvi uzatiladi."
           }
         }
       }
@@ -4887,6 +4887,122 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "toʻgʻri chiziq"
+          }
+        }
+      }
+    },
+    "mosques_suggest_later" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Not now"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не сейчас"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ҳозир эмас"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hozir emas"
+          }
+        }
+      }
+    },
+    "mosques_suggest_privacy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your location is used only on this device and is never sent anywhere."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Геопозиция используется только на этом устройстве и никуда не отправляется."
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Жойлашувингиз фақат шу қурилмада ишлатилади ва ҳеч қаерга юборилмайди."
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Joylashuvingiz faqat shu qurilmada ishlatiladi va hech qayerga yuborilmaydi."
+          }
+        }
+      }
+    },
+    "mosques_suggest_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Find a mosque near you?"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Найти мечеть рядом с вами?"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сизга яқин масжидни топиб берайми?"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sizga yaqin masjidni topib beraymi?"
+          }
+        }
+      }
+    },
+    "mosques_suggest_yes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Yes, find it"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Да, найти"
+          }
+        },
+        "uz-Cyrl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ҳа, топинг"
+          }
+        },
+        "uz-UZ" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ha, toping"
           }
         }
       }

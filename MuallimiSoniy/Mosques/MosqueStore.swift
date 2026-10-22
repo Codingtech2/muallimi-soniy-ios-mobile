@@ -5,7 +5,8 @@ import OSLog
 /// Everything behind the Masjidlar tab: the bundled OpenStreetMap mosques,
 /// the user's location and the five nearest mosques, the selected mosque, a
 /// route to it and the hand-off to Yandex / Google / Apple Maps and Yandex Go.
-/// The dataset loads (off the main actor) only when the tab first appears.
+/// The dataset loads (off the main actor) only when the tab first appears;
+/// the user is located only when they ask (the panel's suggestion, a route).
 /// iOS-only, no web counterpart yet.
 @MainActor
 @Observable
@@ -19,6 +20,11 @@ final class MosqueStore {
     private(set) var locationState: MosqueLocationState = .notDetermined
     /// Closest first, up to five within 50 km; empty without a location.
     private(set) var nearby: [NearbyMosque] = []
+    /// The user said yes to "find the nearest mosques" this session: from
+    /// then on the panel follows the location (list, or why not).
+    private(set) var isNearbyRequested = false
+    /// The user hid the bottom panel; a small button brings it back.
+    private(set) var isPanelHidden = false
     private(set) var selected: Mosque?
     private(set) var route: MosqueRoute?
     private(set) var isRouting = false
@@ -59,8 +65,9 @@ final class MosqueStore {
     // MARK: - Loading
 
     /// Loads the bundled dataset once (decoded off the main actor; concurrent
-    /// callers share the one load), then follows the location permission:
-    /// allowed earlier → locates right away; denied → `locationState` says so.
+    /// callers share the one load), then reads the location permission:
+    /// `locationState` says whether it is allowed or denied. Nothing is
+    /// located here — the panel suggests it and waits for the user.
     func loadIfNeeded() async {
         await loadDataset()
         if !hasScreenCallbacks { isScreenVisible = true }
@@ -71,7 +78,7 @@ final class MosqueStore {
     }
 
     /// The Masjidlar screen is up: a permission given meanwhile (e.g. in
-    /// Settings) locates the user now.
+    /// Settings, after the user asked for the nearest mosques) locates now.
     func screenDidAppear() {
         hasScreenCallbacks = true
         isScreenVisible = true
@@ -115,6 +122,29 @@ final class MosqueStore {
             """)
     }
 
+    // MARK: - Panel
+
+    /// "Ha, toping": the user wants the nearest mosques — locate them now
+    /// (asking for permission the first time) and keep the panel open.
+    func findNearest() async {
+        isNearbyRequested = true
+        isPanelHidden = false
+        await locateUser()
+    }
+
+    /// "Hozir emas" or the panel's ×: only a small button stays on the map.
+    func hidePanel() {
+        isPanelHidden = true
+    }
+
+    /// The small button: the panel comes back — straight to the nearest
+    /// mosques when they were never looked up.
+    func showPanel() async {
+        isPanelHidden = false
+        guard !isNearbyRequested else { return }
+        await findNearest()
+    }
+
     // MARK: - Location
 
     /// One fix → `userLocation`, the nearest mosques and `locationState`,
@@ -144,14 +174,14 @@ final class MosqueStore {
         await loadDataset()
         #if DEBUG
         if let fake = debugOverrides.location {
-            useLocation(fake, source: "-MSMosqueLocation")
+            await useLocation(fake, source: "-MSMosqueLocation")
             return
         }
         #endif
         let provider = makeLocationProvider()
         locationState = .locating
         switch await provider.requestOneShot(askForPrecise: askForPrecise) {
-        case .located(let point): useLocation(point, source: "CoreLocation")
+        case .located(let point): await useLocation(point, source: "CoreLocation")
         case .denied: forgetLocation(becoming: .denied)
         case .restricted: forgetLocation(becoming: .restricted)
         case .failed: locateFailed()
@@ -168,7 +198,7 @@ final class MosqueStore {
         if let locationProvider { return locationProvider }
         let provider = LocationProvider()
         provider.onPermissionChange = { [weak self] permission in
-            self?.permissionDidChange(permission)
+            self?.permissionDidChange(permission, isChange: true)
         }
         locationProvider = provider
         return provider
@@ -180,21 +210,30 @@ final class MosqueStore {
         #if DEBUG
         guard debugOverrides.location == nil else { return }
         #endif
-        permissionDidChange(makeLocationProvider().permission)
+        permissionDidChange(makeLocationProvider().permission, isChange: false)
     }
 
-    /// The permission changed (or is first read) while no request runs.
-    private func permissionDidChange(_ permission: LocationProvider.Permission) {
+    /// The permission changed (`isChange`), or is read again, while no
+    /// request runs.
+    private func permissionDidChange(_ permission: LocationProvider.Permission, isChange: Bool) {
         guard locationState != .locating else { return }
         switch permission {
         case .authorized:
-            // Allowed earlier, or just now in Settings: locate without asking —
-            // only while the screen is up, and without the "precise location"
-            // prompt (nobody tapped anything). `.locating` right away, so a
-            // repeated callback doesn't locate twice.
-            guard userLocation == nil, isScreenVisible else { return }
-            locationState = .locating
-            Task { [weak self] in await self?.locate(askForPrecise: false) }
+            guard userLocation == nil else { return }
+            // A failed fix waits for "Qayta urinish" — unless location was
+            // only allowed just now (a prompt answered after our timeout).
+            if isNearbyRequested, isScreenVisible, isChange || locationState != .failed {
+                // Asked for the nearest mosques, then allowed location (in
+                // Settings): carry on — only while the screen is up, and
+                // without the "precise location" prompt (nobody tapped
+                // anything just now). `.locating` right away, so a repeated
+                // callback doesn't locate twice.
+                locationState = .locating
+                Task { [weak self] in await self?.locate(askForPrecise: false) }
+            } else if locationState != .failed {
+                // Nothing is located on its own: the panel suggests it.
+                locationState = .allowed
+            }
         case .denied:
             forgetLocation(becoming: .denied)
         case .restricted:
@@ -204,15 +243,27 @@ final class MosqueStore {
         }
     }
 
-    private func useLocation(_ point: GeoPoint, source: String) {
-        userLocation = point
+    /// The fix is in: the nearest mosques are worked out on a background
+    /// thread (the panel still says "locating" meanwhile and the map keeps
+    /// moving), then everything is shown at once on the main actor.
+    private func useLocation(_ point: GeoPoint, source: String) async {
+        let catalog = catalog
+        let limit = Self.nearbyCount
         // Only mosques within reach: abroad the list stays empty.
-        nearby = catalog.nearest(to: point, limit: Self.nearbyCount, within: MosqueCatalog.nearbyRadiusMeters)
+        let search = await Task.detached(priority: .userInitiated) {
+            MosqueStore.searchNearby(in: catalog, around: point, limit: limit)
+        }.value
+        userLocation = point
+        nearby = search.nearby
         locationState = .located
         if selected == nil { focusRequest += 1 }
         let list = nearby.map { "\($0.mosque.name ?? $0.mosque.nameRu ?? $0.id) \(Int($0.meters)) m" }
         let spot = MosqueLog.describe(point)
         MosqueLog.nearUser("located at \(spot) via \(source); nearest: \(list.joined(separator: "; "))")
+        MosqueLog.logger.info("""
+            nearest: \(search.nearby.count) found in \(search.milliseconds, format: .fixed(precision: 2)) ms, \
+            on the main thread: \(search.ranOnMainThread, privacy: .public)
+            """)
     }
 
     /// No permission any more: drop the location and everything built on it.
@@ -310,17 +361,15 @@ final class MosqueStore {
         )
     }
 
-    /// What the map draws for `viewport`: single mosques, and one round badge
-    /// with the count where pins would pile up (see `MosqueClustering`). The
-    /// selected mosque is always its own pin.
-    func mapItems(in viewport: GeoBounds, grid: MosqueClustering.Grid) -> [MosqueMapItem] {
-        MosqueClustering.items(for: mosques, in: viewport, grid: grid, selectedID: selected?.id)
-    }
-
     /// Case-, accent- and script-insensitive ("juma" finds "Жума" and back);
-    /// nearest first when the location is known, else A→Z.
-    func search(_ query: String, limit: Int) -> [Mosque] {
-        catalog.search(query, near: userLocation, limit: limit)
+    /// nearest first when the location is known, else A→Z. Searched on a
+    /// background thread; the results come back on the main actor.
+    func search(_ query: String, limit: Int) async -> [Mosque] {
+        let catalog = catalog
+        let origin = userLocation
+        return await Task.detached(priority: .userInitiated) {
+            catalog.search(query, near: origin, limit: limit)
+        }.value
     }
 
     /// The name to show in the app's language, or nil for an unnamed mosque

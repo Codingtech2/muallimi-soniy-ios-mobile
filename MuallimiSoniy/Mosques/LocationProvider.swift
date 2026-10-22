@@ -50,6 +50,11 @@ final class LocationProvider {
 
     /// How long a fix may take once permission is there.
     private static let fixTimeout: Duration = .seconds(15)
+    /// A fix at least this fresh and this close — MapKit keeps one while the
+    /// map shows the user's dot — is used as it is: a new ten-meter fix can
+    /// take several seconds.
+    private static let recentFixMaxAge: TimeInterval = 30
+    private static let recentFixMaxAccuracy: CLLocationAccuracy = 50
     /// Safety net for the permission prompts, so a caller can never wait forever.
     private static let promptTimeout: Duration = .seconds(60)
     /// Without this purpose string iOS drops the permission request silently.
@@ -172,9 +177,30 @@ final class LocationProvider {
     }
 
     private func startFix() {
+        if let recent = recentFix() {
+            finish(.located(recent))
+            return
+        }
         phase = .locating
         armTimeout(Self.fixTimeout)
         manager.requestLocation()
+    }
+
+    /// The last fix CoreLocation has for this app, when it is recent and
+    /// precise enough to rank mosques a few hundred meters apart.
+    private func recentFix() -> GeoPoint? {
+        guard let location = manager.location else { return nil }
+        let age = -location.timestamp.timeIntervalSinceNow
+        let accuracy = location.horizontalAccuracy
+        // A negative accuracy marks an invalid fix.
+        guard accuracy >= 0, accuracy <= Self.recentFixMaxAccuracy, age <= Self.recentFixMaxAge else { return nil }
+        let point = GeoPoint(latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
+        guard point.isValid else { return nil }
+        logger.info("""
+            location: using the fix from \(age, format: .fixed(precision: 1)) s ago, \
+            within \(accuracy, format: .fixed(precision: 0)) m
+            """)
+        return point
     }
 
     /// Ends the request and answers every waiter, each exactly once.

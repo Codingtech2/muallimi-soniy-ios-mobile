@@ -122,7 +122,8 @@ struct MosqueSearchSheet: View {
         dismiss()
     }
 
-    /// Searches once typing pauses; a newer keystroke cancels the wait.
+    /// Searches once typing pauses (on a background thread); a newer
+    /// keystroke cancels the wait and drops an older answer.
     private func runSearch() async {
         let text = trimmedQuery
         guard !text.isEmpty else {
@@ -132,7 +133,9 @@ struct MosqueSearchSheet: View {
         }
         try? await Task.sleep(for: Self.typingPause)
         guard !Task.isCancelled else { return }
-        results = mosques.search(text, limit: Self.resultLimit)
+        let found = await mosques.search(text, limit: Self.resultLimit)
+        guard !Task.isCancelled else { return }
+        results = found
         searchedQuery = text
     }
 }

@@ -1,15 +1,21 @@
 import SwiftUI
 
-/// What the bottom panel shows. A chosen mosque wins; otherwise it follows
-/// the location flow: ask → locating → nearest five (or why not).
+/// What the bottom panel shows. A chosen mosque wins; otherwise nothing is
+/// located until the user says yes to the suggestion, and then it follows
+/// the location flow: locating → nearest five (or why not). The user can
+/// hide it down to one small button.
 enum MosquePanelState: Equatable {
     case loading
-    case permission
+    /// "Sizga yaqin masjidni topib beraymi?" — with a privacy line when iOS
+    /// asks for location permission next.
+    case suggestion(needsPermission: Bool)
     case locating
     case denied
     case restricted
     case failed
     case nearby
+    /// Hidden by the user: only the button that brings it back.
+    case hidden
     case selected(Mosque)
 }
 
@@ -38,7 +44,8 @@ enum MosqueLayout {
 
 /// The glass panel at the bottom of the map (bottom-leading floating card on
 /// iPad). Shows exactly one state at a time: its text scrolls when it no
-/// longer fits (large text sizes), its buttons always stay in view.
+/// longer fits (large text sizes), its buttons always stay in view. Hidden,
+/// it shrinks to one small glass button in the same corner.
 struct MosquePanel: View {
     let locale: AppLocale
     let maxHeight: CGFloat
@@ -53,8 +60,12 @@ struct MosquePanel: View {
     private var state: MosquePanelState {
         if let mosque = mosques.selected { return .selected(mosque) }
         guard mosques.isLoaded else { return .loading }
+        if mosques.isPanelHidden { return .hidden }
+        let suggestion = MosquePanelState.suggestion(needsPermission: mosques.locationState == .notDetermined)
+        // Nothing is located until the user says yes.
+        guard mosques.isNearbyRequested else { return suggestion }
         switch mosques.locationState {
-        case .notDetermined: return .permission
+        case .notDetermined, .allowed: return suggestion
         case .locating: return .locating
         case .located: return .nearby
         case .denied: return .denied
@@ -70,11 +81,28 @@ struct MosquePanel: View {
     private func tr(_ key: String) -> String { content.t(key, locale) }
 
     var body: some View {
+        Group {
+            if state == .hidden {
+                reopenButton
+            } else {
+                card
+            }
+        }
+        .frame(maxWidth: layoutMetrics.isRegular ? MosqueLayout.regularPanelWidth : .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, margin)
+        .padding(.bottom, layoutMetrics.isRegular ? margin : 8)
+        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: state)
+    }
+
+    private var card: some View {
         MaxHeightLayout(maxHeight: maxHeight) {
             VStack(alignment: .leading, spacing: 14 * layoutMetrics.uiScale) {
-                ViewThatFits(in: .vertical) {
-                    stateBody
-                    scrollingBody
+                RoundingSlackLayout {
+                    ViewThatFits(in: .vertical) {
+                        stateBody
+                        scrollingBody
+                    }
                 }
                 stateFooter
             }
@@ -87,11 +115,20 @@ struct MosquePanel: View {
         .background {
             Color.clear.glassCard(cornerRadius: MosqueLayout.panelCornerRadius)
         }
-        .frame(maxWidth: layoutMetrics.isRegular ? MosqueLayout.regularPanelWidth : .infinity, alignment: .leading)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, margin)
-        .padding(.bottom, layoutMetrics.isRegular ? margin : 8)
-        .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: state)
+    }
+
+    /// What is left of the hidden panel. Before the user ever said yes it
+    /// finds the nearest mosques straight away; after, it shows them again.
+    private var reopenButton: some View {
+        let title = mosques.isNearbyRequested ? tr("mosques_nearest") : tr("mosques_find_nearest")
+        return MosquePanelReopenButton(title: title) {
+            Task { await mosques.showPanel() }
+        }
+    }
+
+    /// The round × that hides the panel.
+    private var hideButton: MosqueCloseButton {
+        MosqueCloseButton(label: tr("close")) { mosques.hidePanel() }
     }
 
     /// The state's text when it no longer fits (large text, small phones):
@@ -119,11 +156,11 @@ struct MosquePanel: View {
         switch state {
         case .loading:
             MosqueProgressRow(text: tr("loading"))
-        case .permission:
+        case .suggestion(let needsPermission):
             MosqueMessageCard(
                 icon: "location.circle.fill",
-                title: tr("mosques_nearest"),
-                message: tr("mosques_permission_desc")
+                title: tr("mosques_suggest_title"),
+                message: needsPermission ? tr("mosques_suggest_privacy") : nil
             )
         case .locating:
             MosqueProgressRow(text: tr("mosques_locating"))
@@ -131,24 +168,29 @@ struct MosquePanel: View {
             MosqueMessageCard(
                 icon: "location.slash.fill",
                 title: tr("mosques_location_denied"),
-                message: tr("mosques_location_denied_desc")
+                message: tr("mosques_location_denied_desc"),
+                closeButton: hideButton
             )
         case .restricted:
             MosqueMessageCard(
                 icon: "location.slash.fill",
                 title: tr("mosques_location_restricted"),
-                message: tr("mosques_browse_hint")
+                message: tr("mosques_browse_hint"),
+                closeButton: hideButton
             )
         case .failed:
             MosqueMessageCard(
                 icon: "location.magnifyingglass",
                 title: tr("mosques_location_failed"),
-                message: tr("mosques_location_failed_desc")
+                message: tr("mosques_location_failed_desc"),
+                closeButton: hideButton
             )
         case .nearby:
             MosqueNearbyList(locale: locale, limit: nearbyLimit)
         case .selected(let mosque):
             MosqueSelectedCard(mosque: mosque, route: route(to: mosque), locale: locale)
+        case .hidden:
+            EmptyView()
         }
     }
 
@@ -157,10 +199,8 @@ struct MosquePanel: View {
     @ViewBuilder
     private var stateFooter: some View {
         switch state {
-        case .permission:
-            MosquePanelButton(title: tr("mosques_find_nearest"), systemImage: "location.fill") {
-                Task { await mosques.locateUser() }
-            }
+        case .suggestion:
+            MosqueSuggestionActions(locale: locale)
         case .denied:
             MosquePanelButton(title: tr("mosques_open_settings"), systemImage: "gearshape.fill") {
                 mosques.openLocationSettings()
@@ -171,7 +211,7 @@ struct MosquePanel: View {
             }
         case .selected(let mosque):
             MosqueSelectedActions(mosque: mosque, route: route(to: mosque), locale: locale)
-        case .loading, .locating, .restricted, .nearby:
+        case .loading, .locating, .restricted, .nearby, .hidden:
             EmptyView()
         }
     }
@@ -185,19 +225,21 @@ struct MosquePanel: View {
 
 // MARK: - Building blocks
 
-/// Icon chip, title and a line or two of explanation. At accessibility text
-/// sizes the chip is left out, so the text gets the room.
+/// Icon chip, title and a line or two of explanation (or the title alone),
+/// with an optional round × in the corner. At accessibility text sizes the
+/// chip is left out, so the text gets the room.
 struct MosqueMessageCard: View {
     let icon: String
     let title: String
-    let message: String
+    var message: String?
+    var closeButton: MosqueCloseButton?
 
     @Environment(\.layoutMetrics) private var layoutMetrics
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let scale = layoutMetrics.uiScale
-        HStack(alignment: .top, spacing: 12 * scale) {
+        HStack(alignment: message == nil ? .center : .top, spacing: 12 * scale) {
             if !dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: icon)
                     .font(.system(size: 18 * scale, weight: .semibold))
@@ -214,13 +256,79 @@ struct MosqueMessageCard: View {
                     .font(layoutMetrics.font(.headline, .title3.weight(.semibold)))
                     .foregroundStyle(AppColor.textMain)
                     .accessibilityAddTraits(.isHeader)
-                Text(message)
-                    .font(layoutMetrics.font(.subheadline, .body))
-                    .foregroundStyle(AppColor.textMuted)
+                if let message {
+                    Text(message)
+                        .font(layoutMetrics.font(.subheadline, .body))
+                        .foregroundStyle(AppColor.textMuted)
+                }
             }
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+            if let closeButton {
+                closeButton
+                    // Pull the 44 pt hit area into the corner so the circle lines up with the title.
+                    .padding(.top, -6)
+                    .padding(.trailing, -6)
+            }
         }
+    }
+}
+
+/// "Ha, toping" and "Hozir emas" under the suggestion: side by side at one
+/// equal width in the first look both labels fit (with icons, without, a
+/// step smaller, or wrapped), stacked at accessibility sizes.
+struct MosqueSuggestionActions: View {
+    let locale: AppLocale
+
+    @Environment(MosqueStore.self) private var mosques
+    @Environment(ContentStore.self) private var content
+    @Environment(\.layoutMetrics) private var layoutMetrics
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var scale: CGFloat { layoutMetrics.uiScale }
+    private func tr(_ key: String) -> String { content.t(key, locale) }
+
+    @ViewBuilder
+    var body: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(spacing: 10 * scale) {
+                findButton(style: .automatic, stretch: false)
+                laterButton(style: .automatic, stretch: false)
+            }
+        } else {
+            ViewThatFits(in: .horizontal) {
+                actionRow(.icon)
+                actionRow(.plain)
+                actionRow(.compact)
+                actionRow(.wrapped)
+            }
+        }
+    }
+
+    private func actionRow(_ style: MosqueButtonLabel.Style) -> some View {
+        MosqueEqualWidthRow(spacing: 10 * scale) {
+            findButton(style: style, stretch: true)
+            laterButton(style: style, stretch: true)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func findButton(style: MosqueButtonLabel.Style, stretch: Bool) -> some View {
+        Button {
+            Task { await mosques.findNearest() }
+        } label: {
+            MosqueButtonLabel(title: tr("mosques_suggest_yes"), systemImage: "location.fill", style: style)
+        }
+        .buttonStyle(MosqueActionButtonStyle(prominent: true, stretch: stretch))
+    }
+
+    private func laterButton(style: MosqueButtonLabel.Style, stretch: Bool) -> some View {
+        Button {
+            mosques.hidePanel()
+        } label: {
+            MosqueButtonLabel(title: tr("mosques_suggest_later"), systemImage: "xmark", style: style)
+        }
+        .buttonStyle(MosqueActionButtonStyle(prominent: false, stretch: stretch))
     }
 }
 
@@ -261,6 +369,28 @@ private struct MaxHeightLayout: Layout {
             at: bounds.origin,
             anchor: .topLeading,
             proposal: ProposedViewSize(width: bounds.width, height: bounds.height)
+        )
+    }
+}
+
+/// Offers its content one point more height than it was given. `ViewThatFits`
+/// turns down a candidate exactly as tall as the room it gets (a rounding
+/// hair), so a short message whose height matched the panel switched to the
+/// scrolling variant and had its last line faded out.
+private struct RoundingSlackLayout: Layout {
+    private static let slack: CGFloat = 1
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard let child = subviews.first else { return .zero }
+        let height = proposal.height.map { $0 + Self.slack }
+        return child.sizeThatFits(ProposedViewSize(width: proposal.width, height: height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(
+            at: bounds.origin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(width: bounds.width, height: bounds.height + Self.slack)
         )
     }
 }

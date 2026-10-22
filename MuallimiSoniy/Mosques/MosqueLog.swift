@@ -20,4 +20,9 @@ nonisolated enum MosqueLog {
     static func describe(_ point: GeoPoint) -> String {
         String(format: "%.5f,%.5f", locale: Locale(identifier: "en_US_POSIX"), point.latitude, point.longitude)
     }
+
+    /// A measured duration in milliseconds, for the timing log lines.
+    static func milliseconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds) * 1000 + Double(duration.components.attoseconds) / 1e15
+    }
 }

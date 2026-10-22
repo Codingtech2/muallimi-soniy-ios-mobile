@@ -3,7 +3,7 @@ import MapKit
 
 /// One thing on the map: a mosque pin with its title in the app's language,
 /// or a round badge for mosques too close together to tell apart.
-enum MosqueMapPin: Identifiable, Equatable {
+nonisolated enum MosqueMapPin: Identifiable, Equatable, Sendable {
     case single(Mosque, title: String)
     case cluster(MosqueCluster)
 
@@ -13,11 +13,39 @@ enum MosqueMapPin: Identifiable, Equatable {
         case .cluster(let cluster): return cluster.id
         }
     }
+
+    /// What the map draws for `viewport`: single mosques with their titles,
+    /// and one round badge with the count where pins would pile up (see
+    /// `MosqueClustering`). The selected mosque is always its own pin; a
+    /// mosque without a name is called `unnamedTitle`. Pure, so it runs on a
+    /// background thread.
+    static func pins(
+        for mosques: [Mosque], in viewport: GeoBounds, grid: MosqueClustering.Grid,
+        selectedID: String?, locale: AppLocale, unnamedTitle: String
+    ) -> [MosqueMapPin] {
+        MosqueClustering.items(for: mosques, in: viewport, grid: grid, selectedID: selectedID).map { item in
+            switch item {
+            case .single(let mosque):
+                return .single(mosque, title: MosqueCatalog.displayName(of: mosque, locale: locale) ?? unnamedTitle)
+            case .cluster(let cluster):
+                return .cluster(cluster)
+            }
+        }
+    }
+}
+
+/// Everything the map's pins depend on: when it changes they are built again.
+nonisolated private struct MosquePinsInput: Hashable, Sendable {
+    let viewport: GeoBounds
+    let grid: MosqueClustering.Grid
+    let selectedID: String?
+    let locale: AppLocale
 }
 
 /// The full-screen map: the user's dot, the mosques in view — clustered into
-/// count badges where they would pile up, recomputed whenever the camera
-/// stops — the chosen mosque with its title showing, and the route line.
+/// count badges where they would pile up, recomputed on a background thread
+/// whenever the camera stops — the chosen mosque with its title showing, and
+/// the route line.
 /// Moves the camera when the store asks (`focusRequest`: a chosen mosque, or
 /// the user once located), when a route arrives and when a badge is tapped.
 struct MosqueMapView: View {
@@ -84,31 +112,29 @@ struct MosqueMapView: View {
         }
         .onMapCameraChange(frequency: .onEnd) { context in
             visibleRegion = context.region
-            refreshPins()
         }
         .onGeometryChange(for: CGSize.self) { proxy in
             proxy.size
         } action: { size in
             mapSize = size
-            refreshPins()
         }
+        // A new camera stop, size, selection or language cancels the build
+        // still running for the old one.
+        .task(id: pinsInput) { await rebuildPins(for: pinsInput) }
         .onAppear {
             // Back on the tab with a mosque still chosen: show its pin chosen
             // too, and bring it (or its route) back into view.
             mapSelection = mosques.selected?.id
-            refreshPins()
             if mosques.selected != nil { focusOnRequest() }
         }
         .onChange(of: bottomInset) { aimAgainAfterPanelChange() }
         .sensoryFeedback(.impact(weight: .light), trigger: clusterTaps)
         .modifier(MosqueMapReactions(
             mosques: mosques,
-            locale: locale,
             mapSelection: $mapSelection,
             onMapSelection: mapSelectionChanged,
             onFocusRequest: focusOnRequest,
-            onRoute: show,
-            onRefresh: refreshPins
+            onRoute: show
         ))
     }
 
@@ -180,18 +206,33 @@ struct MosqueMapView: View {
         String(format: content.t("mosques_cluster_a11y", locale), "\(cluster.count)")
     }
 
-    /// Reclusters what is in view: one pass over the mosques, cheap enough
-    /// for every camera stop. The selected mosque always stays its own pin.
-    private func refreshPins() {
-        guard mosques.isLoaded, mapSize.width > 0, mapSize.height > 0 else { return }
-        let grid = MosqueClustering.Grid(mapWidth: mapSize.width, mapHeight: mapSize.height)
-        let formatter = MosqueFormatter(content: content, mosques: mosques, locale: locale)
-        pins = mosques.mapItems(in: MosqueMapRegion.bounds(of: visibleRegion), grid: grid).map { item in
-            switch item {
-            case .single(let mosque): return .single(mosque, title: formatter.name(of: mosque))
-            case .cluster(let cluster): return .cluster(cluster)
-            }
-        }
+    /// What the pins are built from; nil until the dataset and the map's size are known.
+    private var pinsInput: MosquePinsInput? {
+        guard mosques.isLoaded, mapSize.width > 0, mapSize.height > 0 else { return nil }
+        return MosquePinsInput(
+            viewport: MosqueMapRegion.bounds(of: visibleRegion),
+            grid: MosqueClustering.Grid(mapWidth: mapSize.width, mapHeight: mapSize.height),
+            selectedID: mosques.selected?.id,
+            locale: locale
+        )
+    }
+
+    /// Reclusters what is in view on a background thread and shows the
+    /// result on the main actor, so a camera stop never holds up the map.
+    /// A build overtaken by a newer one is dropped; equal pins leave the map
+    /// untouched.
+    private func rebuildPins(for input: MosquePinsInput?) async {
+        guard let input else { return }
+        let all = mosques.mosques
+        let unnamedTitle = content.t("mosques_unnamed", input.locale)
+        let built = await Task.detached(priority: .userInitiated) {
+            MosqueMapPin.pins(
+                for: all, in: input.viewport, grid: input.grid,
+                selectedID: input.selectedID, locale: input.locale, unnamedTitle: unnamedTitle
+            )
+        }.value
+        guard !Task.isCancelled, built != pins else { return }
+        pins = built
     }
 
     // MARK: - Selection
@@ -279,30 +320,24 @@ struct MosqueMapView: View {
 }
 
 /// The store changes the map reacts to, kept out of `MosqueMapView.body`
-/// so it stays readable.
+/// so it stays readable. (The pins follow the store through the view's
+/// `.task(id:)`: a newly chosen mosque leaves its cluster there.)
 private struct MosqueMapReactions: ViewModifier {
     let mosques: MosqueStore
-    let locale: AppLocale
     @Binding var mapSelection: String?
     let onMapSelection: (String?) -> Void
     let onFocusRequest: () -> Void
     let onRoute: (MosqueRoute) -> Void
-    let onRefresh: () -> Void
 
     func body(content: Content) -> some View {
         content
             .onChange(of: mapSelection) { _, id in onMapSelection(id) }
             .onChange(of: mosques.selected?.id) { _, id in
                 if mapSelection != id { mapSelection = id }
-                // The chosen mosque leaves (or rejoins) its cluster.
-                onRefresh()
             }
             .onChange(of: mosques.focusRequest) { onFocusRequest() }
             .onChange(of: mosques.route) { _, route in
                 if let route { onRoute(route) }
             }
-            .onChange(of: mosques.isLoaded) { onRefresh() }
-            .onChange(of: mosques.userLocation) { onRefresh() }
-            .onChange(of: locale) { onRefresh() }
     }
 }

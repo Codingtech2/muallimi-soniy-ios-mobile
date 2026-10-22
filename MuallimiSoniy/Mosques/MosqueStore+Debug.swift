@@ -29,7 +29,8 @@ extension MosqueStore {
     }
 
     private func runDebugOverrides(_ overrides: MosqueDebugOverrides) async {
-        if overrides.location != nil { await locateUser() }
+        // A fixed location stands for the user saying yes to the nearest mosques.
+        if overrides.location != nil { await findNearest() }
         if let id = overrides.selectID { selectForDebug(id) }
         if overrides.selfTest { await runSelfTest() }
         guard let app = overrides.openApp else { return }
@@ -63,7 +64,7 @@ extension MosqueStore {
             MosqueLog.nearUser("self-test: nearest #\(rank + 1) \(item.id) \(name) — \(distance)")
         }
         for query in ["juma", "жума", "минор", "minor", "xoʻja"] {
-            let hits = search(query, limit: 100)
+            let hits = await search(query, limit: 100)
             let names = hits.prefix(3).map { displayName(of: $0, locale: .uzLatn) ?? $0.id }
             let sample = names.joined(separator: "; ")
             MosqueLog.logger.info(
@@ -81,8 +82,7 @@ extension MosqueStore {
         let clock = ContinuousClock()
         let started = clock.now
         await showRoute(to: target)
-        let took = clock.now - started
-        let milliseconds = Double(took.components.seconds) * 1000 + Double(took.components.attoseconds) / 1e15
+        let milliseconds = MosqueLog.milliseconds(clock.now - started)
         let kind = route.map { $0.isStraightLine ? "straight line" : "a routed line" } ?? "none"
         MosqueLog.logger.info(
             "self-test: done, route = \(kind, privacy: .public) in \(milliseconds, format: .fixed(precision: 2)) ms"
