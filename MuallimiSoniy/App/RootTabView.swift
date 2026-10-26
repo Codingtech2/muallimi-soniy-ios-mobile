@@ -33,7 +33,7 @@ struct RootTabView: View {
                 }
                 .tag(RootTab.lessons)
 
-            if showMosquesTab {
+            if FeatureFlags.mosquesMap, showMosquesTab {
                 MosquesView()
                     .tabItem {
                         Label(store.t("mosques_tab", locale), systemImage: "moon.stars.fill")

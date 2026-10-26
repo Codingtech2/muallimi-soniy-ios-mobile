@@ -41,7 +41,9 @@ struct SettingsView: View {
                         appearanceSection
                         languageSection
                         fontSizeSection
-                        mosquesSection
+                        if FeatureFlags.mosquesMap {
+                            mosquesSection
+                        }
                         aboutSection
                     }
 
@@ -340,7 +342,7 @@ struct SettingsView: View {
                     desc: "\(tr("app_name")) · v\(appVersion)"
                 )
                 VStack(spacing: 6 * layoutMetrics.uiScale) {
-                    ForEach(LegalDoc.allCases) { doc in
+                    ForEach(LegalDoc.allCases.filter(\.isShown)) { doc in
                         aboutRow(doc)
                     }
                 }
@@ -505,6 +507,9 @@ private enum LegalDoc: String, Identifiable, CaseIterable {
 
     var id: String { rawValue }
     var docKey: String { rawValue }
+
+    /// The map-data credits only make sense while the mosques map is shown.
+    var isShown: Bool { self != .mapData || FeatureFlags.mosquesMap }
 
     /// Hosted web page for this row; `nil` means show the in-app text instead.
     /// Privacy / Terms open the public vipads.uz documents (the authoritative
