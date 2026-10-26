@@ -11,7 +11,8 @@ import SwiftUI
 /// being sheared by a square edge.
 ///
 /// Layout, left to right (chrome stays LTR even though the content is RTL):
-/// `‹ page | ⏮ ▶︎ ⏭ | ⟲ | page ›`. Everything is always present at a fixed
+/// `‹ next page | ⏮ ▶︎ ⏭ | ⟲ | previous page ›` — the page buttons follow the
+/// book, which turns right to left. Everything is always present at a fixed
 /// height — a page without audio renders the transport and loop *disabled*
 /// rather than removing them, because removing them would change the bar's
 /// height between pages and slide the page chevrons out from under the user's
@@ -86,13 +87,15 @@ struct ReaderControlBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            pageButton("chevron.backward", label: prevPageLabel, enabled: canGoPrevPage, action: onPrevPage)
+            // The book turns right to left (see `HorizontalBookPager`): the
+            // next page lies to the left, so its button points and sits there.
+            pageButton("chevron.left", label: nextPageLabel, enabled: canGoNextPage, action: onNextPage)
             Spacer(minLength: groupSpacing)
             transportGroup
             Spacer(minLength: groupSpacing)
             loopButton
             Spacer(minLength: groupSpacing)
-            pageButton("chevron.forward", label: nextPageLabel, enabled: canGoNextPage, action: onNextPage)
+            pageButton("chevron.right", label: prevPageLabel, enabled: canGoPrevPage, action: onPrevPage)
         }
         .padding(.horizontal, sideMargin)
         .frame(height: barHeight)

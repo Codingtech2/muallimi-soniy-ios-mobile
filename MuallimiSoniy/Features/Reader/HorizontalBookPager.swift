@@ -111,12 +111,23 @@ struct HorizontalBookPager: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
-                    ForEach(pages) { page in
+                    // The book turns right to left like an Arabic book: page 1
+                    // sits on the far right and the next page comes in from the
+                    // left. Only the order is reversed — everything below goes
+                    // by page id, and a `.rightToLeft` layout direction made the
+                    // paging skip a page after a chevron tap.
+                    ForEach(pages.reversed()) { page in
                         pageCell(page)
+                            // VoiceOver still reads the book from page 1 on,
+                            // not from the far-left page.
+                            .accessibilitySortPriority(Double(pages.count - page.globalIndex))
                     }
                 }
                 .scrollTargetLayout()
             }
+            // Rest on page 1 (now the right end) before any jump lands, so it
+            // stays the default resting page `scrollToCurrent` relies on.
+            .defaultScrollAnchor(.trailing)
             .scrollTargetBehavior(.paging)
             .scrollPosition(id: scrollBinding)
             .modifier(IdleCommitScrollPhase(
