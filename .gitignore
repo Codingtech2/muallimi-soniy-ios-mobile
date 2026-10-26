@@ -60,3 +60,6 @@ review/
 
 # === tools/translations — raw QuranEnc / ClearQuran downloads (local only) ===
 tools/translations/.cache/
+
+# claude-agents: per-developer plugin profile (do not commit)
+.claude/settings.local.json
